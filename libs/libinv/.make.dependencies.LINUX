@@ -1,0 +1,11 @@
+ifndef QUICK
+./cgstep.o:   
+./hycdstep.o: ./hpf.o 
+./identity_mod.o: ./adjnull.o 
+./hycdsolver_report.o:  ./hpf.o 
+./tcai1.o: ./adjnull.o 
+./hycdsolver_reg.o: ./smallchain.o ./hycdsolver_report.o ./hpf.o 
+./hycdsolver_smp.o: ./smallchain.o ./hycdsolver_report.o ./hpf.o 
+./solver_smp.o:  ./smallchain.o  
+./hycdsolver_prc.o: ./smallchain.o ./hycdsolver_report.o ./hpf.o 
+endif  

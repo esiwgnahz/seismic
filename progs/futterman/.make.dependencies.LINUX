@@ -1,0 +1,5 @@
+ifndef QUICK
+./Pick_and_shift.o:     
+./QcompZO_Iterative_inversion.o:           
+./Futprocs.o:   
+endif  

@@ -1,0 +1,13 @@
+ifndef QUICK
+./Sparse_decon_bfgs.o:       
+./Compute_wavelet.o:   
+./Burg_pef.o:  
+./Sparse_decon_bfgs_guessinit.o:       
+./Cliptomax.o:  
+./Apply_sparse_decon_filter.o:   
+./Phase_rotation.o:   
+./Apply_filter.o:       
+./Sparse_decon_bfgs_noise_model.o:      
+./Convo.o:   
+./Center.o:  
+endif  

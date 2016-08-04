@@ -1,0 +1,5 @@
+ifndef QUICK
+./sfft_mod.o: ./fft_mod.o  
+./tcai1.o:  
+./symmetry.o:  
+endif  

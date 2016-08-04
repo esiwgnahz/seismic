@@ -1,0 +1,3 @@
+ifndef QUICK
+./futterman_fwd_adj.o:   
+endif  
