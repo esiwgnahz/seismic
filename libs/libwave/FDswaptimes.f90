@@ -8,7 +8,7 @@ module FDswaptime_mod
     subroutine FDswaptime_omp(genpar,bounds,u)
       type(GeneralParam)  ::  genpar
       type(FDbounds)     ::          bounds
-      real               ::                 u(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+genpar%nbound,bounds%nmin3-genpar%nbound:bounds%nmax3+4,-1:3)
+      real               ::                 u(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
       integer         :: k,j,i
 
       !$OMP PARALLEL DO PRIVATE(k,j,i)
@@ -29,7 +29,7 @@ module FDswaptime_mod
     subroutine FDswaptime(genpar,bounds,u)
       type(GeneralParam)::genpar
       type(FDbounds)    ::       bounds
-      real              ::              u(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+genpar%nbound,bounds%nmin3-genpar%nbound:bounds%nmax3+4,-1:3)
+      real              ::              u(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
       integer         :: k,j,i
 
       do k=bounds%nmin3-genpar%nbound,bounds%nmax3+genpar%nbound

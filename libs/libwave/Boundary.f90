@@ -1,6 +1,9 @@
 module Boundary_mod
 
-  use GeneralParam_type
+  use GeneralParam_types
+  use ModelSpace_types
+  use Interpolate_mod
+  use FD_types
   
   implicit none
   
@@ -17,7 +20,6 @@ contains
     real :: nu
     real :: qx, qt, qxt, rx, rt, rxt, fdum
     
-    !
     beta1 = 1.0
     beta2 = 0.7
     weight = 0.5
@@ -28,26 +30,26 @@ contains
     !
     do k=bounds%nmin3,bounds%nmax3
        do j=bounds%nmin2,bounds%nmax2
-          nu = v(bounds%nmin1,j,k)*dt*dzi
+          nu = mod%vel(bounds%nmin1,j,k)*dt*dzi
           call Higdon_coeff(nu,beta1,beta2,weight,hig%gz(1,j,k))
-          nu = v(bounds%nmax1,j,k)*dt*dzi
+          nu = mod%vel(bounds%nmax1,j,k)*dt*dzi
           call Higdon_coeff(nu,beta1,beta2,weight,hig%gz(9,j,k))
        end do
     end do
     do k=bounds%nmin3,bounds%nmax3
        do i=bounds%nmin1,bounds%nmax1
-          nu = v(i,bounds%nmin2,k)*dt*dxi
+          nu = mod%vel(i,bounds%nmin2,k)*dt*dxi
           call Higdon_coeff(nu,beta1,beta2,weight,hig%gx(1,i,k))
-          nu = v(i,bounds%nmax2,k)*dt*dxi
+          nu = mod%vel(i,bounds%nmax2,k)*dt*dxi
           call Higdon_coeff(nu,beta1,beta2,weight,hig%gx(9,i,k))
        end do
     end do
     if (bounds%nmax3.gt.1) then
        do j=bounds%nmin2,bounds%nmax2
           do i=bounds%nmin1,bounds%nmax1
-             nu = v(i,j,bounds%nmin3)*dt*dyi
+             nu = mod%vel(i,j,bounds%nmin3)*dt*dyi
              call Higdon_coeff(nu,beta1,beta2,weight,hig%gy(1,i,j))
-             nu = v(i,j,bounds%nmax3)*dt*dyi
+             nu = mod%vel(i,j,bounds%nmax3)*dt*dyi
              call Higdon_coeff(nu,beta1,beta2,weight,hig%gy(9,i,j))
           end do
        end do
@@ -90,7 +92,7 @@ contains
     &         bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
 
     integer :: i, j, k, nz0
-    integer :: fscale0, 
+    integer :: fscale0
     real    :: fscale, fdum
 
     nz0 = 1
@@ -105,7 +107,7 @@ contains
        do j=bounds%nmin2,bounds%nmax2
           ! Update the top
           ! Taper
-          if (mod%surf_type.le.0) then
+          if (genpar%surf_type.le.0) then
              do i=nz0-1,bounds%nmin1,-1
                 fscale = float(nz0-i)/float(nz0-1-bounds%nmin1)/fscale0
                 fdum = hig%gz(1,j,k)*u(i+1,j,k,3)+ &
@@ -336,7 +338,7 @@ contains
     do k=bounds%nmin3,bounds%nmax3
        do j=bounds%nmin2,bounds%nmax2
           ! Update the top
-          if (mod%surf_type.le.0) then
+          if (genpar%surf_type.le.0) then
              do i=nz0-1,bounds%nmin1-4,-1
                 fscale = float(nz0-i)/float(nz0-1-bounds%nmin1+4)/fscale0
                 fdum = hig%gz(1,j,k)*u(i+1,j,k,3)+ &
@@ -441,5 +443,57 @@ contains
     endif
     !
   end subroutine Boundary1
-!
+
+  subroutine Boundary_set_free_surface(bounds,model,elev,u,genpar)
+    type(FDbounds)    ::               bounds
+    type(ModelSpace)  ::                      model
+    type(ModelSpace_elevation) ::                   elev
+    type(GeneralParam)::                                   genpar
+    real              ::                                 u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                                                      bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
+
+    integer:: i,j,k,l
+
+    real, allocatable :: sinc(:),uinterp(:)
+    real :: fdum
+    
+    allocate(sinc(genpar%lsinc),uinterp(genpar%lsinc))
+
+    if (genpar%surf_type.ne.0) then
+       do k=bounds%nmin3,bounds%nmax3
+          do j=bounds%nmin2,bounds%nmax2
+             ! Set the pressure to zero above the free surface
+             do i=bounds%nmin1,elev%ielev_z(j,k)-1
+                u(i,j,k,2) = 0.
+             end do
+             if (elev%delev_z(j,k).eq.0.) then
+                do i=0,2
+                   u(elev%ielev_z(j,k)-2-i,j,k,2) = -u(elev%ielev_z(j,k)+i,j,k,2)
+                end do
+             else
+                ! Interpolate between grid
+                call mksinc(sinc,genpar%lsinc,elev%delev_z(j,k)/model%dz)
+                do i=-genpar%lsinc/2,genpar%lsinc/2
+                   fdum = 0.
+                   do l=-genpar%lsinc/2,genpar%lsinc/2
+                      fdum = fdum + u(elev%ielev_z(j,k)+l+i,j,k,2)*sinc(genpar%lsinc/2+l+1)
+                   end do
+                   uinterp(genpar%lsinc/2+i+1) = fdum
+                end do
+                ! Add inverse mirror image
+                do i=2,genpar%lsinc/2+1
+                   do l=-genpar%lsinc/2,i-1
+                      u(elev%ielev_z(j,k)-i+l,j,k,2) = u(elev%ielev_z(j,k)-i+l,j,k,2)- &
+                      &  uinterp(genpar%lsinc/2+i-1)*sinc(genpar%lsinc/2+l+1)
+                   end do
+                end do
+             endif
+          end do
+       end do
+    endif
+
+    deallocate(sinc,uinterp)
+
+  end subroutine Boundary_set_free_surface
+
 end module Boundary_mod

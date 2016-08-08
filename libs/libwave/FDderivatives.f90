@@ -4,9 +4,10 @@ module FD_derivatives
   use ModelSpace_types
   use GeneralParam_types
   
+  implicit none
+
   type(ScaledFDcoefs), pointer, private  :: coefs
   
-  implicit none
 
 contains
 
@@ -56,21 +57,21 @@ contains
     type(FDbounds)       ::                            bounds
     real                 :: u(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
     real                 :: tmpzz, tmpxx, tmpyy
-    real, dimension(:,;,:), allocatable :: sxx,szz,syy,delp
+    real, dimension(:,:,:), allocatable :: sxx,szz,syy,delp
     real                 :: dxi,dyi,dzi
     integer              :: i,j,k
 
     allocate(sxx(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))
     allocate(syy(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))
     allocate(szz(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))    
-    allocate(delp((bounds%nmin1:bounds%nmax1,bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3)))
+    allocate(delp(bounds%nmin1:bounds%nmax1,bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
     
     delp=1./mod%rho2
     dxi =1./mod%dx
     dyi =1./mod%dy
     dzi =1./mod%dz
 
-    !$OMP PARALLEL DO PRIVATE(k,j,i,tmpxx,tmpzz,tmpyy)
+    !$OMP PARALLEL DO PRIVATE(k,j,i,sxx,szz,syy)
     do k=bounds%nmin3,bounds%nmax3
        do j=bounds%nmin2,bounds%nmax2
           do i=bounds%nmin1,bounds%nmax1   
@@ -91,8 +92,8 @@ contains
     end do
     !$OMP END PARALLEL DO
      
-    do k=bounds%nmin3,bounds@nmax3
-       do j=bounds%nmin2,bounds@nmax2
+    do k=bounds%nmin3,bounds%nmax3
+       do j=bounds%nmin2,bounds%nmax2
           ! Gradient of the p-wave potential in the top operator padding 
           do i=bounds%nmin1-1,bounds%nmin1-3,-1
              szz(i,j,k)=dzi*(u(i+1,j,k,2)-u(i,j,k,2))*delp(bounds%nmin1,j,k)
@@ -100,33 +101,33 @@ contains
              syy(i,j,k)=dyi*(u(i,j,k+1,2)-u(i,j,k,2))*delp(bounds%nmin1,j,k)
           end do
           ! Gradient of the p-wave potential in the bottom operator padding
-          do i=bounds@nmax1+1,bounds@nmax1+3
-             szz(i,j,k)=dzi*(u(i+1,j,k,2)-u(i,j,k,2))*delp(bounds@nmax1,j,k)
-             sxx(i,j,k)=dxi*(u(i,j+1,k,2)-u(i,j,k,2))*delp(bounds@nmax1,j,k)
-             syy(i,j,k)=dyi*(u(i,j,k+1,2)-u(i,j,k,2))*delp(bounds@nmax1,j,k)
+          do i=bounds%nmax1+1,bounds%nmax1+3
+             szz(i,j,k)=dzi*(u(i+1,j,k,2)-u(i,j,k,2))*delp(bounds%nmax1,j,k)
+             sxx(i,j,k)=dxi*(u(i,j+1,k,2)-u(i,j,k,2))*delp(bounds%nmax1,j,k)
+             syy(i,j,k)=dyi*(u(i,j,k+1,2)-u(i,j,k,2))*delp(bounds%nmax1,j,k)
           end do
        end do
        ! Gradient of the p-wave potential in the left side operator padding 
        do j=bounds%nmin2-1,bounds%nmin2-3,-1
-          do i=bounds%nmin1,bounds@nmax1
+          do i=bounds%nmin1,bounds%nmax1
              szz(i,j,k)=dzi*(u(i+1,j,k,2)-u(i,j,k,2))*delp(i,bounds%nmin2,k)
              sxx(i,j,k)=dxi*(u(i,j+1,k,2)-u(i,j,k,2))*delp(i,bounds%nmin2,k)
              syy(i,j,k)=dyi*(u(i,j,k+1,2)-u(i,j,k,2))*delp(i,bounds%nmin2,k)
           end do
        end do
        ! Gradient of the p-wave potential in the right side operator padding 
-       do j=bounds@nmax2+1,bounds@nmax2+3
-          do i=bounds%nmin1,bounds@nmax1
-             szz(i,j,k)=dzi*(u(i+1,j,k,2)-u(i,j,k,2))*delp(i,bounds@nmax2,k)
-             sxx(i,j,k)=dxi*(u(i,j+1,k,2)-u(i,j,k,2))*delp(i,bounds@nmax2,k)
-             syy(i,j,k)=dyi*(u(i,j,k+1,2)-u(i,j,k,2))*delp(i,bounds@nmax2,k)
+       do j=bounds%nmax2+1,bounds%nmax2+3
+          do i=bounds%nmin1,bounds%nmax1
+             szz(i,j,k)=dzi*(u(i+1,j,k,2)-u(i,j,k,2))*delp(i,bounds%nmax2,k)
+             sxx(i,j,k)=dxi*(u(i,j+1,k,2)-u(i,j,k,2))*delp(i,bounds%nmax2,k)
+             syy(i,j,k)=dyi*(u(i,j,k+1,2)-u(i,j,k,2))*delp(i,bounds%nmax2,k)
           end do
        end do
     end do
     ! Gradient of the p-wave potential in the front side operator padding 
     do k=bounds%nmin3-1,bounds%nmin3-3,-1
-       do j=bounds%nmin2,bounds@nmax2
-          do i=bounds%nmin1,bounds@nmax1
+       do j=bounds%nmin2,bounds%nmax2
+          do i=bounds%nmin1,bounds%nmax1
              szz(i,j,k)=dzi*(u(i+1,j,k,2)-u(i,j,k,2))*delp(i,j,bounds%nmin3)
              sxx(i,j,k)=dxi*(u(i,j+1,k,2)-u(i,j,k,2))*delp(i,j,bounds%nmin3)
              syy(i,j,k)=dyi*(u(i,j,k+1,2)-u(i,j,k,2))*delp(i,j,bounds%nmin3)
@@ -134,20 +135,20 @@ contains
        end do
     end do
     ! Gradient of the p-wave potential in the back side operator padding 
-    do k=bounds@nmax3+1,bounds@nmax3+3
-       do j=bounds%nmin2,bounds@nmax2
-          do i=bounds%nmin1,bounds@nmax1
-             szz(i,j,k)=dzi*(u(i+1,j,k,2)-u(i,j,k,2))*delp(i,j,bounds@nmax3)
-             sxx(i,j,k)=dxi*(u(i,j+1,k,2)-u(i,j,k,2))*delp(i,j,bounds@nmax3)
-             syy(i,j,k)=dyi*(u(i,j,k+1,2)-u(i,j,k,2))*delp(i,j,bounds@nmax3)
+    do k=bounds%nmax3+1,bounds%nmax3+3
+       do j=bounds%nmin2,bounds%nmax2
+          do i=bounds%nmin1,bounds%nmax1
+             szz(i,j,k)=dzi*(u(i+1,j,k,2)-u(i,j,k,2))*delp(i,j,bounds%nmax3)
+             sxx(i,j,k)=dxi*(u(i,j+1,k,2)-u(i,j,k,2))*delp(i,j,bounds%nmax3)
+             syy(i,j,k)=dyi*(u(i,j,k+1,2)-u(i,j,k,2))*delp(i,j,bounds%nmax3)
           end do
        end do
     end do
     
-    !$OMP PARALLEL DO PRIVATE(k,j,i,dsxxm,dszzm,dsyym)
-    do k=bounds%nmin3,bounds@nmax3
-       do j=bounds%nmin2,bounds@nmax2
-          do i=bounds%nmin1,bounds@nmax1
+    !$OMP PARALLEL DO PRIVATE(k,j,i,tmpxx,tmpzz,tmpyy)
+    do k=bounds%nmin3,bounds%nmax3
+       do j=bounds%nmin2,bounds%nmax2
+          do i=bounds%nmin1,bounds%nmax1
              tmpzz=         coefs%c1z*(szz(i,j,k)-szz(i-1,j,k))+ &
              &              coefs%c2z*(szz(i+1,j,k)-szz(i-2,j,k))+ &
              &              coefs%c3z*(szz(i+2,j,k)-szz(i-3,j,k))+ &
@@ -176,13 +177,13 @@ contains
     type(FDbounds)       ::                            bounds
     real                 :: u(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
     real                 :: tmpzz, tmpxx
-    real, dimension(:,;,:), allocatable :: sxx,szz,delp
+    real, dimension(:,:,:), allocatable :: sxx,szz,delp
     real                 :: dxi,dzi
     integer              :: i,j
 
     allocate(sxx(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3:bounds%nmax3))
     allocate(szz(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3:bounds%nmax3))     
-    allocate(delp((bounds%nmin1:bounds%nmax1,bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3)))
+    allocate(delp(bounds%nmin1:bounds%nmax1,bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
     
     delp=1./mod%rho2
     dxi =1./mod%dx
@@ -193,7 +194,7 @@ contains
           szz(i,j,1)=           (coefs%c1z*(u(i+1,j,1,2)-u(i,j,1,2))+ &
           &                      coefs%c2z*(u(i+2,j,1,2)-u(i-1,j,1,2))+ &
           &                      coefs%c3z*(u(i+3,j,1,2)-u(i-2,j,1,2))+ &
-          &                      coefs%c4z*(u(i+4,j,1,2)-u(i-3,j,,2)))*delp(i,j,1)
+          &                      coefs%c4z*(u(i+4,j,1,2)-u(i-3,j,1,2)))*delp(i,j,1)
           sxx(i,j,1)=           (coefs%c1x*(u(i,j+1,1,2)-u(i,j,1,2))+ &
           &                      coefs%c2x*(u(i,j+2,1,2)-u(i,j-1,1,2))+ &
           &                      coefs%c3x*(u(i,j+3,1,2)-u(i,j-2,1,2))+ &
@@ -201,31 +202,31 @@ contains
        end do
     end do
      
-    do j=bounds%nmin2,bounds@nmax2
+    do j=bounds%nmin2,bounds%nmax2
        ! Gradient of the p-wave potential in the top operator padding 
        do i=bounds%nmin1-1,bounds%nmin1-3,-1
           szz(i,j,1)=dzi*(u(i+1,j,1,2)-u(i,j,1,2))*delp(bounds%nmin1,j,1)
           sxx(i,j,1)=dxi*(u(i,j+1,1,2)-u(i,j,1,2))*delp(bounds%nmin1,j,1)
        end do
        ! Gradient of the p-wave potential in the bottom operator padding
-       do i=bounds@nmax1+1,bounds@nmax1+3
-          szz(i,j,1)=dzi*(u(i+1,j,1,2)-u(i,j,1,2))*delp(bounds@nmax1,j,1)
-          sxx(i,j,1)=dxi*(u(i,j+1,1,2)-u(i,j,1,2))*delp(bounds@nmax1,j,1)
+       do i=bounds%nmax1+1,bounds%nmax1+3
+          szz(i,j,1)=dzi*(u(i+1,j,1,2)-u(i,j,1,2))*delp(bounds%nmax1,j,1)
+          sxx(i,j,1)=dxi*(u(i,j+1,1,2)-u(i,j,1,2))*delp(bounds%nmax1,j,1)
        end do
     end do
     ! Gradient of the p-wave potential in the left side operator padding 
     do j=bounds%nmin2-1,bounds%nmin2-3,-1
-       do i=bounds%nmin1,bounds@nmax1
+       do i=bounds%nmin1,bounds%nmax1
           szz(i,j,1)=dzi*(u(i+1,j,1,2)-u(i,j,1,2))*delp(i,bounds%nmin2,1)
           sxx(i,j,1)=dxi*(u(i,j+1,1,2)-u(i,j,1,2))*delp(i,bounds%nmin2,1)
        end do
     end do
     
     ! Gradient of the p-wave potential in the right side operator padding 
-    do j=bounds@nmax2+1,bounds@nmax2+3
-       do i=bounds%nmin1,bounds@nmax1
-          szz(i,j,1)=dzi*(u(i+1,j,1,2)-u(i,j,1,2))*delp(i,bounds@nmax2,1)
-          sxx(i,j,1)=dxi*(u(i,j+1,1,2)-u(i,j,1,2))*delp(i,bounds@nmax2,1)
+    do j=bounds%nmax2+1,bounds%nmax2+3
+       do i=bounds%nmin1,bounds%nmax1
+          szz(i,j,1)=dzi*(u(i+1,j,1,2)-u(i,j,1,2))*delp(i,bounds%nmax2,1)
+          sxx(i,j,1)=dxi*(u(i,j+1,1,2)-u(i,j,1,2))*delp(i,bounds%nmax2,1)
        end do
     end do 
     
@@ -341,7 +342,7 @@ contains
     type(FDbounds)       ::                    bounds
     real                 ::                           u(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
     integer              :: i,j,k
-    real                 :: div11
+    real                 :: div11,dt2
 
     div11=1./11
     dt2=genpar%dt**2
@@ -365,7 +366,7 @@ contains
     type(FDbounds)       ::                bounds
     real                 ::                       u(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
     integer              :: i,j,k
-    real                 :: div11
+    real                 :: div11,dt2
 
     div11=1./11
     dt2=genpar%dt**2

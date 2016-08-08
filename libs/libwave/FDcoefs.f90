@@ -1,14 +1,13 @@
-module FDcoefs
+module FDcoefs_assign
 
-  use FD_types
-  
   implicit none
   
 contains
 
   subroutine FD_acoustic_rho_init_coefs(coef)
 
-    type(FDcoefs) ::  coef
+    use FD_types
+    type(UnscaledFDcoefs) ::  coef
 
     coef%c0=0.
     coef%c1 =  1225./1024.
@@ -20,7 +19,8 @@ contains
 
   subroutine FD_acoustic_init_coefs(coef)
 
-    type(FDcoefs) ::  coef
+    use FD_types
+    type(UnscaledFDcoefs) ::  coef
 
     coef%c0=-205./72.
     coef%c1=8./5
@@ -30,4 +30,4 @@ contains
    
   end subroutine FD_acoustic_init_coefs
 
-end module FDcoefs
+end module FDcoefs_assign
