@@ -71,7 +71,11 @@ contains
     dyi =1./mod%dy
     dzi =1./mod%dz
 
-    !$OMP PARALLEL DO PRIVATE(k,j,i,sxx,szz,syy)
+    szz=0.
+    syy=0.
+    sxx=0.
+
+    !$OMP PARALLEL DO PRIVATE(k,j,i)
     do k=bounds%nmin3,bounds%nmax3
        do j=bounds%nmin2,bounds%nmax2
           do i=bounds%nmin1,bounds%nmax1   
@@ -124,7 +128,9 @@ contains
           end do
        end do
     end do
+    
     ! Gradient of the p-wave potential in the front side operator padding 
+    !$OMP PARALLEL DO PRIVATE(k,j,i)
     do k=bounds%nmin3-1,bounds%nmin3-3,-1
        do j=bounds%nmin2,bounds%nmax2
           do i=bounds%nmin1,bounds%nmax1
@@ -134,7 +140,10 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
+    
     ! Gradient of the p-wave potential in the back side operator padding 
+    !$OMP PARALLEL DO PRIVATE(k,j,i)
     do k=bounds%nmax3+1,bounds%nmax3+3
        do j=bounds%nmin2,bounds%nmax2
           do i=bounds%nmin1,bounds%nmax1
@@ -144,20 +153,21 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
     
     !$OMP PARALLEL DO PRIVATE(k,j,i,tmpxx,tmpzz,tmpyy)
     do k=bounds%nmin3,bounds%nmax3
        do j=bounds%nmin2,bounds%nmax2
           do i=bounds%nmin1,bounds%nmax1
-             tmpzz=         coefs%c1z*(szz(i,j,k)-szz(i-1,j,k))+ &
+             tmpzz=         coefs%c1z*(szz(i  ,j,k)-szz(i-1,j,k))+ &
              &              coefs%c2z*(szz(i+1,j,k)-szz(i-2,j,k))+ &
              &              coefs%c3z*(szz(i+2,j,k)-szz(i-3,j,k))+ &
              &              coefs%c4z*(szz(i+3,j,k)-szz(i-4,j,k))
-             tmpxx=         coefs%c1x*(sxx(i,j,k)-sxx(i,j-1,k))+ &
+             tmpxx=         coefs%c1x*(sxx(i  ,j,k)-sxx(i,j-1,k))+ &
              &              coefs%c2x*(sxx(i,j+1,k)-sxx(i,j-2,k))+ &
              &              coefs%c3x*(sxx(i,j+2,k)-sxx(i,j-3,k))+ &
              &              coefs%c4x*(sxx(i,j+3,k)-sxx(i,j-4,k))
-             tmpyy=         coefs%c1y*(syy(i,j,k)-syy(i,j,k-1))+ &
+             tmpyy=         coefs%c1y*(syy(i,j,k  )-syy(i,j,k-1))+ &
              &              coefs%c2y*(syy(i,j,k+1)-syy(i,j,k-2))+ &
              &              coefs%c3y*(syy(i,j,k+2)-syy(i,j,k-3))+ &
              &              coefs%c4y*(syy(i,j,k+3)-syy(i,j,k-4))
@@ -186,16 +196,19 @@ contains
     allocate(delp(bounds%nmin1:bounds%nmax1,bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
     
     delp=1./mod%rho2
-    dxi =1./mod%dx
-    dzi =1./mod%dz
+    dxi =1./genpar%dx
+    dzi =1./genpar%dz
+
+    sxx=0.
+    szz=0. 
 
     do j=bounds%nmin2,bounds%nmax2
        do i=bounds%nmin1,bounds%nmax1   
-          szz(i,j,1)=           (coefs%c1z*(u(i+1,j,1,2)-u(i,j,1,2))+ &
+          szz(i,j,1)=           (coefs%c1z*(u(i+1,j,1,2)-u(i  ,j,1,2))+ &
           &                      coefs%c2z*(u(i+2,j,1,2)-u(i-1,j,1,2))+ &
           &                      coefs%c3z*(u(i+3,j,1,2)-u(i-2,j,1,2))+ &
           &                      coefs%c4z*(u(i+4,j,1,2)-u(i-3,j,1,2)))*delp(i,j,1)
-          sxx(i,j,1)=           (coefs%c1x*(u(i,j+1,1,2)-u(i,j,1,2))+ &
+          sxx(i,j,1)=           (coefs%c1x*(u(i,j+1,1,2)-u(i  ,j,1,2))+ &
           &                      coefs%c2x*(u(i,j+2,1,2)-u(i,j-1,1,2))+ &
           &                      coefs%c3x*(u(i,j+3,1,2)-u(i,j-2,1,2))+ &
           &                      coefs%c4x*(u(i,j+4,1,2)-u(i,j-3,1,2)))*delp(i,j,1)
@@ -240,7 +253,7 @@ contains
           &              coefs%c2x*(sxx(i,j+1,1)-sxx(i,j-2,1))+ &
           &              coefs%c3x*(sxx(i,j+2,1)-sxx(i,j-3,1))+ &
           &              coefs%c4x*(sxx(i,j+3,1)-sxx(i,j-4,1))
-          u(i,j,1,3)=mod%vel(i,j,1)**2* &
+          u(i,j,1,3)=mod%vel(i,j,1)*mod%vel(i,j,1)* &
           &              mod%rho(i,j,1)*(tmpxx+tmpzz)
        end do
     end do

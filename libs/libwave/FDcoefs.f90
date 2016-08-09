@@ -9,7 +9,7 @@ contains
     use FD_types
     type(UnscaledFDcoefs) ::  coef
 
-    coef%c0=0.
+    coef%c0 =  0.
     coef%c1 =  1225./1024.
     coef%c2 = -1225./(1024.*15.)
     coef%c3 =  1225./(1024.*125.)

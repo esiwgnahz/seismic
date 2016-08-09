@@ -3,6 +3,7 @@ program Acoustic_modeling
   use sep
   use FDcoefs_assign
   use Propagator_mod
+  use Interpolate_mod
 
   use DataSpace_types
   use ModelSpace_types
@@ -19,6 +20,7 @@ program Acoustic_modeling
   integer :: i,j,k 
   integer :: ntsnap
 
+  logical :: withRho
   call sep_init()
   
   call from_history('n1',dat%nt)
@@ -26,8 +28,16 @@ program Acoustic_modeling
   allocate(dat%source(dat%nt))
   call sreed('in',dat%source,4*dat%nt)
 
+  call from_param('withRho',withRho,.false.)
+  if (withRho) then
+     genpar%coefpower=1
+  else
+     genpar%coefpower=2
+  end if
+  call from_param('twoD',genpar%twoD,.false.)
+
 !  genpar%twoD=.false.
-  genpar%twoD=.true.
+!  genpar%twoD=.true.
 
   if (.not.genpar%twoD) then     
      genpar%nbound=4
@@ -94,11 +104,15 @@ program Acoustic_modeling
   write(0,*) 'bounds%nmin3',bounds%nmin3,'bounds%nmax3',bounds%nmax3
 
   allocate(mod%vel(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
+  allocate(mod%rho(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
+  allocate(mod%rho2(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
   allocate(elev%elev(bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
   allocate(elev%elev_rec(bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
   allocate(elev%elev_sou(bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
 
   mod%vel=2500. 
+  mod%rho=1
+  call Interpolate(mod,bounds)
   elev%elev=0.
   elev%elev_rec=0.
   elev%elev_sou=0.
@@ -108,21 +122,37 @@ program Acoustic_modeling
   elev%ishot_x=int(mod%nx/2)
   elev%ishot_y=int(max(2,mod%ny)/2)
 
-  write(0,*) 'before scalar wave propagator'
+  write(0,*) 'before wave propagator'
   if (genpar%twoD) then
-     call propagator_acoustic(FD_acoustic_init_coefs, &
-     & FD_2nd_2D_derivatives_scalar_forward,          &
-     & Injection_source,                              &
-     & FD_2nd_time_derivative,                        &
-     & FDswaptime,bounds,mod,dat,elev,genpar)
+     if (.not.withRho) then
+        call propagator_acoustic(FD_acoustic_init_coefs, &
+        & FD_2nd_2D_derivatives_scalar_forward,          &
+        & Injection_source,                              &
+        & FD_2nd_time_derivative,                        &
+        & FDswaptime,bounds,mod,dat,elev,genpar)
+     else
+        call propagator_acoustic(FD_acoustic_rho_init_coefs, &
+        & FD_2D_derivatives_acoustic_forward,            &
+        & Injection_source_rho,                          &
+        & FD_2nd_time_derivative,                        &
+        & FDswaptime,bounds,mod,dat,elev,genpar)
+     end if
   else
-     call propagator_acoustic(FD_acoustic_init_coefs, &
-     & FD_2nd_3D_derivatives_scalar_forward,          &
-     & Injection_source,                              &
-     & FD_2nd_time_derivative_omp,                    &
-     & FDswaptime_omp,bounds,mod,dat,elev,genpar)
+     if (.not.withRho) then
+        call propagator_acoustic(FD_acoustic_init_coefs, &
+        & FD_2nd_3D_derivatives_scalar_forward,          &
+        & Injection_source_rho,                          &
+        & FD_2nd_time_derivative_omp,                    &
+        & FDswaptime_omp,bounds,mod,dat,elev,genpar)
+     else
+        call propagator_acoustic(FD_acoustic_rho_init_coefs, &
+        & FD_3D_derivatives_acoustic_forward,            &
+        & Injection_source,                              &
+        & FD_2nd_time_derivative_omp,                    &
+        & FDswaptime_omp,bounds,mod,dat,elev,genpar)
+     end if
   end if
-  write(0,*) 'after scalar wave propagator'
+  write(0,*) 'afterwave propagator'
   
   do i=1,dat%ny
      call srite('data',dat%data(1:dat%nt,1:dat%nx,i),4*dat%nx*dat%nt)

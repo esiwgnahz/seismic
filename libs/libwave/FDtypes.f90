@@ -43,32 +43,34 @@ module FD_types
 contains
 
   subroutine FD_types_assign_scaled_coefs(coefin,coefou,genpar)
-    type(ScaledFDcoefs):: coefou
-    type(UnscaledFDcoefs)  :: coefin
-    type(GeneralParam) :: genpar
-    real               :: dxi,dyi,dzi
+    type(ScaledFDcoefs)    ::                    coefou
+    type(UnscaledFDcoefs)  ::             coefin
+    type(GeneralParam)     ::                           genpar
+    real                   :: dxi,dyi,dzi
 
+    ! genpar%coefpower=2 for scalar   wave equation (v only)
+    ! genpar%coefpower=2 for acoustic wave equation (v and rho)
     dxi=1./genpar%dx
     dyi=1./genpar%dy
     dzi=1./genpar%dz
     
-    coefou%c0x=coefin%c0*dxi*dxi
-    coefou%c1x=coefin%c1*dxi*dxi
-    coefou%c2x=coefin%c2*dxi*dxi
-    coefou%c3x=coefin%c3*dxi*dxi
-    coefou%c4x=coefin%c4*dxi*dxi
+    coefou%c0x=coefin%c0*dxi**genpar%coefpower
+    coefou%c1x=coefin%c1*dxi**genpar%coefpower
+    coefou%c2x=coefin%c2*dxi**genpar%coefpower
+    coefou%c3x=coefin%c3*dxi**genpar%coefpower
+    coefou%c4x=coefin%c4*dxi**genpar%coefpower
 
-    coefou%c0y=coefin%c0*dyi*dyi
-    coefou%c1y=coefin%c1*dyi*dyi
-    coefou%c2y=coefin%c2*dyi*dyi
-    coefou%c3y=coefin%c3*dyi*dyi
-    coefou%c4y=coefin%c4*dyi*dyi
+    coefou%c0y=coefin%c0*dyi**genpar%coefpower
+    coefou%c1y=coefin%c1*dyi**genpar%coefpower
+    coefou%c2y=coefin%c2*dyi**genpar%coefpower
+    coefou%c3y=coefin%c3*dyi**genpar%coefpower
+    coefou%c4y=coefin%c4*dyi**genpar%coefpower
 
-    coefou%c0z=coefin%c0*dzi*dzi
-    coefou%c1z=coefin%c1*dzi*dzi
-    coefou%c2z=coefin%c2*dzi*dzi
-    coefou%c3z=coefin%c3*dzi*dzi
-    coefou%c4z=coefin%c4*dzi*dzi
+    coefou%c0z=coefin%c0*dzi**genpar%coefpower
+    coefou%c1z=coefin%c1*dzi**genpar%coefpower
+    coefou%c2z=coefin%c2*dzi**genpar%coefpower
+    coefou%c3z=coefin%c3*dzi**genpar%coefpower
+    coefou%c4z=coefin%c4*dzi**genpar%coefpower
 
   end subroutine FD_types_assign_scaled_coefs
 

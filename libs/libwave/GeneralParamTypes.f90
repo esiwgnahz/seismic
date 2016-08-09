@@ -22,6 +22,8 @@ module GeneralParam_types
      integer :: surf_type  ! Absorbing or not
      integer :: shot_type  ! Mirror or not
 
+     integer :: coefpower
+
   end type GeneralParam
 
   type HigdonParam
