@@ -346,7 +346,6 @@ contains
 
     div11=1./11
     dt2=genpar%dt**2
-
     !$OMP PARALLEL DO PRIVATE(k,j,i)
     do k=bounds%nmin3,bounds%nmax3
        do j=bounds%nmin2,bounds%nmax2

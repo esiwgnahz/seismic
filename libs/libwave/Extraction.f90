@@ -109,8 +109,6 @@ contains
        end if
     end if MODULO
     
-
-
     deallocate(buffer_sou)
 
   end subroutine Extraction_wavefield

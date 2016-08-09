@@ -65,7 +65,6 @@ contains
           end do
        endif
     end if
-
     deallocate(sinc)
 
   end subroutine Injection_source

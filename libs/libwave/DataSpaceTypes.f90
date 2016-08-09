@@ -8,7 +8,7 @@ module DataSpace_types
 
      integer :: it
      integer :: nt
-     integer :: dt
+     real    :: dt
 
      integer :: nx
      integer :: ny

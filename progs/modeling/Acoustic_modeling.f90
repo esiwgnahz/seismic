@@ -1,5 +1,6 @@
 program Acoustic_modeling
 
+  use sep
   use FDcoefs_assign
   use Propagator_mod
 
@@ -16,6 +17,14 @@ program Acoustic_modeling
   type(ModelSpace_elevation) :: elev
 
   integer :: i,j,k 
+  integer :: ntsnap
+
+  call sep_init()
+  
+  call from_history('n1',dat%nt)
+  call from_history('d1',dat%dt)
+  allocate(dat%source(dat%nt))
+  call sreed('in',dat%source,4*dat%nt)
 
   genpar%twoD=.false.
 
@@ -27,22 +36,25 @@ program Acoustic_modeling
      genpar%nbound=0
   end if
 
-  genpar%dt=0.004
+  genpar%dt=dat%dt
   genpar%dx=10
   genpar%dy=10
   genpar%dz=10
 
-  genpar%nt=100
+  genpar%nt=dat%nt
   genpar%lsinc=7
   genpar%ntaper=10
+  genpar%snapi=4
 
   genpar%rec_type=0
   genpar%surf_type=0
   genpar%shot_type=0
 
-  mod%nx=51
-  mod%ny=51
-  mod%nz=51
+  mod%nx=201
+  mod%ny=201
+  mod%nz=101
+
+  genpar%ntsnap=int(genpar%nt/genpar%snapi)
 
   if (genpar%twoD) then
      mod%ny=1
@@ -53,19 +65,13 @@ program Acoustic_modeling
   mod%dy=genpar%dy
   mod%dz=genpar%dz
 
-  dat%nt=genpar%nt
-  dat%dt=genpar%dt
   dat%nx=mod%nx
   dat%ny=mod%ny
 
   elev%dz=genpar%dz
 
-  allocate(dat%source(dat%nt))
-  dat%source=0.
-  dat%source(int(dat%nt/4))=1.
-
   allocate(dat%data(dat%nt,dat%nx,dat%ny))
-  allocate(dat%wave(mod%nz,mod%nx,mod%ny,dat%nt))
+  allocate(dat%wave(mod%nz,mod%nx,mod%ny,genpar%ntsnap))
   
   if (genpar%shot_type.gt.0 .or. genpar%surf_type.gt.0) then
      if (genpar%shot_type.gt.0) bounds%nmin1 = -(genpar%ntaper+genpar%lsinc/2+2)+1
@@ -93,14 +99,6 @@ program Acoustic_modeling
   allocate(elev%elev_rec(bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
   allocate(elev%elev_sou(bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
 
-!  do k=bounds%nmin3,bounds%nmax3
-!     do j=bounds%nmin2,bounds%nmax2
-!        do i=bounds%nmin1,bounds%nmax1
-!           mod%vel(i,j,k)=j
-!        end do
-!     end do
-!  end do
-
   mod%vel=2500. 
   elev%elev=0.
   elev%elev_rec=0.
@@ -127,6 +125,22 @@ program Acoustic_modeling
   end if
   write(0,*) 'after scalar wave propagator'
   
+  do i=1,dat%ny
+     call srite('data',dat%data(1:dat%nt,1:dat%nx,i),4*dat%nx*dat%nt)
+  end do
+
+  do i=1,genpar%ntsnap
+     call srite('wave',dat%wave(1:mod%nz,1:mod%nx,1:mod%ny,i),4*mod%nx*mod%ny*mod%nz)
+  end do
+
+  call to_history('n1',dat%nt,'data')
+  call to_history('n2',dat%nx,'data')
+  call to_history('n3',dat%ny,'data')
+
+  call to_history('n1',mod%nz,'wave')
+  call to_history('n2',mod%nx,'wave')
+  call to_history('n3',mod%ny,'wave')
+  call to_history('n4',dat%nt,'wave')
   call deallocateModelSpace(mod)
   call deallocateDataSpace(dat)
 end program Acoustic_modeling

@@ -16,6 +16,7 @@ module GeneralParam_types
      integer :: nbound
      integer :: ntaper
      integer :: snapi
+     integer :: ntsnap
 
      integer :: rec_type   ! Mirror or not
      integer :: surf_type  ! Absorbing or not
