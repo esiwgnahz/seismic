@@ -9,7 +9,7 @@ module Extraction_mod
 
 contains
 
-  subroutine Extraction_shot_simple(bounds,dat,elev,u,genpar,it)
+  subroutine Extraction_shot_simple(bounds,dat,elev,u,genpar)
     type(FDbounds)    ::            bounds
     type(DataSpace)   ::                   dat
     type(ModelSpace_elevation) ::              elev
@@ -18,7 +18,7 @@ contains
     &                                            bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
     integer           :: it,k,j
     
-
+    it=dat%it
     if (genpar%rec_type.eq.0) then
        do k=1,dat%ny
           do j=1,dat%nx
@@ -35,7 +35,7 @@ contains
 
   end subroutine Extraction_shot_simple
 
-  subroutine Extraction_shot_sinc(bounds,dat,elev,u,genpar,it)
+  subroutine Extraction_shot_sinc(bounds,dat,elev,u,genpar)
     type(FDbounds)    ::          bounds
     type(DataSpace)   ::                 dat
     type(ModelSpace_elevation) ::              elev
@@ -47,6 +47,7 @@ contains
     real,allocatable  :: sinc(:)
     
     allocate(sinc(genpar%lsinc))
+    it=dat%it
 
     if (genpar%rec_type.eq.0) then
        do k=1,dat%ny
@@ -78,7 +79,7 @@ contains
 
   end subroutine Extraction_shot_sinc
 
-  subroutine Extraction_wavefield(bounds,model,dat,elev,u,genpar,it,counter)
+  subroutine Extraction_wavefield(bounds,model,dat,elev,u,genpar,counter)
     type(FDbounds)    ::          bounds
     type(ModelSpace)  ::                 model
     type(DataSpace)   ::                     dat
@@ -92,6 +93,7 @@ contains
 
     allocate(buffer_sou(model%nz,model%nx))
 
+    it=dat%it
     MODULO:if (mod(it-1,genpar%snapi).eq.0) then
        counter=counter+1
        if (genpar%surf_type.ne.0) then

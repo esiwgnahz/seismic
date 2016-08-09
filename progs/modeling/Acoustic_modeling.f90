@@ -26,9 +26,8 @@ program Acoustic_modeling
   allocate(dat%source(dat%nt))
   call sreed('in',dat%source,4*dat%nt)
 
-  genpar%twoD=.false.
-
-!  genpar%twoD=.true.
+!  genpar%twoD=.false.
+  genpar%twoD=.true.
 
   if (.not.genpar%twoD) then     
      genpar%nbound=4
@@ -107,7 +106,7 @@ program Acoustic_modeling
   elev%shot_z=0.
   elev%o1model=0. 
   elev%ishot_x=int(mod%nx/2)
-  elev%ishot_y=int(mod%ny/2)
+  elev%ishot_y=int(max(2,mod%ny)/2)
 
   write(0,*) 'before scalar wave propagator'
   if (genpar%twoD) then
@@ -140,7 +139,7 @@ program Acoustic_modeling
   call to_history('n1',mod%nz,'wave')
   call to_history('n2',mod%nx,'wave')
   call to_history('n3',mod%ny,'wave')
-  call to_history('n4',dat%nt,'wave')
+  call to_history('n4',genpar%ntsnap,'wave')
   call deallocateModelSpace(mod)
   call deallocateDataSpace(dat)
 end program Acoustic_modeling

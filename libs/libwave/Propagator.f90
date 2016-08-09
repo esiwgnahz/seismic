@@ -99,32 +99,29 @@ contains
     call FD_derivatives_coef_init(scaled_fdcoefs)
 
     call Higdon(genpar%dt,model,bounds,hig)
-    write(0,*) 'INFO: done with Higdon'
-    call  ModelSpace_compute_shotz_positions(elev)
-    write(0,*) 'INFO: done with source elevation'
-    write(0,*) elev%ishot_z,elev%dshot_z
+    call ModelSpace_compute_shotz_positions(elev)
     call ModelSpace_elevation_parameters(elev,bounds,genpar)
-    write(0,*) 'INFO: done with receiver elevation'
 
-    write(0,*) elev%ishot_x,elev%ishot_y,genpar%dt
     counter=0
     TIME_LOOPS:do it=1,dat%nt     
+
        dat%it=it
        if (mod(it,50).eq.0) write (0,*) "Step",it," of ",dat%nt,"time steps (Source Wavefield)"
-!       write(0,*) minval(u),maxval(u)
-       call Extraction_shot_simple(bounds,dat,elev,u,genpar,it)
-       call Extraction_wavefield(bounds,model,dat,elev,u,genpar,it,counter)
+
+       call Extraction_shot_simple(bounds,dat,elev,u,genpar)
+       call Extraction_wavefield(bounds,model,dat,elev,u,genpar,counter)
        call Boundary_set_free_surface(bounds,model,elev,u,genpar)
        call FD_scheme(genpar,bounds,u,model)
        call InjSrc(bounds,model,dat,elev,u(:,elev%ishot_x,elev%ishot_y,3),genpar)
        call TimeDer(genpar,bounds,u)
-!       if (genpar%shot_type.eq.0) then
-!          call Boundary0(genpar,bounds,u,model,hig)
-!       else
-!          call Boundary1(genpar,bounds,u,model,hig)
-!       end if
+       if (genpar%shot_type.eq.0) then
+          call Boundary0(genpar,bounds,u,model,hig)
+       else
+          call Boundary1(genpar,bounds,u,model,hig)
+       end if
 
        call TimeSwap(genpar,bounds,u)
+
     end do TIME_LOOPS
    
     deallocate(u)
