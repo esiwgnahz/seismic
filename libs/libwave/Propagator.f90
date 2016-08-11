@@ -123,7 +123,7 @@ contains
 
        if (mod(it,50).eq.0) write (0,*) "Step",it," of ",sou%dimt%nt,"time steps (Source Wavefield)"
 
-       call ExtractData(bounds,model,datavec,u(:,:,:,2),genpar,it)
+       call ExtractData(bounds,model,datavec,u(:,:,:,2),genpar,it)     
        call Extraction_wavefield(bounds,model,wfld,elev,u,genpar,counter,it)
        call Boundary_set_free_surface(bounds,model,elev,u,genpar)
        call FD_scheme(genpar,bounds,u,model)

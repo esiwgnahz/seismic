@@ -123,8 +123,12 @@ program Acoustic_modeling
   allocate(mod%rho2(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
   allocate(elev%elev(bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
 
-  mod%vel=2500. 
-  mod%rho=1
+  mod%vel(bounds%nmin1:40,:,:)=2400.
+  mod%vel(40:80,:,:)=2400. 
+  mod%vel(80:,:,:)=2400. 
+  mod%rho(bounds%nmin1:40,:,:)=1.
+  mod%rho(40:80,:,:)=2.
+  mod%rho(80:,:,:)=4.
   call Interpolate(mod,bounds)
 
   write(0,*) 'before wave propagator'
