@@ -17,16 +17,20 @@ program Acoustic_modeling
   type(FDbounds)     :: bounds
   type(ModelSpace_elevation) :: elev
 
+  type(WaveSpace)                             :: wfld
+  type(TraceSpace), dimension(:), allocatable :: datavec
+  type(TraceSpace)                            :: sourcevec
+
   integer :: i,j,k 
   integer :: ntsnap
 
   logical :: withRho
   call sep_init()
   
-  call from_history('n1',dat%nt)
-  call from_history('d1',dat%dt)
-  allocate(dat%source(dat%nt))
-  call sreed('in',dat%source,4*dat%nt)
+  call from_history('n1',sourcevec%dimt%nt)
+  call from_history('d1',sourcevec%dimt%dt)
+  allocate(sourcevec%trace(sourcevec%dimt%nt,1))
+  call sreed('in',sourcevec%trace(:,1),4*sourcevec%dimt%nt)
 
   call from_param('withRho',withRho,.false.)
   if (withRho) then
@@ -36,8 +40,10 @@ program Acoustic_modeling
   end if
   call from_param('twoD',genpar%twoD,.false.)
 
-!  genpar%twoD=.false.
-!  genpar%twoD=.true.
+  allocate(datavec(201))
+  do i=1,size(datavec)
+     allocate(datavec(i)%trace(sourcevec%dimt%nt,1)) ! 1 component trace
+  end do
 
   if (.not.genpar%twoD) then     
      genpar%nbound=4
@@ -45,12 +51,12 @@ program Acoustic_modeling
      genpar%nbound=0
   end if
 
-  genpar%dt=dat%dt
+  genpar%dt=sourcevec%dimt%dt
   genpar%dx=10
   genpar%dy=10
   genpar%dz=10
 
-  genpar%nt=dat%nt
+  genpar%nt=sourcevec%dimt%nt
   genpar%lsinc=7
   genpar%ntaper=10
   genpar%snapi=4
@@ -63,6 +69,10 @@ program Acoustic_modeling
   mod%ny=201
   mod%nz=101
 
+  sourcevec%coord(1)=130.4   ! Z
+  sourcevec%coord(2)=546.7  ! X
+  sourcevec%coord(3)=800.1  ! Y
+
   genpar%ntsnap=int(genpar%nt/genpar%snapi)
 
   if (genpar%twoD) then
@@ -74,13 +84,18 @@ program Acoustic_modeling
   mod%dy=genpar%dy
   mod%dz=genpar%dz
 
-  dat%nx=mod%nx
-  dat%ny=mod%ny
+  elev%omodel=0.
+  elev%delta(1)=genpar%dz
+  elev%delta(2)=genpar%dx
+  elev%delta(3)=genpar%dy
 
-  elev%dz=genpar%dz
+  do i=1,size(datavec)     
+     datavec(i)%coord(1)=0.  ! Z
+     datavec(i)%coord(2)=elev%omodel(2)+(i-1)*mod%dx ! X
+     datavec(i)%coord(3)=800.1 ! Y
+  end do
 
-  allocate(dat%data(dat%nt,dat%nx,dat%ny))
-  allocate(dat%wave(mod%nz,mod%nx,mod%ny,genpar%ntsnap))
+  allocate(wfld%wave(mod%nz,mod%nx,mod%ny,genpar%ntsnap,1))
   
   if (genpar%shot_type.gt.0 .or. genpar%surf_type.gt.0) then
      if (genpar%shot_type.gt.0) bounds%nmin1 = -(genpar%ntaper+genpar%lsinc/2+2)+1
@@ -107,69 +122,86 @@ program Acoustic_modeling
   allocate(mod%rho(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
   allocate(mod%rho2(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
   allocate(elev%elev(bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
-  allocate(elev%elev_rec(bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
-  allocate(elev%elev_sou(bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
 
   mod%vel=2500. 
   mod%rho=1
   call Interpolate(mod,bounds)
-  elev%elev=0.
-  elev%elev_rec=0.
-  elev%elev_sou=0.
-  elev%rec_z=0.
-  elev%shot_z=0.
-  elev%o1model=0. 
-  elev%ishot_x=int(mod%nx/2)
-  elev%ishot_y=int(max(2,mod%ny)/2)
 
   write(0,*) 'before wave propagator'
   if (genpar%twoD) then
      if (.not.withRho) then
-        call propagator_acoustic(FD_acoustic_init_coefs, &
+        call propagator_acoustic(                        &
+        & FD_acoustic_init_coefs,                        &
         & FD_2nd_2D_derivatives_scalar_forward,          &
-        & Injection_source,                              &
+        & Extraction_array_simple,                       &
+        & Injection_source_sinc_xz,                      &
         & FD_2nd_time_derivative,                        &
-        & FDswaptime,bounds,mod,dat,elev,genpar)
+        & FDswaptime,                                    &
+        & bounds,mod,sourcevec,datavec,wfld,elev,genpar)
      else
-        call propagator_acoustic(FD_acoustic_rho_init_coefs, &
+        call propagator_acoustic(                        &
+        & FD_acoustic_rho_init_coefs,                    &
         & FD_2D_derivatives_acoustic_forward,            &
-        & Injection_source_rho,                          &
+        & Extraction_array_simple,                       &
+        & Injection_source_rho_sinc_xz,                  &
         & FD_2nd_time_derivative,                        &
-        & FDswaptime,bounds,mod,dat,elev,genpar)
+        & FDswaptime,                                    &
+        & bounds,mod,sourcevec,datavec,wfld,elev,genpar)
      end if
   else
      if (.not.withRho) then
-        call propagator_acoustic(FD_acoustic_init_coefs, &
+        call propagator_acoustic(                        &
+        & FD_acoustic_init_coefs,                        &
         & FD_2nd_3D_derivatives_scalar_forward,          &
-        & Injection_source_rho,                          &
+        & Extraction_array_simple,                       &
+        & Injection_source_sinc_xyz,                     &
         & FD_2nd_time_derivative_omp,                    &
-        & FDswaptime_omp,bounds,mod,dat,elev,genpar)
+        & FDswaptime_omp,                                &
+        & bounds,mod,sourcevec,datavec,wfld,elev,genpar)
      else
-        call propagator_acoustic(FD_acoustic_rho_init_coefs, &
+        call propagator_acoustic(                        &
+        & FD_acoustic_rho_init_coefs,                    &
         & FD_3D_derivatives_acoustic_forward,            &
-        & Injection_source,                              &
-        & FD_2nd_time_derivative_omp,                    &
-        & FDswaptime_omp,bounds,mod,dat,elev,genpar)
+        & Extraction_array_simple,                       &
+        & Injection_source_rho_sinc_xz,                  &
+        & FD_2nd_time_derivative,                        &
+        & FDswaptime,                                    &
+        & bounds,mod,sourcevec,datavec,wfld,elev,genpar)
      end if
   end if
   write(0,*) 'afterwave propagator'
   
-  do i=1,dat%ny
-     call srite('data',dat%data(1:dat%nt,1:dat%nx,i),4*dat%nx*dat%nt)
+  do i=1,size(datavec)
+     call srite('data',datavec(i)%trace(:,1),4*sourcevec%dimt%nt)
   end do
 
   do i=1,genpar%ntsnap
-     call srite('wave',dat%wave(1:mod%nz,1:mod%nx,1:mod%ny,i),4*mod%nx*mod%ny*mod%nz)
+     call srite('wave',wfld%wave(1:mod%nz,1:mod%nx,1:mod%ny,i,1),4*mod%nx*mod%ny*mod%nz)
   end do
 
-  call to_history('n1',dat%nt,'data')
-  call to_history('n2',dat%nx,'data')
-  call to_history('n3',dat%ny,'data')
+  call to_history('n1',sourcevec%dimt%nt,'data')
+  call to_history('n2',size(datavec),'data')
+  call to_history('d1',sourcevec%dimt%dt,'data')
+  call to_history('d2',1.,'data')
+  call to_history('o1',0.,'data')
+  call to_history('o2',0.,'data')
 
   call to_history('n1',mod%nz,'wave')
   call to_history('n2',mod%nx,'wave')
   call to_history('n3',mod%ny,'wave')
+  call to_history('d1',mod%dz,'wave')
+  call to_history('d2',mod%dx,'wave')
+  call to_history('d3',mod%dy,'wave')
+  call to_history('o1',elev%omodel(1),'wave')
+  call to_history('o2',elev%omodel(2),'wave')
+  call to_history('o3',elev%omodel(3),'wave')
   call to_history('n4',genpar%ntsnap,'wave')
-  call deallocateModelSpace(mod)
-  call deallocateDataSpace(dat)
+
+  do i=1,size(datavec)
+     call deallocateTraceSpace(datavec(i))
+  end do
+  call deallocateWaveSpace(wfld)
+  call deallocateTraceSpace(sourcevec)
+  deallocate(datavec)
+
 end program Acoustic_modeling

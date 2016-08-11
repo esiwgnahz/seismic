@@ -8,7 +8,6 @@ module FD_derivatives
 
   type(ScaledFDcoefs), pointer, private  :: coefs
   
-
 contains
 
   subroutine FD_derivatives_coef_init(coef_init)
@@ -181,7 +180,6 @@ contains
 
   end subroutine FD_3D_derivatives_acoustic_forward
   
-
   subroutine FD_2D_derivatives_acoustic_forward(genpar,bounds,u,mod)
     type(GeneralParam)   ::                     genpar
     type(ModelSpace)     ::                                     mod

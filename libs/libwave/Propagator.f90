@@ -19,7 +19,7 @@ module Propagator_mod
 contains
 
 !  subroutine propagator_acoustic(FD_coefs,FD_scheme,bounds,mod,elev,genpar,nbound)
-  subroutine propagator_acoustic(FD_coefs,FD_scheme,InjSrc,TimeDer,TimeSwap,bounds,model,dat,elev,genpar)
+  subroutine propagator_acoustic(FD_coefs,FD_scheme,ExtractData,InjSrc,TimeDer,TimeSwap,bounds,model,sou,datavec,wfld,elev,genpar)
 
     interface
        subroutine FD_coefs      (coef)
@@ -36,18 +36,33 @@ contains
          type(FDbounds)       ::        bounds
          real                 :: u(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
        end subroutine FD_scheme
-      
-       subroutine InjSrc(bounds,model,dat,elev,u,genpar)
+
+       subroutine ExtractData(bounds,model,datavec,u,genpar,it)
+         use GeneralParam_types
+         use ModelSpace_types
+         use DataSpace_types
+         
+         type(FDbounds)    ::             bounds
+         type(ModelSpace)  ::                    model
+         type(TraceSpace), dimension(:) ::             datavec
+         type(GeneralParam)::                                 genpar 
+         real              ::                               u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+         &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+         integer           :: it
+         
+       end subroutine ExtractData
+
+       subroutine InjSrc(bounds,model,sou,u,genpar,it)
          use GeneralParam_types
          use ModelSpace_types
          use DataSpace_types
          use FD_types
          type(FDbounds)    ::      bounds
          type(ModelSpace)  ::             model
-         type(DataSpace)   ::                   dat
-         type(ModelSpace_elevation)   ::            elev
-         real              ::                  u(bounds%nmin1-4:bounds%nmax1+4)
+         type(TraceSpace)   ::                   sou
          type(GeneralParam):: genpar 
+         real                 :: u(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+         integer           :: it
        end subroutine InjSrc
 
        subroutine TimeDer(genpar,bounds,u)
@@ -70,7 +85,9 @@ contains
 
     type(GeneralParam)         :: genpar
     type(ModelSpace)           :: model
-    type(DataSpace)            :: dat
+    type(TraceSpace), dimension(:) :: datavec
+    type(TraceSpace)           :: sou
+    type(WaveSpace)            :: wfld
     type(FDbounds)             :: bounds
     type(ModelSpace_elevation) :: elev
     type(HigdonParam)          :: hig
@@ -81,8 +98,6 @@ contains
 
     allocate(u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3))
     
-    allocate(elev%irec_z(bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
-    allocate(elev%drec_z(bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
     if (genpar%surf_type.ne.0) then
        allocate(elev%ielev_z(bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
        allocate(elev%delev_z(bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
@@ -99,20 +114,20 @@ contains
     call FD_derivatives_coef_init(scaled_fdcoefs)
 
     call Higdon(genpar%dt,model,bounds,hig)
-    call ModelSpace_compute_shotz_positions(elev)
+    call ModelSpace_compute_xyz_positions(elev,sou)
+    call ModelSpace_compute_array_xyz_position(elev,datavec)
     call ModelSpace_elevation_parameters(elev,bounds,genpar)
 
     counter=0
-    TIME_LOOPS:do it=1,dat%nt     
+    TIME_LOOPS:do it=1,sou%dimt%nt     
 
-       dat%it=it
-       if (mod(it,50).eq.0) write (0,*) "Step",it," of ",dat%nt,"time steps (Source Wavefield)"
+       if (mod(it,50).eq.0) write (0,*) "Step",it," of ",sou%dimt%nt,"time steps (Source Wavefield)"
 
-       call Extraction_shot_simple(bounds,dat,elev,u,genpar)
-       call Extraction_wavefield(bounds,model,dat,elev,u,genpar,counter)
+       call ExtractData(bounds,model,datavec,u(:,:,:,2),genpar,it)
+       call Extraction_wavefield(bounds,model,wfld,elev,u,genpar,counter,it)
        call Boundary_set_free_surface(bounds,model,elev,u,genpar)
        call FD_scheme(genpar,bounds,u,model)
-       call InjSrc(bounds,model,dat,elev,u(:,elev%ishot_x,elev%ishot_y,3),genpar)
+       call InjSrc(bounds,model,sou,u(:,:,:,3),genpar,it)
        call TimeDer(genpar,bounds,u)
        if (genpar%shot_type.eq.0) then
           call Boundary0(genpar,bounds,u,model,hig)

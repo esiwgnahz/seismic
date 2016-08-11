@@ -10,123 +10,336 @@ module Injection_mod
 
 contains
 
-  subroutine Injection_source(bounds,model,dat,elev,u,genpar)
-    type(FDbounds)    ::      bounds
-    type(ModelSpace)  ::             model
-    type(DataSpace)   ::                   dat
-    type(ModelSpace_elevation)   ::            elev
-    real              ::                            u(bounds%nmin1-4:bounds%nmax1+4)
-    type(GeneralParam):: genpar 
-    real              :: dxi,dzi,dyi
-    real, allocatable :: sinc(:)
-    integer           :: i
+  subroutine Injection_source_sinc_xyz(bounds,model,sou,u,genpar,it)
+    type(FDbounds)    ::               bounds
+    type(ModelSpace)  ::                      model
+    type(TraceSpace)  ::                            sou
+    type(GeneralParam)::                                  genpar 
+    real              ::                                u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
 
-    allocate(sinc(genpar%lsinc))
+    real, allocatable :: deltai(:)
+    real, allocatable :: sinc(:,:)
+    integer           :: i,j,k
+    integer           :: minx,maxx,miny,maxy,minz,maxz
 
-    dxi=1./genpar%dx
-    dzi=1./genpar%dz
-    dyi=1./genpar%dy
+    allocate(sinc(genpar%lsinc,3))
+    allocate(deltai(3))
+    deltai(1)=1./genpar%dz
+    deltai(2)=1./genpar%dx
+    deltai(3)=1./genpar%dy
+
+    minx=-genpar%lsinc*0.5
+    minz=minx
+    miny=minx
+    
+    maxx=genpar%lsinc*0.5
+    maxz=maxx
+    maxy=maxx
+
+    do i=1,3
+       call mksinc(sinc(:,i),genpar%lsinc,sou%dcoord(i)*deltai(i))
+    end do
     
     if (genpar%shot_type.eq.0) then
-       if (elev%dshot_z.eq.0) then
-          u(elev%ishot_z) = u(elev%ishot_z)+ &
-          &  model%vel(elev%ishot_z,elev%ishot_x,elev%ishot_y)**2*dat%source(dat%it)* &
-          &  dxi*dzi*dyi
-       else
-          call mksinc(sinc,genpar%lsinc,elev%dshot_z*dzi)
-          do i=-genpar%lsinc*0.5,genpar%lsinc*0.5
-             u(i+elev%ishot_z) = u(i+elev%ishot_z)+ &
-             &  model%vel(elev%ishot_z,elev%ishot_x,elev%ishot_y)**2* &
-             &  dat%source(dat%it)*sinc(genpar%lsinc*0.5+1+i)* &
-             &  dxi*dzi*dyi
+       !$OMP PARALLEL DO PRIVATE(k,j,i)
+       do k=miny,maxy
+          do j=minx,maxx
+             do i=minz,maxz
+                u(i+sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))=&
+                &   u(i+sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))+&
+                &   model%vel(sou%icoord(1),sou%icoord(2),sou%icoord(3))**2* &
+                &   sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)*&
+                &   product(deltai)            
+             end do
           end do
-       end if
+       end do
+       !$OMP END PARALLEL DO
     else
-       if (elev%dshot_z.eq.0.) then
-          u(elev%ishot_z) = &
-          &  u(elev%ishot_z)+ &
-          &  model%vel(elev%ishot_z,elev%ishot_x,elev%ishot_y)**2*dat%source(dat%it)* &
-          &  dxi*dyi*dzi
-          u(elev%ishot_z-2) = &
-          &  u(elev%ishot_z-2)- &
-          &  model%vel(elev%ishot_z,elev%ishot_x,elev%ishot_y)**2*dat%source(dat%it)* &
-          &  dxi*dyi*dzi
-       else
-          call mksinc(sinc,genpar%lsinc,elev%dshot_z*dzi)
-          do i=-genpar%lsinc*0.5,genpar%lsinc*0.5
-             u( i+elev%ishot_z) = u( i+elev%ishot_z)+ &
-             &  model%vel(elev%ishot_z,elev%ishot_x,elev%ishot_y)**2* &
-             &  dat%source(dat%it)*sinc(genpar%lsinc*0.5+i+1)* &
-             &  dxi*dyi*dzi
-             u(-i+elev%ishot_z-2) = u(-i+elev%ishot_z-2)- &
-             &  model%vel(elev%ishot_z,elev%ishot_x,elev%ishot_y)**2* &
-             &  dat%source(dat%it)*sinc(genpar%lsinc*0.5+1-i)* &
-             &  dxi*dyi*dzi
+       !$OMP PARALLEL DO PRIVATE(k,j,i)
+       do k=miny,maxy
+          do j=minx,maxx
+             do i=minz,maxz
+                u(i+sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))=&
+                &   u(i+sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))+&
+                &   model%vel(sou%icoord(1),sou%icoord(2),sou%icoord(3))**2* &
+                &   sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)*&
+                &   product(deltai) 
+
+                u(i-sou%icoord(1)-2,j+sou%icoord(2),k+sou%icoord(3))=&
+                &   u(i-sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))-&
+                &   model%vel(sou%icoord(1),sou%icoord(2),sou%icoord(3))**2* &
+                &   sou%trace(it,1)*sinc(maxz+1-i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)*&
+                &   product(deltai)            
+             end do
           end do
-       endif
+       end do
+       !$OMP END PARALLEL DO
     end if
-    deallocate(sinc)
+    deallocate(sinc,deltai)
 
-  end subroutine Injection_source
+  end subroutine Injection_source_sinc_xyz
 
-  subroutine Injection_source_rho(bounds,model,dat,elev,u,genpar)
-    type(FDbounds)    ::          bounds
-    type(ModelSpace)  ::                 model
-    type(DataSpace)   ::                       dat
-    type(ModelSpace_elevation)   ::                elev
-    real              ::                                u(bounds%nmin1-4:bounds%nmax1+4)
-    type(GeneralParam):: genpar 
-    real              :: dxi,dzi,dyi
-    real, allocatable :: sinc(:)
-    integer           :: i
+  subroutine Injection_source_rho_sinc_xyz(bounds,model,sou,u,genpar,it)
+    type(FDbounds)    ::               bounds
+    type(ModelSpace)  ::                      model
+    type(TraceSpace)  ::                            sou
+    type(GeneralParam)::                                  genpar 
+    real              ::                                u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
 
-    allocate(sinc(genpar%lsinc))
+    real, allocatable :: deltai(:)
+    real, allocatable :: sinc(:,:)
+    integer           :: i,j,k
+    integer           :: minx,maxx,miny,maxy,minz,maxz
 
-    dxi=1./genpar%dx
-    dzi=1./genpar%dz
-    dyi=1./genpar%dy
+    allocate(sinc(genpar%lsinc,3))
+    allocate(deltai(3))
+    deltai(1)=1./genpar%dz
+    deltai(2)=1./genpar%dx
+    deltai(3)=1./genpar%dy
+
+    minx=-genpar%lsinc*0.5
+    minz=minx
+    miny=minx
+    
+    maxx=genpar%lsinc*0.5
+    maxz=maxx
+    maxy=maxx
+
+    do i=1,3
+       call mksinc(sinc(:,i),genpar%lsinc,sou%dcoord(i)*deltai(i))
+    end do
     
     if (genpar%shot_type.eq.0) then
-       if (elev%dshot_z.eq.0) then
-          u(elev%ishot_z) = u(elev%ishot_z)+ &
-          &  model%rho(elev%ishot_z,elev%ishot_x,elev%ishot_y)*model%vel(elev%ishot_z,elev%ishot_x,elev%ishot_y)**2*dat%source(dat%it)* &
-          &  dxi*dzi*dyi
-       else
-          call mksinc(sinc,genpar%lsinc,elev%dshot_z*dzi)
-          do i=-genpar%lsinc*0.5,genpar%lsinc*0.5
-             u(i+elev%ishot_z) = u(i+elev%ishot_z)+ &
-             &  model%rho(elev%ishot_z,elev%ishot_x,elev%ishot_y)*model%vel(elev%ishot_z,elev%ishot_x,elev%ishot_y)**2* &
-             &  dat%source(dat%it)*sinc(genpar%lsinc*0.5+1+i)* &
-             &  dxi*dzi*dyi
+       !$OMP PARALLEL DO PRIVATE(k,j,i)
+       do k=miny,maxy
+          do j=minx,maxx
+             do i=minz,maxz
+                u(i+sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))=&
+                &   u(i+sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))+&
+                &   model%rho(sou%icoord(1),sou%icoord(2),sou%icoord(3))*&
+                &   model%vel(sou%icoord(1),sou%icoord(2),sou%icoord(3))**2* &
+                &   sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)*&
+                &   product(deltai)            
+             end do
           end do
-       end if
+       end do
+       !$OMP END PARALLEL DO
     else
-       if (elev%dshot_z.eq.0.) then
-          u(elev%ishot_z) = &
-          &  u(elev%ishot_z)+ &
-          &  model%rho(elev%ishot_z,elev%ishot_x,elev%ishot_y)*model%vel(elev%ishot_z,elev%ishot_x,elev%ishot_y)**2*dat%source(dat%it)* &
-          &  dxi*dyi*dzi
-          u(elev%ishot_z-2) = &
-          &  u(elev%ishot_z-2)- &
-          &  model%rho(elev%ishot_z,elev%ishot_x,elev%ishot_y)*model%vel(elev%ishot_z,elev%ishot_x,elev%ishot_y)**2*dat%source(dat%it)* &
-          &  dxi*dyi*dzi
-       else
-          call mksinc(sinc,genpar%lsinc,elev%dshot_z*dzi)
-          do i=-genpar%lsinc*0.5,genpar%lsinc*0.5
-             u( i+elev%ishot_z) = u( i+elev%ishot_z)+ &
-             &  model%rho(elev%ishot_z,elev%ishot_x,elev%ishot_y)*model%vel(elev%ishot_z,elev%ishot_x,elev%ishot_y)**2* &
-             &  dat%source(dat%it)*sinc(genpar%lsinc*0.5+i+1)* &
-             &  dxi*dyi*dzi
-             u(-i+elev%ishot_z-2) = u(-i+elev%ishot_z-2)- &
-             &  model%rho(elev%ishot_z,elev%ishot_x,elev%ishot_y)*model%vel(elev%ishot_z,elev%ishot_x,elev%ishot_y)**2* &
-             &  dat%source(dat%it)*sinc(genpar%lsinc*0.5+1-i)* &
-             &  dxi*dyi*dzi
+       !$OMP PARALLEL DO PRIVATE(k,j,i)
+       do k=miny,maxy
+          do j=minx,maxx
+             do i=minz,maxz
+                u(i+sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))=&
+                &   u(i+sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))+&
+                &   model%rho(sou%icoord(1),sou%icoord(2),sou%icoord(3))*&
+                &   model%vel(sou%icoord(1),sou%icoord(2),sou%icoord(3))**2* &
+                &   sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)*&
+                &   product(deltai) 
+
+                u(i-sou%icoord(1)-2,j+sou%icoord(2),k+sou%icoord(3))=&
+                &   u(i-sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))-&
+                &   model%rho(sou%icoord(1),sou%icoord(2),sou%icoord(3))*&
+                &   model%vel(sou%icoord(1),sou%icoord(2),sou%icoord(3))**2* &
+                &   sou%trace(it,1)*sinc(maxz+1-i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)*&
+                &   product(deltai)            
+             end do
           end do
-       endif
+       end do
+       !$OMP END PARALLEL DO
+    end if
+    deallocate(sinc,deltai)
+
+  end subroutine Injection_source_rho_sinc_xyz
+
+  subroutine Injection_source_sinc_xz(bounds,model,sou,u,genpar,it)
+    type(FDbounds)    ::              bounds
+    type(ModelSpace)  ::                     model
+    type(TraceSpace)  ::                           sou
+    type(GeneralParam)::                                 genpar 
+    real              ::                               u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+
+    real, allocatable :: deltai(:)
+    real, allocatable :: sinc(:,:)
+    integer           :: i,j
+    integer           :: minx,maxx,minz,maxz
+
+    allocate(sinc(genpar%lsinc,2))
+    allocate(deltai(3))
+    deltai(1)=1./genpar%dz
+    deltai(2)=1./genpar%dx
+
+    minx=-genpar%lsinc*0.5
+    minz=minx
+    
+    maxx=genpar%lsinc*0.5
+    maxz=maxx
+
+    do i=1,2
+       call mksinc(sinc(:,i),genpar%lsinc,sou%dcoord(i)*deltai(i))
+    end do
+    
+    if (genpar%shot_type.eq.0) then
+       do j=minx,maxx
+          do i=minz,maxz            
+             u(i+sou%icoord(1),j+sou%icoord(2),1)=&
+             &   u(i+sou%icoord(1),j+sou%icoord(2),1)+&
+             &   model%vel(sou%icoord(1),sou%icoord(2),1)**2* &
+             &   sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*&
+             &   deltai(1)*deltai(2)
+             
+          end do
+       end do
+    else
+       do j=minx,maxx
+          do i=minz,maxz            
+             u(i+sou%icoord(1),j+sou%icoord(2),1)=&
+             &   u(i+sou%icoord(1),j+sou%icoord(2),1)+&
+             &   model%vel(sou%icoord(1),sou%icoord(2),1)**2* &
+             &   sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*&
+             &   deltai(1)*deltai(2)          
+             u(i-sou%icoord(1),j+sou%icoord(2),1)=&
+             &   u(i-sou%icoord(1)-2,j+sou%icoord(2),1)-&
+             &   model%vel(sou%icoord(1),sou%icoord(2),1)**2* &
+             &   sou%trace(it,1)*sinc(maxz+1-i,1)*sinc(maxx+1+j,2)*&
+             &   deltai(1)*deltai(2)
+          end do
+       end do
     end if
 
-    deallocate(sinc)
+    deallocate(sinc,deltai)
 
-  end subroutine Injection_source_rho
+  end subroutine Injection_source_sinc_xz
+
+  subroutine Injection_source_rho_sinc_xz(bounds,model,sou,u,genpar,it)
+    type(FDbounds)    ::              bounds
+    type(ModelSpace)  ::                     model
+    type(TraceSpace)  ::                           sou
+    type(GeneralParam)::                                 genpar 
+    real              ::                               u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+
+    real, allocatable :: deltai(:)
+    real, allocatable :: sinc(:,:)
+    integer           :: i,j
+    integer           :: minx,maxx,minz,maxz
+
+    allocate(sinc(genpar%lsinc,2))
+    allocate(deltai(3))
+    deltai(1)=1./genpar%dz
+    deltai(2)=1./genpar%dx
+
+    minx=-genpar%lsinc*0.5
+    minz=minx
+    
+    maxx=genpar%lsinc*0.5
+    maxz=maxx
+
+    do i=1,2
+       call mksinc(sinc(:,i),genpar%lsinc,sou%dcoord(i)*deltai(i))
+    end do
+    
+    if (genpar%shot_type.eq.0) then
+       do j=minx,maxx
+          do i=minz,maxz            
+             u(i+sou%icoord(1),j+sou%icoord(2),1)=&
+             &   u(i+sou%icoord(1),j+sou%icoord(2),1)+&
+             &   model%rho(sou%icoord(1),sou%icoord(2),1)*&
+             &   model%vel(sou%icoord(1),sou%icoord(2),1)**2* &
+             &   sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*&
+             &   deltai(1)*deltai(2)
+             
+          end do
+       end do
+    else
+       do j=minx,maxx
+          do i=minz,maxz            
+             u(i+sou%icoord(1),j+sou%icoord(2),1)=&
+             &   u(i+sou%icoord(1),j+sou%icoord(2),1)+&
+             &   model%rho(sou%icoord(1),sou%icoord(2),1)*&
+             &   model%vel(sou%icoord(1),sou%icoord(2),1)**2* &
+             &   sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*&
+             &   deltai(1)*deltai(2)          
+             u(i-sou%icoord(1),j+sou%icoord(2),1)=&
+             &   u(i-sou%icoord(1)-2,j+sou%icoord(2),1)-&
+             &   model%rho(sou%icoord(1),sou%icoord(2),1)*&
+             &   model%vel(sou%icoord(1),sou%icoord(2),1)**2* &
+             &   sou%trace(it,1)*sinc(maxz+1-i,1)*sinc(maxx+1+j,2)*&
+             &   deltai(1)*deltai(2)
+          end do
+       end do
+    end if
+
+    deallocate(sinc,deltai)
+
+  end subroutine Injection_source_rho_sinc_xz
+
+  subroutine Injection_source_simple_xyz(bounds,model,sou,u,genpar,it)
+    type(FDbounds)    ::                 bounds
+    type(ModelSpace)  ::                        model
+    type(TraceSpace)  ::                              sou
+    type(GeneralParam)::                                    genpar 
+    real              ::                                  u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    real              :: deltai
+    integer           :: i,j,k,iz,ix,iy
+
+    iz=sou%icoord(1)
+    ix=sou%icoord(2)
+
+    if(genpar%twoD) then
+       iy=1
+       deltai=1./(genpar%dz*genpar%dx)
+    else
+       iy=sou%icoord(3)
+       deltai=1./(genpar%dz*genpar%dx*genpar%dy)
+    end if
+
+    if (genpar%shot_type.eq.0) then
+       u( iz,ix,iy)=u( iz,ix,iy)+model%vel(iz,ix,iy)**2*sou%trace(it,1)*deltai  
+    else
+       u( iz,ix,iy)=u( iz,ix,iy)+model%vel(iz,ix,iy)**2*sou%trace(it,1)*deltai      
+       u(-iz,ix,iy)=u(-iz,ix,iy)-model%vel(iz,ix,iy)**2*sou%trace(it,1)*deltai
+    end if
+
+  end subroutine Injection_source_simple_xyz
+
+  subroutine Injection_source_rho_simple_xyz(bounds,model,sou,u,genpar,it)
+    type(FDbounds)    ::                 bounds
+    type(ModelSpace)  ::                        model
+    type(TraceSpace)  ::                              sou
+    type(GeneralParam)::                                    genpar 
+    real              ::                                  u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    real              :: deltai
+    integer           :: i,j,k,iz,ix,iy
+
+    iz=sou%icoord(1)
+    ix=sou%icoord(2)
+
+    if(genpar%twoD) then
+       iy=1
+       deltai=1./(genpar%dz*genpar%dx)
+    else
+       iy=sou%icoord(3)
+       deltai=1./(genpar%dz*genpar%dx*genpar%dy)
+    end if
+
+    if (genpar%shot_type.eq.0) then
+       u( iz,ix,iy)=u( iz,ix,iy)+model%rho(iz,ix,iy)*model%vel(iz,ix,iy)**2*sou%trace(it,1)*deltai  
+    else
+       u( iz,ix,iy)=u( iz,ix,iy)+model%rho(iz,ix,iy)*model%vel(iz,ix,iy)**2*sou%trace(it,1)*deltai      
+       u(-iz,ix,iy)=u(-iz,ix,iy)-model%rho(iz,ix,iy)*model%vel(iz,ix,iy)**2*sou%trace(it,1)*deltai
+    end if
+
+  end subroutine Injection_source_rho_simple_xyz
 
 end module Injection_mod
