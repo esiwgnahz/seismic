@@ -26,9 +26,9 @@ contains
 
     allocate(sinc(genpar%lsinc,3))
     allocate(deltai(3))
-    deltai(1)=1./genpar%dz
-    deltai(2)=1./genpar%dx
-    deltai(3)=1./genpar%dy
+    deltai(1)=1./genpar%delta(1)
+    deltai(2)=1./genpar%delta(2)
+    deltai(3)=1./genpar%delta(3)
 
     minx=-genpar%lsinc*0.5
     minz=minx
@@ -67,7 +67,7 @@ contains
                 &   sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)*&
                 &   product(deltai) 
 
-                u(i-sou%icoord(1)-2,j+sou%icoord(2),k+sou%icoord(3))=&
+                u(i-sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))=&
                 &   u(i-sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))-&
                 &   model%vel(sou%icoord(1),sou%icoord(2),sou%icoord(3))**2* &
                 &   sou%trace(it,1)*sinc(maxz+1-i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)*&
@@ -97,9 +97,9 @@ contains
 
     allocate(sinc(genpar%lsinc,3))
     allocate(deltai(3))
-    deltai(1)=1./genpar%dz
-    deltai(2)=1./genpar%dx
-    deltai(3)=1./genpar%dy
+    deltai(1)=1./genpar%delta(1)
+    deltai(2)=1./genpar%delta(2)
+    deltai(3)=1./genpar%delta(3)
 
     minx=-genpar%lsinc*0.5
     minz=minx
@@ -140,7 +140,7 @@ contains
                 &   sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)*&
                 &   product(deltai) 
 
-                u(i-sou%icoord(1)-2,j+sou%icoord(2),k+sou%icoord(3))=&
+                u(i-sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))=&
                 &   u(i-sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))-&
                 &   model%rho(sou%icoord(1),sou%icoord(2),sou%icoord(3))*&
                 &   model%vel(sou%icoord(1),sou%icoord(2),sou%icoord(3))**2* &
@@ -171,8 +171,8 @@ contains
 
     allocate(sinc(genpar%lsinc,2))
     allocate(deltai(3))
-    deltai(1)=1./genpar%dz
-    deltai(2)=1./genpar%dx
+    deltai(1)=1./genpar%delta(1)
+    deltai(2)=1./genpar%delta(2)
 
     minx=-genpar%lsinc*0.5
     minz=minx
@@ -204,7 +204,7 @@ contains
              &   sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*&
              &   deltai(1)*deltai(2)          
              u(i-sou%icoord(1),j+sou%icoord(2),1)=&
-             &   u(i-sou%icoord(1)-2,j+sou%icoord(2),1)-&
+             &   u(i-sou%icoord(1),j+sou%icoord(2),1)-&
              &   model%vel(sou%icoord(1),sou%icoord(2),1)**2* &
              &   sou%trace(it,1)*sinc(maxz+1-i,1)*sinc(maxx+1+j,2)*&
              &   deltai(1)*deltai(2)
@@ -232,8 +232,8 @@ contains
 
     allocate(sinc(genpar%lsinc,2))
     allocate(deltai(3))
-    deltai(1)=1./genpar%dz
-    deltai(2)=1./genpar%dx
+    deltai(1)=1./genpar%delta(1)
+    deltai(2)=1./genpar%delta(2)
 
     minx=-genpar%lsinc*0.5
     minz=minx
@@ -296,10 +296,10 @@ contains
 
     if(genpar%twoD) then
        iy=1
-       deltai=1./(genpar%dz*genpar%dx)
+       deltai=1./(genpar%delta(1)*genpar%delta(2))
     else
        iy=sou%icoord(3)
-       deltai=1./(genpar%dz*genpar%dx*genpar%dy)
+       deltai=1./(genpar%delta(1)*genpar%delta(2)*genpar%delta(3))
     end if
 
     if (genpar%shot_type.eq.0) then
@@ -327,10 +327,10 @@ contains
 
     if(genpar%twoD) then
        iy=1
-       deltai=1./(genpar%dz*genpar%dx)
+       deltai=1./(genpar%delta(1)*genpar%delta(2))
     else
        iy=sou%icoord(3)
-       deltai=1./(genpar%dz*genpar%dx*genpar%dy)
+       deltai=1./(genpar%delta(1)*genpar%delta(2)*genpar%delta(3))
     end if
 
     if (genpar%shot_type.eq.0) then

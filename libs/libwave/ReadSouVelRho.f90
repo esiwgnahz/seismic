@@ -2,7 +2,9 @@ module Readsouvelrho_mod
   
   use sep
 
+  use Interpolate_mod
   use DataSpace_types
+  use ModelSpace_types
   use GeneralParam_types
 
   implicit none
@@ -17,32 +19,32 @@ contains
     real,dimension(:)  ,allocatable :: trace
     integer         :: it,l
 
-    call from_history('n1',sourcevec%dimt%nt)
-    call from_history('d1',sourcevec%dimt%dt)
-    allocate(sourcevec%trace(sourcevec%dimt%nt,1))
-    call sreed('in',sourcevec%trace(:,1),4*sourcevec%dimt%nt)
+    call from_history('n1',source%dimt%nt)
+    call from_history('d1',source%dimt%dt)
+    allocate(source%trace(source%dimt%nt,1))
+    call sreed('in',source%trace(:,1),4*source%dimt%nt)
     
-    genpar%dt=sourcevec%dimt%dt
-    genpar%nt=sourcevec%dimt%nt
+    genpar%dt=source%dimt%dt
+    genpar%nt=source%dimt%nt
 
     call from_param('withRho',genpar%withRho,.false.)
 
     if (genpar%withRho) then
-       allocate(trace(sourcevec%dimt%nt))
+       allocate(trace(source%dimt%nt))
        ! Shift by 1/2 time step forward(reason: staggered grid)
-       call mksinc(sinc,lsinc,+0.5)
-       trace = sou(1:sourcevec%dimt%nt,1)
-       do it=1,sourcevec%dimt%nt
+       call mksinc(sinc,genpar%lsinc,+0.5)
+       trace = source%trace(1:source%dimt%nt,1)
+       do it=1,source%dimt%nt
           fscale = 1.
           fdum = 0.
-          do l=-lsinc/2,lsinc/2
-             if (it+l.ge.1 .and. it+l.le.sourcevec%dimt%nt) then
-                fdum = fdum + sinc(lsinc/2+1+l)*trace(it+l)
+          do l=-genpar%lsinc/2,genpar%lsinc/2
+             if (it+l.ge.1 .and. it+l.le.source%dimt%nt) then
+                fdum = fdum + sinc(genpar%lsinc/2+1+l)*trace(it+l)
              else
-                fscale = fscale - sinc(lsinc/2+1+l)
+                fscale = fscale - sinc(genpar%lsinc/2+1+l)
              endif
           end do
-          sourcevec%trace(it,1)= fdum / fscale
+          source%trace(it,1)= fdum / fscale
        end do
        deallocate(trace)
     end if
@@ -65,9 +67,9 @@ contains
 
     mid=(maxo-mino)/2
 
-    call from_param('source_z',source%coord(1),mido(1))
-    call from_param('source_x',source%coord(2),mido(2))
-    call from_param('source_y',source%coord(3),mido(3))
+    call from_param('source_z',source%coord(1),0.)
+    call from_param('source_x',source%coord(2),mid(2))
+    call from_param('source_y',source%coord(3),mid(3))
 
     do i=1,3
        if ((source%coord(i).lt.mino(i)).or.(source%coord(i).gt.maxo(i))) then
@@ -80,9 +82,14 @@ contains
 
   end subroutine readsoucoord
 
-  subroutine readvel(mod,genpar)
-    type(ModelSpace)   ::mod
-    type(GeneralParam) ::genpar
+  subroutine readvel(    mod,genpar,bounds)
+    type(ModelSpace)  :: mod
+    type(GeneralParam)::     genpar
+    type(FDbounds)    ::            bounds
+    real,allocatable,dimension(:,:,:) :: tmp
+
+    integer  :: fetch, hetch, tetch, getch, auxpar
+    external :: fetch, hetch, tetch, getch, auxpar
     
     if (auxpar('n1','i',mod%nz,mod%veltag).eq.0)  & 
     &    call erexit('need n1:nz')
@@ -138,6 +145,23 @@ contains
     write(0,*) 'INFO:-----------------------------'
     write(0,*) 'INFO:'
 
+    if (genpar%shot_type.gt.0 .or. genpar%surf_type.gt.0) then
+       if (genpar%shot_type.gt.0) bounds%nmin1 = -(genpar%ntaper+genpar%lsinc/2+2)+1
+       if (genpar%surf_type.gt.0) bounds%nmin1 = -genpar%lsinc+1
+    else
+       bounds%nmin1 = -genpar%ntaper+1
+    endif
+    bounds%nmax1 =  mod%nz+genpar%ntaper
+    bounds%nmin2 = -genpar%ntaper+1
+    bounds%nmax2 =  mod%nx+genpar%ntaper
+    if (.not. genpar%twoD) then
+       bounds%nmin3 = -genpar%ntaper+1
+       bounds%nmax3 =  mod%ny+genpar%ntaper
+    else
+       bounds%nmin3 = 1
+       bounds%nmax3 = 1
+    end if
+  
     mod%oz=genpar%omodel(1)
     mod%ox=genpar%omodel(2)
     mod%oy=genpar%omodel(3)
@@ -146,34 +170,101 @@ contains
     mod%dx=genpar%delta(2)
     mod%dy=genpar%delta(3)
 
-    allocate(mod%vel(mod%nz,mod%nx,mod%ny)
+    allocate(tmp(mod%nz,mod%nx,mod%ny))
+    allocate(mod%vel(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
+
+    tmp=0.
     if (.not.exist_file(mod%veltag)) then
        call erexit('ERROR: Need velocity file, exit now')
     else
-       call sreed(mod%veltag,vel,4*mod%nz*mod%nx*mod%ny)
+       call sreed(mod%veltag,tmp,4*mod%nz*mod%nx*mod%ny)
        call auxclose(mod%veltag)
-       call vel_check(mod,genpar)
+       call vel_check(tmp,genpar)
+       call model_extend(tmp,mod%vel,bounds,mod%nz,mod%nx,mod%ny,genpar%twoD)
     end if
     
+    call srite('tmpvel',mod%vel,4*(bounds%nmax1-bounds%nmin1+1)*(bounds%nmax2-bounds%nmin2+1)*(bounds%nmax3-bounds%nmin3+1))
+    call to_history('n1',bounds%nmax1-bounds%nmin1+1,'tmpvel')
+    call to_history('n2',bounds%nmax2-bounds%nmin2+1,'tmpvel')
+    call to_history('n3',bounds%nmax3-bounds%nmin3+3,'tmpvel')
     if(genpar%withRho) then
-       if (.not.exist_file(mod%rhotag)) call erexit('ERROR: Need rho file, exit now')
-    else
-       call dim_consistency_chech(mod%rhotag,mod%veltag,genpar%twoD)
-       call sreed(mod%rhotag,rho,4*mod%nz*mod%nx*mod%ny)
-       call auxclose(mod%rhotag)
+       if (.not.exist_file(mod%rhotag)) then
+          call erexit('ERROR: Need rho file, exit now')
+       else
+          tmp=0.
+          call dim_consistency_check(mod%rhotag,mod%veltag,genpar%twoD)
+          allocate(mod%rho(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
+          allocate(mod%rho2(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
+          call sreed(mod%rhotag,tmp,4*mod%nz*mod%nx*mod%ny)
+          call auxclose(mod%rhotag)
+          call model_extend(tmp,mod%rho,bounds,mod%nz,mod%nx,mod%ny,genpar%twoD)
+          call Interpolate(mod,bounds)
+       end if
     end if
+    deallocate(tmp)
   end subroutine readvel
-   !
+
+  subroutine model_extend(tmp,field,bounds,nz,nx,ny,twoD)
+    type(FDbounds)         :: bounds
+    real, dimension(:,:,:) :: tmp
+    real                   :: field(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3)
+    integer :: i,j,k,nx,ny,nz
+    logical :: twoD
+
+    field(1:nz,1:nx,1:ny)=tmp
+    
+    do k=1,ny
+       do j=1,nx           
+          do i=bounds%nmin1,0
+             field(i,j,k)=field(1,j,k)
+          end do         
+          do i=nz+1,bounds%nmax1
+             field(i,j,k)=field(nz,j,k)
+          end do
+       end do
+    end do
+
+    do k=1,ny
+       do j=bounds%nmin2,0
+          do i=bounds%nmin1,bounds%nmax1
+             field(i,j,k)=field(i,1,k)
+          end do         
+       end do
+       do j=nx+1,bounds%nmax2
+          do i=bounds%nmin1,bounds%nmax1
+             field(i,j,k)=field(i,nx,k)
+          end do         
+       end do
+    end do
+
+    if (.not.twoD) then
+       do k=bounds%nmin3,0
+          do j=bounds%nmin2,bounds%nmax2
+             do i=bounds%nmin1,bounds%nmax1
+                field(i,j,k)=field(i,j,1)
+             end do
+          end do
+       end do
+       do k=ny+1,bounds%nmax3
+          do j=bounds%nmin2,bounds%nmax2
+             do i=bounds%nmin1,bounds%nmax1
+                field(i,j,k)=field(i,j,ny)
+             end do
+          end do
+       end do
+       
+    end if
+  end subroutine model_extend
+
+  !
   ! Subroutine to check the parameters supplied for stability and accuracy
   ! If the computations are too inaccurate or unstable, then the program
   ! will exit
   !
-  !
-  subroutine vel_check(mod,genpar)
-    type(ModelSpace)   :: mod
+  subroutine vel_check(vel,genpar)
+    real, dimension(:,:,:) :: vel
     type(GeneralParam) ::genpar
 
-    implicit none
     integer  :: fetch, hetch, tetch, getch, auxpar
     external :: fetch, hetch, tetch, getch, auxpar
     !
@@ -196,8 +287,8 @@ contains
     !
     ! check the velocity model for its maximum value
     !
-    vmax=maxval(mod%vel)
-    vmin=minval(mod%vel)
+    vmax=maxval(vel)
+    vmin=minval(vel)
 
     if (genpar%twoD) then
        stab=vmax*genpar%dt/(min(genpar%delta(1),genpar%delta(2)))
@@ -299,7 +390,7 @@ contains
        !
        ! compute the suggested maximum frequency
        !
-       fmax_new=samplerate/3.0*fmax
+       fmax_new=samplerate/3.0*genpar%fmax
        !
        call putch('fmax_new = fmax_new','r',fmax_new)
        call putlin(' ')
@@ -311,8 +402,10 @@ contains
     !
   end subroutine vel_check
 
-  subroutine dim_consistency_chech(tag1,tag2,twoD)
+  subroutine dim_consistency_check(tag1,tag2,twoD)
     character(len=3) :: tag1,tag2
+    integer  :: fetch, hetch, tetch, getch, auxpar
+    external :: fetch, hetch, tetch, getch, auxpar
 
     integer :: n1,n2
     real    :: o1,o2
@@ -377,6 +470,6 @@ contains
        end if
     end if
 
-  end subroutine dim_consistency_chech
+  end subroutine dim_consistency_check
 
 end module readsouvelrho_mod

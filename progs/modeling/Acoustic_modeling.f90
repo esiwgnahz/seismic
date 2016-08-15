@@ -1,6 +1,7 @@
 program Acoustic_modeling
 
   use sep
+  use Readsouvelrho_mod
   use FDcoefs_assign
   use Propagator_mod
   use Interpolate_mod
@@ -24,26 +25,19 @@ program Acoustic_modeling
   integer :: i,j,k 
   integer :: ntsnap
 
-  logical :: withRho
   call sep_init()
   
-  call from_history('n1',sourcevec%dimt%nt)
-  call from_history('d1',sourcevec%dimt%dt)
-  allocate(sourcevec%trace(sourcevec%dimt%nt,1))
-  call sreed('in',sourcevec%trace(:,1),4*sourcevec%dimt%nt)
+  genpar%lsinc=7
 
-  call from_param('withRho',withRho,.false.)
-  if (withRho) then
-     genpar%coefpower=1
-  else
-     genpar%coefpower=2
-  end if
+  call from_param('fmax',genpar%fmax,30.)
+  call from_param('ntaper',genpar%ntaper,20)
+
+  genpar%snapi=4
+
+  mod%veltag='vel'
+  mod%rhotag='rho'
+
   call from_param('twoD',genpar%twoD,.false.)
-
-  allocate(datavec(201))
-  do i=1,size(datavec)
-     allocate(datavec(i)%trace(sourcevec%dimt%nt,1)) ! 1 component trace
-  end do
 
   if (.not.genpar%twoD) then     
      genpar%nbound=4
@@ -51,93 +45,48 @@ program Acoustic_modeling
      genpar%nbound=0
   end if
 
-  genpar%dt=sourcevec%dimt%dt
-  genpar%dx=10
-  genpar%dy=10
-  genpar%dz=10
+  call from_param('rec_type',genpar%rec_type,0)
+  call from_param('shot_type',genpar%shot_type,0)
+  call from_param('surf_type',genpar%surf_type,0)
 
-  genpar%nt=sourcevec%dimt%nt
-  genpar%lsinc=7
-  genpar%ntaper=10
-  genpar%snapi=4
+  call readsou(sourcevec,genpar)
+ 
+  if (genpar%withRho) then
+     genpar%coefpower=1
+  else
+     genpar%coefpower=2
+  end if
 
-  genpar%rec_type=0
-  genpar%surf_type=0
-  genpar%shot_type=0
+  call readvel(mod,genpar,bounds)
+  call readsoucoord(sourcevec,mod) 
 
-  mod%nx=201
-  mod%ny=201
-  mod%nz=101
+  allocate(datavec(mod%nx))
 
-  sourcevec%coord(1)=130.4   ! Z
-  sourcevec%coord(2)=546.7  ! X
-  sourcevec%coord(3)=800.1  ! Y
+  do i=1,size(datavec)
+     allocate(datavec(i)%trace(sourcevec%dimt%nt,1)) ! 1 component trace    
+     datavec(i)%trace=0.
+     datavec(i)%coord(1)=genpar%omodel(1)  ! Z
+     datavec(i)%coord(2)=genpar%omodel(2)+(i-1)*mod%dx ! X
+     datavec(i)%coord(3)=(mod%ny-1)*mod%dy/2+genpar%omodel(3)
+  end do
 
   genpar%ntsnap=int(genpar%nt/genpar%snapi)
 
-  if (genpar%twoD) then
-     mod%ny=1
-     genpar%dy=1.
-  end if
-
-  mod%dx=genpar%dx
-  mod%dy=genpar%dy
-  mod%dz=genpar%dz
-
-  elev%omodel=0.
-  elev%delta(1)=genpar%dz
-  elev%delta(2)=genpar%dx
-  elev%delta(3)=genpar%dy
-
-  do i=1,size(datavec)     
-     datavec(i)%coord(1)=0.  ! Z
-     datavec(i)%coord(2)=elev%omodel(2)+(i-1)*mod%dx ! X
-     datavec(i)%coord(3)=800.1 ! Y
-  end do
-
   allocate(wfld%wave(mod%nz,mod%nx,mod%ny,genpar%ntsnap,1))
   
-  if (genpar%shot_type.gt.0 .or. genpar%surf_type.gt.0) then
-     if (genpar%shot_type.gt.0) bounds%nmin1 = -(genpar%ntaper+genpar%lsinc/2+2)+1
-     if (genpar%surf_type.gt.0) bounds%nmin1 = -genpar%lsinc+1
-  else
-     bounds%nmin1 = -genpar%ntaper+1
-  endif
-  bounds%nmax1 =  mod%nz+genpar%ntaper
-  bounds%nmin2 = -genpar%ntaper+1
-  bounds%nmax2 =  mod%nx+genpar%ntaper
-  if (.not. genpar%twoD) then
-     bounds%nmin3 = -genpar%ntaper+1
-     bounds%nmax3 =  mod%ny+genpar%ntaper
-  else
-     bounds%nmin3 = 1
-     bounds%nmax3 = 1
-  end if
-
   write(0,*) 'bounds%nmin1',bounds%nmin1,'bounds%nmax1',bounds%nmax1
   write(0,*) 'bounds%nmin2',bounds%nmin2,'bounds%nmax2',bounds%nmax2
   write(0,*) 'bounds%nmin3',bounds%nmin3,'bounds%nmax3',bounds%nmax3
 
-  allocate(mod%vel(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
-  allocate(mod%rho(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
-  allocate(mod%rho2(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
   allocate(elev%elev(bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
-
-  mod%vel(bounds%nmin1:40,:,:)=2400.
-  mod%vel(40:80,:,:)=2400. 
-  mod%vel(80:,:,:)=2400. 
-  mod%rho(bounds%nmin1:40,:,:)=1.
-  mod%rho(40:80,:,:)=2.
-  mod%rho(80:,:,:)=4.
-  call Interpolate(mod,bounds)
-
+  elev%elev=0.
   write(0,*) 'before wave propagator'
   if (genpar%twoD) then
-     if (.not.withRho) then
+     if (.not.genpar%withRho) then
         call propagator_acoustic(                        &
         & FD_acoustic_init_coefs,                        &
         & FD_2nd_2D_derivatives_scalar_forward,          &
-        & Extraction_array_simple,                       &
+        & Extraction_array_sinc,                       &
         & Injection_source_sinc_xz,                      &
         & FD_2nd_time_derivative,                        &
         & FDswaptime,                                    &
@@ -146,18 +95,18 @@ program Acoustic_modeling
         call propagator_acoustic(                        &
         & FD_acoustic_rho_init_coefs,                    &
         & FD_2D_derivatives_acoustic_forward,            &
-        & Extraction_array_simple,                       &
+        & Extraction_array_sinc,                       &
         & Injection_source_rho_sinc_xz,                  &
         & FD_2nd_time_derivative,                        &
         & FDswaptime,                                    &
         & bounds,mod,sourcevec,datavec,wfld,elev,genpar)
      end if
   else
-     if (.not.withRho) then
+     if (.not.genpar%withRho) then
         call propagator_acoustic(                        &
         & FD_acoustic_init_coefs,                        &
         & FD_2nd_3D_derivatives_scalar_forward,          &
-        & Extraction_array_simple,                       &
+        & Extraction_array_sinc,                       &
         & Injection_source_sinc_xyz,                     &
         & FD_2nd_time_derivative_omp,                    &
         & FDswaptime_omp,                                &
@@ -166,14 +115,14 @@ program Acoustic_modeling
         call propagator_acoustic(                        &
         & FD_acoustic_rho_init_coefs,                    &
         & FD_3D_derivatives_acoustic_forward,            &
-        & Extraction_array_simple,                       &
-        & Injection_source_rho_sinc_xz,                  &
+        & Extraction_array_sinc,                       &
+        & Injection_source_rho_sinc_xyz,                  &
         & FD_2nd_time_derivative,                        &
         & FDswaptime,                                    &
         & bounds,mod,sourcevec,datavec,wfld,elev,genpar)
      end if
   end if
-  write(0,*) 'afterwave propagator'
+  write(0,*) 'after wave propagator'
   
   do i=1,size(datavec)
      call srite('data',datavec(i)%trace(:,1),4*sourcevec%dimt%nt)
@@ -196,9 +145,9 @@ program Acoustic_modeling
   call to_history('d1',mod%dz,'wave')
   call to_history('d2',mod%dx,'wave')
   call to_history('d3',mod%dy,'wave')
-  call to_history('o1',elev%omodel(1),'wave')
-  call to_history('o2',elev%omodel(2),'wave')
-  call to_history('o3',elev%omodel(3),'wave')
+  call to_history('o1',genpar%omodel(1),'wave')
+  call to_history('o2',genpar%omodel(2),'wave')
+  call to_history('o3',genpar%omodel(3),'wave')
   call to_history('n4',genpar%ntsnap,'wave')
 
   do i=1,size(datavec)

@@ -66,9 +66,9 @@ contains
     allocate(delp(bounds%nmin1:bounds%nmax1,bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
     
     delp=1./mod%rho2
-    dxi =1./mod%dx
-    dyi =1./mod%dy
-    dzi =1./mod%dz
+    dzi =1./genpar%delta(1)
+    dxi =1./genpar%delta(2)
+    dyi =1./genpar%delta(3)
 
     szz=0.
     syy=0.
@@ -195,8 +195,8 @@ contains
     allocate(delp(bounds%nmin1:bounds%nmax1,bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
     
     delp=1./mod%rho2
-    dxi =1./genpar%dx
-    dzi =1./genpar%dz
+    dzi =1./genpar%delta(1)
+    dxi =1./genpar%delta(2)
 
     sxx=0.
     szz=0. 

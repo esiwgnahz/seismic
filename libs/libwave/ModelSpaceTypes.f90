@@ -6,6 +6,10 @@ module ModelSpace_types
   implicit none
 
   type ModelSpace
+
+     character(len=3)  :: veltag
+     character(len=3)  :: rhotag
+
      real, allocatable :: vel(:,:,:)
      real, allocatable :: rho(:,:,:)
      real, allocatable :: rho2(:,:,:) 
@@ -17,6 +21,10 @@ module ModelSpace_types
      integer :: ny
      integer :: nz
 
+     real    :: ox
+     real    :: oy
+     real    :: oz
+
      real    :: dx
      real    :: dy
      real    :: dz
@@ -26,8 +34,6 @@ module ModelSpace_types
      real,    allocatable :: elev(:,:)     ! Free surface elevation
      integer, allocatable :: ielev_z(:,:)
      real   , allocatable :: delev_z(:,:)
-
-     real    :: omodel(3), delta(3) ! origins and deltas
   end type ModelSpace_elevation
 
 contains
@@ -49,27 +55,27 @@ contains
     if (allocated(elev%delev_z))       deallocate(elev%delev_z)
   end subroutine deallocateModelSpace_elev
   
-  subroutine ModelSpace_compute_array_xyz_position(elev,vec)
-    type(TraceSpace), dimension(:)   ::                 vec
-    type(ModelSpace_elevation)       ::            elev
+  subroutine ModelSpace_compute_array_xyz_position(genpar,vec)
+    type(TraceSpace), dimension(:)   ::                   vec
+    type(GeneralParam)               ::            genpar
     integer :: i
 
     do i=1,size(vec)
-       call ModelSpace_compute_xyz_positions(elev,vec(i))
+       call ModelSpace_compute_xyz_positions(genpar,vec(i))
     end do
     
   end subroutine ModelSpace_compute_array_xyz_position
 
-  subroutine ModelSpace_compute_xyz_positions(elev,sou)
-    type(ModelSpace_elevation)  ::            elev
-    type(TraceSpace)            ::                 sou
+  subroutine ModelSpace_compute_xyz_positions(genpar,sou)
+    type(GeneralParam)  ::                    genpar
+    type(TraceSpace)    ::                           sou
     integer :: i
     
     !
     ! Shot elevation
     !   
     do i=1,3
-       call find_i_d(sou%icoord(i),sou%dcoord(i),sou%coord(i),elev%omodel(i),elev%delta(i))
+       call find_i_d(sou%icoord(i),sou%dcoord(i),sou%coord(i),genpar%omodel(i),genpar%delta(i))
     end do
 
   end subroutine ModelSpace_compute_xyz_positions
@@ -85,7 +91,7 @@ contains
     if (genpar%surf_type.ne.0) then
        do k=bounds%nmin3,bounds%nmax3
           do j=bounds%nmin2,bounds%nmax2
-             call find_i_d(elev%ielev_z(j,k),elev%delev_z(j,k),elev%elev(j,k),elev%omodel(1),elev%delta(1))
+             call find_i_d(elev%ielev_z(j,k),elev%delev_z(j,k),elev%elev(j,k),genpar%omodel(1),genpar%delta(1))
           end do
        end do
     endif
@@ -97,7 +103,8 @@ contains
     real    ::              delev,elev,orig,delta
 
     ielev= nint((elev- orig)/delta)+1           ! Index
-    delev=       elev-(orig+float(ielev)*delta) ! Differential
+    delev=       elev-(orig+float(ielev-1)*delta) ! Differential
 
   end subroutine find_i_d
+
 end module ModelSpace_types

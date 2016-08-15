@@ -49,10 +49,10 @@ contains
     real                   :: dxi,dyi,dzi
 
     ! genpar%coefpower=2 for scalar   wave equation (v only)
-    ! genpar%coefpower=2 for acoustic wave equation (v and rho)
-    dxi=1./genpar%dx
-    dyi=1./genpar%dy
-    dzi=1./genpar%dz
+    ! genpar%coefpower=1 for acoustic wave equation (v and rho)
+    dxi=1./genpar%delta(2)
+    dyi=1./genpar%delta(3)
+    dzi=1./genpar%delta(1)
     
     coefou%c0x=coefin%c0*dxi**genpar%coefpower
     coefou%c1x=coefin%c1*dxi**genpar%coefpower

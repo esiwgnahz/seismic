@@ -4,12 +4,13 @@ module GeneralParam_types
   type GeneralParam
  
      logical :: twoD
+     logical :: withRho
 
      real    :: dt
-     real    :: dx
-     real    :: dy
-     real    :: dz
 
+     real    :: omodel(3),delta(3)
+
+     real    :: fmax
      integer :: nt
 
      integer :: lsinc

@@ -114,10 +114,10 @@ contains
     call FD_derivatives_coef_init(scaled_fdcoefs)
 
     call Higdon(genpar%dt,model,bounds,hig)
-    call ModelSpace_compute_xyz_positions(elev,sou)
-    call ModelSpace_compute_array_xyz_position(elev,datavec)
+    call ModelSpace_compute_xyz_positions(genpar,sou)
+    call ModelSpace_compute_array_xyz_position(genpar,datavec)
     call ModelSpace_elevation_parameters(elev,bounds,genpar)
-
+!
     counter=0
     TIME_LOOPS:do it=1,sou%dimt%nt     
 
