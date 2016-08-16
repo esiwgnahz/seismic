@@ -305,6 +305,267 @@ contains
     endif
     !
   end subroutine Boundary0
+ 
+  subroutine Boundary0_opt(genpar,bounds,u,mod,hig)
+    !
+    type(GeneralParam) :: genpar
+    type(ModelSpace)   :: mod
+    type(FDbounds)     :: bounds
+    type(HigdonParam)  :: hig
+
+    real :: u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &         bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
+
+    integer :: i, j, k, nz0
+    integer :: fscale0
+    real    :: fscale, fdum
+
+    nz0 = 1
+    fscale0 = 3.
+    !
+    ! Update the taper zone and update the regions used for operator padding
+    ! Since everything is outside the main grid, constant density applies
+    !
+    ! Axis 1 ----------------------
+    !
+    if (genpar%surf_type.le.0) then
+       !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum)
+       do k=bounds%nmin3,bounds%nmax3
+          do j=bounds%nmin2,bounds%nmax2
+             ! Update the top
+             ! Taper
+             do i=nz0-1,bounds%nmin1,-1
+                fscale = float(nz0-i)/float(nz0-1-bounds%nmin1)/fscale0
+                fdum = hig%gz(1,j,k)*u(i+1,j,k,3)+ &
+                &   hig%gz(2,j,k)*u(i+2,j,k,3)+ &
+                &   hig%gz(3,j,k)*u(i  ,j,k,2)+ &
+                &   hig%gz(4,j,k)*u(i+1,j,k,2)+ &
+                &   hig%gz(5,j,k)*u(i+2,j,k,2)+ &
+                &   hig%gz(6,j,k)*u(i  ,j,k,1)+ &
+                &   hig%gz(7,j,k)*u(i+1,j,k,1)+ &
+                &   hig%gz(8,j,k)*u(i+2,j,k,1)
+                u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
+             end do
+          end do
+       end do      
+       !$OMP END PARALLEL DO
+       !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum)
+       do k=bounds%nmin3,bounds%nmax3
+          do j=bounds%nmin2,bounds%nmax2
+             ! Operator padding
+             do i=bounds%nmin1-1,bounds%nmin1-4,-1
+                fdum = hig%gz(1,j,k)*u(i+1,j,k,3)+ &
+                &   hig%gz(2,j,k)*u(i+2,j,k,3)+ &
+                &   hig%gz(3,j,k)*u(i  ,j,k,2)+ &
+                &   hig%gz(4,j,k)*u(i+1,j,k,2)+ &
+                &   hig%gz(5,j,k)*u(i+2,j,k,2)+ &
+                &   hig%gz(6,j,k)*u(i  ,j,k,1)+ &
+                &   hig%gz(7,j,k)*u(i+1,j,k,1)+ &
+                &   hig%gz(8,j,k)*u(i+2,j,k,1)
+                u(i,j,k,3) = -fdum
+             end do
+          end do
+       end do
+       !$OMP END PARALLEL DO
+    end if
+    
+    !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum)
+    do k=bounds%nmin3,bounds%nmax3
+       do j=bounds%nmin2,bounds%nmax2
+          do i=mod%nz+1,bounds%nmax1
+             fscale = float(i-mod%nz)/float(bounds%nmax1-mod%nz-1)/fscale0
+             fdum = hig%gz( 9,j,k)*u(i-1,j,k,3)+ &
+             &   hig%gz(10,j,k)*u(i-2,j,k,3)+ &
+             &   hig%gz(11,j,k)*u(i  ,j,k,2)+ &
+             &   hig%gz(12,j,k)*u(i-1,j,k,2)+ &
+             &   hig%gz(13,j,k)*u(i-2,j,k,2)+ &
+             &   hig%gz(14,j,k)*u(i  ,j,k,1)+ &
+             &   hig%gz(15,j,k)*u(i-1,j,k,1)+ &
+             &   hig%gz(16,j,k)*u(i-2,j,k,1)
+             u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum)
+    do k=bounds%nmin3,bounds%nmax3
+       do j=bounds%nmin2,bounds%nmax2
+          do i=bounds%nmax1+1,bounds%nmax1+4
+             fdum = hig%gz( 9,j,k)*u(i-1,j,k,3)+ &
+             &   hig%gz(10,j,k)*u(i-2,j,k,3)+ &
+             &   hig%gz(11,j,k)*u(i  ,j,k,2)+ &
+             &   hig%gz(12,j,k)*u(i-1,j,k,2)+ &
+             &   hig%gz(13,j,k)*u(i-2,j,k,2)+ &
+             &   hig%gz(14,j,k)*u(i  ,j,k,1)+ &
+             &   hig%gz(15,j,k)*u(i-1,j,k,1)+ &
+             &   hig%gz(16,j,k)*u(i-2,j,k,1)
+             u(i,j,k,3) = -fdum
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+    !
+    ! Axis 2 ----------------------
+    !
+    !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum)
+    do k=bounds%nmin3,bounds%nmax3
+       do j=0,bounds%nmin2,-1
+          fscale = float(1-j)/float(-bounds%nmin2)/fscale0
+          do i=bounds%nmin1,bounds%nmax1
+             fdum = hig%gx(1,i,k)*u(i,j+1,k,3)+ &
+             &   hig%gx(2,i,k)*u(i,j+2,k,3)+ &
+             &   hig%gx(3,i,k)*u(i,j  ,k,2)+ &
+             &   hig%gx(4,i,k)*u(i,j+1,k,2)+ &
+             &   hig%gx(5,i,k)*u(i,j+2,k,2)+ &
+             &   hig%gx(6,i,k)*u(i,j  ,k,1)+ &
+             &   hig%gx(7,i,k)*u(i,j+1,k,1)+ &
+             &   hig%gx(8,i,k)*u(i,j+2,k,1)
+             u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum)
+    do k=bounds%nmin3,bounds%nmax3
+       do j=bounds%nmin2-1,bounds%nmin2-4,-1
+          do i=bounds%nmin1,bounds%nmax1
+             fdum = hig%gx(1,i,k)*u(i,j+1,k,3)+ &
+             &   hig%gx(2,i,k)*u(i,j+2,k,3)+ &
+             &   hig%gx(3,i,k)*u(i,j  ,k,2)+ &
+             &   hig%gx(4,i,k)*u(i,j+1,k,2)+ &
+             &   hig%gx(5,i,k)*u(i,j+2,k,2)+ &
+             &   hig%gx(6,i,k)*u(i,j  ,k,1)+ &
+             &   hig%gx(7,i,k)*u(i,j+1,k,1)+ &
+             &   hig%gx(8,i,k)*u(i,j+2,k,1)
+             u(i,j,k,3) = -fdum
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum)
+    do k=bounds%nmin3,bounds%nmax3
+       do j=mod%nx+1,bounds%nmax2
+          fscale = float(j-mod%nx)/float(bounds%nmax2-mod%nx-1)/fscale0
+          do i=bounds%nmin1,bounds%nmax1
+             fdum = hig%gx( 9,i,k)*u(i,j-1,k,3)+ &
+             &   hig%gx(10,i,k)*u(i,j-2,k,3)+ &
+             &   hig%gx(11,i,k)*u(i,j  ,k,2)+ &
+             &   hig%gx(12,i,k)*u(i,j-1,k,2)+ &
+             &   hig%gx(13,i,k)*u(i,j-2,k,2)+ &
+             &   hig%gx(14,i,k)*u(i,j  ,k,1)+ &
+             &   hig%gx(15,i,k)*u(i,j-1,k,1)+ &
+             &   hig%gx(16,i,k)*u(i,j-2,k,1)
+             u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+    
+    !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum)
+    do k=bounds%nmin3,bounds%nmax3
+       do j=bounds%nmax2+1,bounds%nmax2+4
+          do i=bounds%nmin1,bounds%nmax1
+             fdum = hig%gx( 9,i,k)*u(i,j-1,k,3)+ &
+             &   hig%gx(10,i,k)*u(i,j-2,k,3)+ &
+             &   hig%gx(11,i,k)*u(i,j  ,k,2)+ &
+             &   hig%gx(12,i,k)*u(i,j-1,k,2)+ &
+             &   hig%gx(13,i,k)*u(i,j-2,k,2)+ &
+             &   hig%gx(14,i,k)*u(i,j  ,k,1)+ &
+             &   hig%gx(15,i,k)*u(i,j-1,k,1)+ &
+             &   hig%gx(16,i,k)*u(i,j-2,k,1)
+             u(i,j,k,3) = -fdum
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+    !
+    ! Axis 3 ----------------------
+    !
+    if (genpar%nbound.gt.0) then
+       !
+       ! Update the front side operator pad
+       ! Taper
+       !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum)
+       do k=0,bounds%nmin3,-1
+          fscale = float(1-k)/float(-bounds%nmin3)/fscale0
+          do j=bounds%nmin2,bounds%nmax2
+             do i=bounds%nmin1,bounds%nmax1
+                fdum = hig%gy(1,i,j)*u(i,j,k+1,3)+ &
+                &   hig%gy(2,i,j)*u(i,j,k+2,3)+ &
+                &   hig%gy(3,i,j)*u(i,j,k  ,2)+ &
+                &   hig%gy(4,i,j)*u(i,j,k+1,2)+ &
+                &   hig%gy(5,i,j)*u(i,j,k+2,2)+ &
+                &   hig%gy(6,i,j)*u(i,j,k  ,1)+ &
+                &   hig%gy(7,i,j)*u(i,j,k+1,1)+ &
+                &   hig%gy(8,i,j)*u(i,j,k+2,1)
+                u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
+             end do
+          end do
+       end do
+       !$OMP END PARALLEL DO
+       ! Operator padding
+       !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum)
+       do k=bounds%nmin3-1,bounds%nmin3-4,-1
+          do j=bounds%nmin2,bounds%nmax2
+             do i=bounds%nmin1,bounds%nmax1
+                fdum = hig%gy(1,i,j)*u(i,j,k+1,3)+ &
+                &   hig%gy(2,i,j)*u(i,j,k+2,3)+ &
+                &   hig%gy(3,i,j)*u(i,j,k  ,2)+ &
+                &   hig%gy(4,i,j)*u(i,j,k+1,2)+ &
+                &   hig%gy(5,i,j)*u(i,j,k+2,2)+ &
+                &   hig%gy(6,i,j)*u(i,j,k  ,1)+ &
+                &   hig%gy(7,i,j)*u(i,j,k+1,1)+ &
+                &   hig%gy(8,i,j)*u(i,j,k+2,1)
+                u(i,j,k,3) = -fdum
+             end do
+          end do
+       end do
+       !$OMP END PARALLEL DO
+       !
+       ! Update the back side operator pad
+       ! Taper
+       !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum)
+       do k=mod%ny+1,bounds%nmax3
+          fscale = float(k-mod%ny)/float(bounds%nmax3-mod%ny-1)/fscale0
+          do j=bounds%nmin2,bounds%nmax2
+             do i=bounds%nmin1,bounds%nmax1
+                fdum = hig%gy( 9,i,j)*u(i,j,k-1,3)+ &
+                &   hig%gy(10,i,j)*u(i,j,k-2,3)+ &
+                &   hig%gy(11,i,j)*u(i,j,k  ,2)+ &
+                &   hig%gy(12,i,j)*u(i,j,k-1,2)+ &
+                &   hig%gy(13,i,j)*u(i,j,k-2,2)+ &
+                &   hig%gy(14,i,j)*u(i,j,k  ,1)+ &
+                &   hig%gy(15,i,j)*u(i,j,k-1,1)+ &
+                &   hig%gy(16,i,j)*u(i,j,k-2,1)
+                u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
+             end do
+          end do
+       end do
+       !$OMP END PARALLEL DO
+       ! Operator padding
+       !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum)
+       do k=bounds%nmax3+1,bounds%nmax3+4
+          do j=bounds%nmin2,bounds%nmax2
+             do i=bounds%nmin1,bounds%nmax1
+                fdum = hig%gy( 9,i,j)*u(i,j,k-1,3)+ &
+                &   hig%gy(10,i,j)*u(i,j,k-2,3)+ &
+                &   hig%gy(11,i,j)*u(i,j,k  ,2)+ &
+                &   hig%gy(12,i,j)*u(i,j,k-1,2)+ &
+                &   hig%gy(13,i,j)*u(i,j,k-2,2)+ &
+                &   hig%gy(14,i,j)*u(i,j,k  ,1)+ &
+                &   hig%gy(15,i,j)*u(i,j,k-1,1)+ &
+                &   hig%gy(16,i,j)*u(i,j,k-2,1)
+                u(i,j,k,3) = -fdum
+             end do
+          end do
+       end do
+       !$OMP END PARALLEL DO
+    endif
+    !
+  end subroutine Boundary0_opt
 !
 !--------------------------------------------------------------------
   subroutine Boundary1(genpar,bounds,u,mod,hig)

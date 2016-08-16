@@ -14,6 +14,14 @@ wavelet.H:
 	echo d1=10 d2=10 d3=10 >> $@
 	Window3d n3=1 < $@ > 2Dvel.H
 
+3Drho.H:
+	Spike n1=50 n2=201 n3=201 | Add scale=1 > 1.H
+	Spike n1=50 n2=201 n3=201 | Add scale=1.2 > 2.H
+	Spike n1=50 n2=201 n3=201 | Add scale=1.5 > 3.H
+	Cat axis=1 1.H 2.H 3.H > $@
+	echo d1=10 d2=10 d3=10 >> $@
+	Window3d n3=1 < $@ > 2Drho.H
+
 traces.H:
 	echo n1=1000 o1=0. d1=0.001 >> $@
 	echo n2=201 o2=0. d2=10 >> $@
@@ -43,6 +51,43 @@ data3%.H:
 	${BRU} \
 	stdin=wavelet.H \
 	vel=2Dvel.H \
+	fmax=60 \
+	max_file_size=10 \
+	shot_z=0 \
+	ishot_x=101 \
+	ishot_y=100 \
+	${param$*} \
+	Seismogram=junk1.H
+	Transp plane=12 < junk1.H > $@
+
+rhodata1%.H: wavelet.H 3Dvel.H 3Drho.H 
+	${MOD} stdin=wavelet.H vel=3Dvel.H wave=wave1.H twoD=1 withRho=1 rho=3Drho.H ${param$*} fmax=60 data=$@ 
+
+3Drhodata1%.H: wavelet.H 3Dvel.H 3Drho.H 
+	${MOD} stdin=wavelet.H vel=3Dvel.H wave=wave1.H twoD=0 withRho=1 rho=3Drho.H ${param$*} fmax=60 data=$@ 
+
+3Ddata1%.H: wavelet.H 3Dvel.H 3Drho.H 
+	${MOD} stdin=wavelet.H vel=3Dvel.H wave=wave1.H twoD=0 withRho=0 rho=3Drho.H ${param$*} fmax=60 data=$@ 
+
+
+rhodata2%.H: traces.H 3Drho.H
+	${REF} \
+	land=1 \
+	vel=2Dvel.H \
+	dens=2Drho.H \
+	vel_dens_mask=2Dvel.H \
+	traces=traces.H \
+	density=1 \
+	fmax=60  \
+	task=1 \
+	${param$*} \
+	stdin=wavelet.H > $@
+
+rhodata3%.H:  3Drho.H
+	${BRU} \
+	stdin=wavelet.H \
+	vel=2Dvel.H \
+	rho=2Drho.H \
 	fmax=60 \
 	max_file_size=10 \
 	shot_z=0 \

@@ -267,7 +267,7 @@ contains
              &   sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*&
              &   deltai(1)*deltai(2)          
              u(i-sou%icoord(1),j+sou%icoord(2),1)=&
-             &   u(i-sou%icoord(1)-2,j+sou%icoord(2),1)-&
+             &   u(i-sou%icoord(1),j+sou%icoord(2),1)-&
              &   model%rho(sou%icoord(1),sou%icoord(2),1)*&
              &   model%vel(sou%icoord(1),sou%icoord(2),1)**2* &
              &   sou%trace(it,1)*sinc(maxz+1-i,1)*sinc(maxx+1+j,2)*&

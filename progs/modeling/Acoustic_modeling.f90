@@ -60,15 +60,29 @@ program Acoustic_modeling
   call readvel(mod,genpar,bounds)
   call readsoucoord(sourcevec,mod) 
 
-  allocate(datavec(mod%nx))
+  if (genpar%twoD) then
+     allocate(datavec(mod%nx))
+  else
+     allocate(datavec(mod%nx+mod%ny))
+  end if
 
-  do i=1,size(datavec)
+  ! Acquisition on 2 perpendicular lines
+  do i=1,mod%nx
      allocate(datavec(i)%trace(sourcevec%dimt%nt,1)) ! 1 component trace    
      datavec(i)%trace=0.
      datavec(i)%coord(1)=genpar%omodel(1)  ! Z
      datavec(i)%coord(2)=genpar%omodel(2)+(i-1)*mod%dx ! X
      datavec(i)%coord(3)=(mod%ny-1)*mod%dy/2+genpar%omodel(3)
   end do
+  if (.not.genpar%twoD) then
+     do i=1,mod%ny
+        allocate(datavec(i+mod%nx)%trace(sourcevec%dimt%nt,1)) ! 1 component trace    
+        datavec(i+mod%nx)%trace=0.
+        datavec(i+mod%nx)%coord(1)=genpar%omodel(1)  ! Z
+        datavec(i+mod%nx)%coord(3)=genpar%omodel(3)+(i-1)*mod%dy ! X
+        datavec(i+mod%nx)%coord(2)=(mod%nx-1)*mod%dx/2+genpar%omodel(2)
+     end do
+  end if
 
   genpar%ntsnap=int(genpar%nt/genpar%snapi)
 
@@ -118,7 +132,7 @@ program Acoustic_modeling
         & Extraction_array_sinc,                       &
         & Injection_source_rho_sinc_xyz,                  &
         & FD_2nd_time_derivative,                        &
-        & FDswaptime,                                    &
+        & FDswaptime_omp,                                    &
         & bounds,mod,sourcevec,datavec,wfld,elev,genpar)
      end if
   end if
