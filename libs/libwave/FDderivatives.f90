@@ -343,7 +343,7 @@ contains
           &      coefs%c2x*(mod%vel(i,j+2,1)**2*u(i,j+2,1,2)+mod%vel(i,j-2,1)**2*u(i,j-2,1,2))+ &
           &      coefs%c3x*(mod%vel(i,j+3,1)**2*u(i,j+3,1,2)+mod%vel(i,j-3,1)**2*u(i,j-3,1,2))+ &
           &      coefs%c4x*(mod%vel(i,j+4,1)**2*u(i,j+4,1,2)+mod%vel(i,j-4,1)**2*u(i,j-4,1,2))
-          u(i,j,1,3)=tmpxx+tmpzz
+          u(i,j,1,3)=real(tmpxx+tmpzz)
        end do
     end do
 

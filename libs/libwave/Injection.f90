@@ -396,10 +396,12 @@ contains
     type(GeneralParam)::                            genpar 
     real              ::                          u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
     &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
-    integer           :: it
-    integer           :: i
-    
-    u(1:mod%nz,1:mod%nx,1:mod%ny,3)=u(1:mod%nz,1:mod%nx,1:mod%ny,3)+2*dprod(model%image,model%wfld%wave)/model%vel**3
+    integer           :: it   
+
+    if (mod(it,genpar%snapi).eq.0) then
+       model%wvfld%counter=model%wvfld%counter+1
+       u(1:model%nz,1:model%nx,1:model%ny)=u(1:model%nz,1:model%nx,1:model%ny)+2*dprod(model%image(1:model%nz,1:model%nx,1:model%ny),model%wvfld%wave(1:model%nz,1:model%nx,1:model%ny,model%wvfld%counter,1))/model%vel(1:model%nz,1:model%nx,1:model%ny)
+    end if
     
   end subroutine Injection_Born
 

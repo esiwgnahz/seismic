@@ -205,6 +205,30 @@ contains
     deallocate(tmp)
   end subroutine readvel
 
+  subroutine readref(         mod,genpar,bounds)
+    type(ModelSpace)  ::      mod
+    type(GeneralParam)::          genpar
+    type(FDbounds)    ::                 bounds
+    real,allocatable,dimension(:,:,:) :: tmp
+
+    integer  :: fetch, hetch, tetch, getch, auxpar
+    external :: fetch, hetch, tetch, getch, auxpar
+    
+    allocate(tmp(mod%nz,mod%nx,mod%ny))
+
+    if (.not.exist_file(mod%reftag)) then
+       call erexit('ERROR: Need reflectivity file, exit now')
+    else
+       tmp=0.
+       call dim_consistency_check(mod%veltag,mod%reftag,genpar%twoD)
+       allocate(mod%image(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
+       call sreed(mod%reftag,tmp,4*mod%nz*mod%nx*mod%ny)
+       call auxclose(mod%reftag)
+       call model_extend(tmp,mod%image,bounds,mod%nz,mod%nx,mod%ny,genpar%twoD)
+    end if
+    deallocate(tmp)
+  end subroutine readref
+  
   subroutine model_extend(tmp,field,bounds,nz,nx,ny,twoD)
     type(FDbounds)         :: bounds
     real, dimension(:,:,:) :: tmp

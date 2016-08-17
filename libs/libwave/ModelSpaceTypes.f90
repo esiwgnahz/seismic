@@ -9,12 +9,15 @@ module ModelSpace_types
 
      character(len=3)  :: veltag
      character(len=3)  :: rhotag
+     character(len=3)  :: reftag
 
      real, allocatable :: vel(:,:,:)
      real, allocatable :: rho(:,:,:)
      real, allocatable :: rho2(:,:,:) 
-     real, allocatable :: vel2(:,:,:)   
+     real, allocatable :: vel2(:,:,:) 
+  
      real, allocatable :: image(:,:,:)  ! Resulting image 
+
      real, allocatable :: illum(:,:,:)  ! illumination
 
      type(WaveSpace), pointer :: wvfld

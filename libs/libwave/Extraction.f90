@@ -335,7 +335,7 @@ contains
     
   end subroutine Extraction_1trace_sinc_xy
   
-  subroutine Extraction_wavefield(bounds,model,dat,elev,u,genpar,counter,it)
+  subroutine Extraction_wavefield(bounds,model,dat,elev,u,genpar,it)
     type(FDbounds)    ::          bounds
     type(ModelSpace)  ::                 model
     type(WaveSpace)   ::                       dat
@@ -344,14 +344,14 @@ contains
     real              ::                               u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
     &                                            bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
     integer           :: it
-    integer           :: i,k,j,counter
+    integer           :: i,k,j
     
     real, allocatable :: buffer_sou(:,:)
 
     allocate(buffer_sou(model%nz,model%nx))
 
     MODULO:if (mod(it,genpar%snapi).eq.0) then
-       counter=counter+1
+       dat%counter=dat%counter+1
        if (genpar%surf_type.ne.0) then
           do k=1,model%ny
              buffer_sou = 0.
@@ -360,10 +360,10 @@ contains
                    buffer_sou(i,j) = u(i,j,k,2)
                 end do
              end do
-             dat%wave(:,:,k,counter,1)=buffer_sou
+             dat%wave(:,:,k,dat%counter,1)=buffer_sou
           end do
        else
-          dat%wave(:,:,:,counter,1)=u(1:model%nz,1:model%nx,1:model%ny,2)         
+          dat%wave(:,:,:,dat%counter,1)=u(1:model%nz,1:model%nx,1:model%ny,2)         
        end if
     end if MODULO
     

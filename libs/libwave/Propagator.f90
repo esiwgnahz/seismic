@@ -93,7 +93,7 @@ contains
     type(HigdonParam)          :: hig
     type(ScaledFDcoefs)        :: scaled_fdcoefs
     type(UnscaledFDcoefs)      :: fdcoefs
-    integer                    :: it,counter
+    integer                    :: it
     real, allocatable :: u(:,:,:,:)
 
     integer :: i,counting(9),count_rate,count_max,tmin,tmax,tstep
@@ -122,16 +122,16 @@ contains
     call ModelSpace_elevation_parameters(elev,bounds,genpar)
 !
     totcount=0.
-    counter=0
+    if (present(wfld)) wfld%counter=0
        
     TIME_LOOPS:do it=genpar%tmin,genpar%tmax,genpar%tstep    
 
-       if (mod(it,50).eq.0) write (0,*) "Step",it," of ",sou(1)%dimt%nt,"time steps (Source Wavefield)"
+       if (mod(it,50).eq.0) write (0,*) "Step",it," of ",genpar%tmax,"time steps (Source Wavefield)"
 
        call system_clock(counting(1),count_rate,count_max)
        if (present(datavec)) call ExtractData(bounds,model,datavec,u(:,:,:,2),genpar,it) 
        call system_clock(counting(2),count_rate,count_max)    
-       if (present(wfld)) call Extraction_wavefield(bounds,model,wfld,elev,u,genpar,counter,it)
+       if (present(wfld)) call Extraction_wavefield(bounds,model,wfld,elev,u,genpar,it)
        call system_clock(counting(3),count_rate,count_max)
        call Boundary_set_free_surface(bounds,model,elev,u,genpar)
        call system_clock(counting(4),count_rate,count_max)
@@ -158,7 +158,6 @@ contains
 
     end do TIME_LOOPS
 
-    write(0,*) 'counter',counter
     write(0,*) 'INFO ---------------------------'
     write(0,*) 'INFO Total time               = ',sum(totcount)
     write(0,*) 'INFO ---------------------------'

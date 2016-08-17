@@ -35,6 +35,7 @@ program Acoustic_Born_modeling
 
   mod%veltag='vel'
   mod%rhotag='rho'
+  mod%reftag='ref'
 
   call from_param('twoD',genpar%twoD,.false.)
 
@@ -57,6 +58,7 @@ program Acoustic_Born_modeling
   end if
 
   call readvel(mod,genpar,bounds)
+  call readref(mod,genpar,bounds)
   call readsoucoord(sourcevec,mod) 
 
   if (genpar%twoD) then
@@ -88,7 +90,6 @@ program Acoustic_Born_modeling
   genpar%ntsnap=int(genpar%nt/genpar%snapi)
 
   allocate(wfld_fwd%wave(mod%nz,mod%nx,mod%ny,genpar%ntsnap,1))
-  allocate(wfld_bwd%wave(mod%nz,mod%nx,mod%ny,genpar%ntsnap,1))
   
   write(0,*) 'bounds%nmin1',bounds%nmin1,'bounds%nmax1',bounds%nmax1
   write(0,*) 'bounds%nmin2',bounds%nmin2,'bounds%nmax2',bounds%nmax2
@@ -122,39 +123,37 @@ program Acoustic_Born_modeling
 
   write(0,*) 'after wave propagator'
   
-  mod%wvfld=>wfld_fw
-
-  do i=1,size(datavec)
-     call srite('data',datavec(i)%trace(:,1),4*sourcevec(1)%dimt%nt)
-  end do
+  mod%wvfld=>wfld_fwd
+  mod%wvfld%counter=0
 
   do i=1,genpar%ntsnap
      call srite('wave_fwd',wfld_fwd%wave(1:mod%nz,1:mod%nx,1:mod%ny,i,1),4*mod%nx*mod%ny*mod%nz)
   end do
 
-  genpar%tmax=1
-  genpar%tmin=sourcevec(1)%dimt%nt
-  genpar%tstep=-1
   if (genpar%twoD) then
-     call propagator_acoustic(
+     call propagator_acoustic(                          &
      & FD_acoustic_init_coefs,                          &
-     & FD_2nd_2D_derivatives_scalar_forward,            &
-     & Injection_Born_sinc,                             &
+     & FD_2nd_2D_derivatives_scalar_adjoint,            &
+     & Injection_Born,                                  &
      & FD_2nd_time_derivative,                          &
      & FDswaptime,                                      &
      & bounds,mod,elev,genpar,                          &
-     & datavec=datavec,ExtractData=Extraction_array_sinc)
+     & sou=sourcevec,datavec=datavec,ExtractData=Extraction_array_sinc)
   else
      call propagator_acoustic(                          &
      & FD_acoustic_init_coefs,                          &
-     & FD_2nd_3D_derivatives_scalar_forward,            &
-     & Injection_Born_sinc,                             &
+     & FD_2nd_3D_derivatives_scalar_adjoint,            &
+     & Injection_Born,                                  &
      & FD_2nd_time_derivative_omp,                      &
      & FDswaptime_omp,                                  &
      & bounds,mod,elev,genpar,                          &
-     & datavec=datavec,ExtractData=Extraction_array_sinc)    
+     & sou=sourcevec,datavec=datavec,ExtractData=Extraction_array_sinc)    
   end if
   write(0,*) 'after wave propagator'
+
+  do i=1,size(datavec)
+     call srite('data',datavec(i)%trace(:,1),4*sourcevec(1)%dimt%nt)
+  end do
 
   call to_history('n1',sourcevec(1)%dimt%nt,'data')
   call to_history('n2',size(datavec),'data')

@@ -13,6 +13,7 @@ module DataSpace_types
 
      type(DataSpace) :: dimt
 
+     integer :: counter
      integer :: nx
      integer :: ny
      real    :: ox
