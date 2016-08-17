@@ -350,7 +350,7 @@ contains
 
     allocate(buffer_sou(model%nz,model%nx))
 
-    MODULO:if (mod(it-1,genpar%snapi).eq.0) then
+    MODULO:if (mod(it,genpar%snapi).eq.0) then
        counter=counter+1
        if (genpar%surf_type.ne.0) then
           do k=1,model%ny

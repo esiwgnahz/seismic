@@ -28,6 +28,7 @@ clean:
 #	(cd libs/libinv; make aclean)
 	(cd libs/libwave; make aclean)
 	(cd progs/modeling; make aclean)
+	(cd progs/rtm; make aclean)
 #	(cd progs/logdecon; make aclean)
 #	(cd progs/futterman; make aclean)
 
@@ -37,5 +38,6 @@ all:
 #	(cd libs/libinv; make)
 	(cd libs/libwave; make)
 	(cd progs/modeling; make)
+	(cd progs/rtm; make)
 #	(cd progs/logdecon; make)
 #	(cd progs/futterman; make)

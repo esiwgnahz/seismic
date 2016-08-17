@@ -10,6 +10,52 @@ module Injection_mod
 
 contains
 
+  subroutine Injection_sinc(bounds,model,tracevec,u,genpar,it)
+    
+    type(FDbounds)    ::    bounds
+    type(ModelSpace)  ::           model
+    type(TraceSpace),dimension(:)  ::    tracevec
+    type(GeneralParam)::                            genpar 
+    real              ::                          u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    integer           :: i
+    
+    if (genpar%twoD) then
+       do i=1,size(tracevec)
+          call Injection_source_sinc_xz(bounds,model,tracevec(i),u,genpar,it)
+       end do
+    else
+       do i=1,size(tracevec)
+          call Injection_source_sinc_xyz(bounds,model,tracevec(i),u,genpar,it) 
+       end do
+    end if
+    
+  end subroutine Injection_sinc
+
+  subroutine Injection_rho_sinc(bounds,model,tracevec,u,genpar,it)
+    
+    type(FDbounds)    ::    bounds
+    type(ModelSpace)  ::           model
+    type(TraceSpace),dimension(:)  ::    tracevec
+    type(GeneralParam)::                            genpar 
+    real              ::                          u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    integer           :: i
+    
+    if (genpar%twoD) then
+       do i=1,size(tracevec)
+          call Injection_source_rho_sinc_xz(bounds,model,tracevec(i),u,genpar,it)
+       end do
+    else
+       do i=1,size(tracevec)
+          call Injection_source_rho_sinc_xyz(bounds,model,tracevec(i),u,genpar,it) 
+       end do
+    end if
+    
+  end subroutine Injection_rho_sinc
+
   subroutine Injection_source_sinc_xyz(bounds,model,sou,u,genpar,it)
     type(FDbounds)    ::               bounds
     type(ModelSpace)  ::                      model
@@ -82,11 +128,11 @@ contains
   end subroutine Injection_source_sinc_xyz
 
   subroutine Injection_source_rho_sinc_xyz(bounds,model,sou,u,genpar,it)
-    type(FDbounds)    ::               bounds
-    type(ModelSpace)  ::                      model
-    type(TraceSpace)  ::                            sou
-    type(GeneralParam)::                                  genpar 
-    real              ::                                u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    type(FDbounds)    ::                   bounds
+    type(ModelSpace)  ::                          model
+    type(TraceSpace)  ::                                sou
+    type(GeneralParam)::                                      genpar 
+    real              ::                                   u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
     &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
     integer           :: it
 
@@ -341,5 +387,20 @@ contains
     end if
 
   end subroutine Injection_source_rho_simple_xyz
+
+  subroutine Injection_Born(bounds,model,tracevec,u,genpar,it)
+    
+    type(FDbounds)    ::    bounds
+    type(ModelSpace)  ::           model
+    type(TraceSpace),dimension(:)  ::    tracevec
+    type(GeneralParam)::                            genpar 
+    real              ::                          u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    integer           :: i
+    
+    u(1:mod%nz,1:mod%nx,1:mod%ny,3)=u(1:mod%nz,1:mod%nx,1:mod%ny,3)+2*dprod(model%image,model%wfld%wave)/model%vel**3
+    
+  end subroutine Injection_Born
 
 end module Injection_mod

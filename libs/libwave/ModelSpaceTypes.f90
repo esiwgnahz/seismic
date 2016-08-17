@@ -17,6 +17,8 @@ module ModelSpace_types
      real, allocatable :: image(:,:,:)  ! Resulting image 
      real, allocatable :: illum(:,:,:)  ! illumination
 
+     type(WaveSpace), pointer :: wvfld
+
      integer :: nx
      integer :: ny
      integer :: nz
@@ -55,7 +57,7 @@ contains
     if (allocated(elev%delev_z))       deallocate(elev%delev_z)
   end subroutine deallocateModelSpace_elev
   
-  subroutine ModelSpace_compute_array_xyz_position(genpar,vec)
+  subroutine ModelSpace_compute_array_xyz_positions(genpar,vec)
     type(TraceSpace), dimension(:)   ::                   vec
     type(GeneralParam)               ::            genpar
     integer :: i
@@ -64,7 +66,7 @@ contains
        call ModelSpace_compute_xyz_positions(genpar,vec(i))
     end do
     
-  end subroutine ModelSpace_compute_array_xyz_position
+  end subroutine ModelSpace_compute_array_xyz_positions
 
   subroutine ModelSpace_compute_xyz_positions(genpar,sou)
     type(GeneralParam)  ::                    genpar

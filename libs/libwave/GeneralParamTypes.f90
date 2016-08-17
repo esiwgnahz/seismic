@@ -24,6 +24,9 @@ module GeneralParam_types
      integer :: shot_type  ! Mirror or not
 
      integer :: coefpower
+     integer :: tmin
+     integer :: tmax
+     integer :: tstep
 
   end type GeneralParam
 

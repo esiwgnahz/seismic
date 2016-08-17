@@ -12,39 +12,40 @@ module Readsouvelrho_mod
 contains
 
   subroutine readsou(source,genpar)
-    type(TraceSpace)::source
+    type(TraceSpace), dimension(:), allocatable ::source
     type(GeneralParam) ::   genpar
     real            ::sinc(genpar%lsinc)
     real            ::fdum,fscale
     real,dimension(:)  ,allocatable :: trace
     integer         :: it,l
 
-    call from_history('n1',source%dimt%nt)
-    call from_history('d1',source%dimt%dt)
-    allocate(source%trace(source%dimt%nt,1))
-    call sreed('in',source%trace(:,1),4*source%dimt%nt)
+    allocate(source(1))
+    call from_history('n1',source(1)%dimt%nt)
+    call from_history('d1',source(1)%dimt%dt)
+    allocate(source(1)%trace(source(1)%dimt%nt,1))
+    call sreed('in',source(1)%trace(:,1),4*source(1)%dimt%nt)
     
-    genpar%dt=source%dimt%dt
-    genpar%nt=source%dimt%nt
+    genpar%dt=source(1)%dimt%dt
+    genpar%nt=source(1)%dimt%nt
 
     call from_param('withRho',genpar%withRho,.false.)
 
     if (genpar%withRho) then
-       allocate(trace(source%dimt%nt))
+       allocate(trace(source(1)%dimt%nt))
        ! Shift by 1/2 time step forward(reason: staggered grid)
        call mksinc(sinc,genpar%lsinc,+0.5)
-       trace = source%trace(1:source%dimt%nt,1)
-       do it=1,source%dimt%nt
+       trace = source(1)%trace(1:source(1)%dimt%nt,1)
+       do it=1,source(1)%dimt%nt
           fscale = 1.
           fdum = 0.
           do l=-genpar%lsinc/2,genpar%lsinc/2
-             if (it+l.ge.1 .and. it+l.le.source%dimt%nt) then
+             if (it+l.ge.1 .and. it+l.le.source(1)%dimt%nt) then
                 fdum = fdum + sinc(genpar%lsinc/2+1+l)*trace(it+l)
              else
                 fscale = fscale - sinc(genpar%lsinc/2+1+l)
              endif
           end do
-          source%trace(it,1)= fdum / fscale
+          source(1)%trace(it,1)= fdum / fscale
        end do
        deallocate(trace)
     end if
@@ -52,7 +53,7 @@ contains
   end subroutine readsou
 
   subroutine readsoucoord(source,mod)    
-    type(TraceSpace) ::   source
+    type(TraceSpace), dimension(:) :: source
     type(ModelSpace) ::          mod
     real             :: mino(3),maxo(3),mid(3)
     integer          :: i
@@ -67,18 +68,18 @@ contains
 
     mid=(maxo-mino)/2
 
-    call from_param('source_z',source%coord(1),0.)
-    call from_param('source_x',source%coord(2),mid(2))
-    call from_param('source_y',source%coord(3),mid(3))
+    call from_param('source_z',source(1)%coord(1),0.)
+    call from_param('source_x',source(1)%coord(2),mid(2))
+    call from_param('source_y',source(1)%coord(3),mid(3))
 
     do i=1,3
-       if ((source%coord(i).lt.mino(i)).or.(source%coord(i).gt.maxo(i))) then
+       if ((source(1)%coord(i).lt.mino(i)).or.(source(1)%coord(i).gt.maxo(i))) then
           write(0,*) 'ERROR:  Problem with axis',i
           call erexit('ERROR: source_coord is not within model bounds, exit now')
        end if
     end do
 
-    write(0,*) 'source coordinates =',source%coord
+    write(0,*) 'source coordinates =',source(1)%coord
 
   end subroutine readsoucoord
 

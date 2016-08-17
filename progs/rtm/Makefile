@@ -1,7 +1,7 @@
 include ${SEPINC}/SEP.top
 include ../../makefile
 
-default: 
+default: ${BINDIR}/Acoustic_RTM.x
 
 aclean: jclean       
 	@-${RM} ${BINDIR}/*.x 
