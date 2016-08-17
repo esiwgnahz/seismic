@@ -1,4 +1,6 @@
 MOD=../bin/LINUX/Acoustic_modeling.x
+BMOD=../bin/LINUX/Acoustic_Born_modeling.x
+
 REF=../../FWI/Progs/GIS/trunk/WI/build/Release/WIA/WI/WIA.x
 BRU=/work/FWI/Progs/GIS/trunk/RTM/Acoustic/bin/Acoustic3d.main.x
 
@@ -13,6 +15,11 @@ wavelet.H:
 	Cat axis=1 1.H 2.H 3.H > $@
 	echo d1=10 d2=10 d3=10 >> $@
 	Window3d n3=1 < $@ > 2Dvel.H
+
+3Dref.H: 3Dvel.H
+	Window3d f1=1 < 3Dvel.H | Pad end1=1 extend=1 > junk.H
+	Math file1=junk.H file2=3Dvel.H exp="(file1-file2)/800" > $@
+	echo o1=0. >> $@
 
 3Drho.H:
 	Spike n1=50 n2=201 n3=201 | Add scale=1 > 1.H
@@ -69,6 +76,8 @@ rhodata1%.H: wavelet.H 3Dvel.H 3Drho.H
 3Ddata1%.H: wavelet.H 3Dvel.H 3Drho.H 
 	${MOD} stdin=wavelet.H vel=3Dvel.H wave=wave1.H twoD=0 withRho=0 rho=3Drho.H ${param$*} fmax=60 data=$@ 
 
+3DBorndata1%.H: wavelet.H 3Dvel.H 3Drho.H 3Dref.H
+	${BMOD} stdin=wavelet.H vel=3Dvel.H wave=wave1.H twoD=0 ${param$*} fmax=60 data=$@ ref=3Dref.H
 
 rhodata2%.H: traces.H 3Drho.H
 	${REF} \
