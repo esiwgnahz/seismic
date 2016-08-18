@@ -1,4 +1,5 @@
 module DataSpace_types
+
   implicit none
 
   type DataSpace
@@ -20,7 +21,7 @@ module DataSpace_types
      real    :: oy
 
   end type WaveSpace
-  
+
   type TraceSpace
      type(DataSpace)      :: dimt
      real, allocatable    :: trace(:,:) ! value per component

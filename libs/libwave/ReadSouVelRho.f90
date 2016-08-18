@@ -29,6 +29,16 @@ contains
     genpar%nt=source(1)%dimt%nt
 
     call from_param('withRho',genpar%withRho,.false.)
+    
+    if (genpar%Born) then
+       allocate(trace(source(1)%dimt%nt))
+       trace=source(1)%trace(:,1)
+       source(1)%trace(:,1)=0
+       do it=2,source(1)%dimt%nt-1
+          source(1)%trace(it,1)=source(1)%trace(it,1)+source(1)%dimt%dt**2*(-2*trace(it)+trace(it-1)+trace(it+1))
+       end do
+       deallocate(trace)
+    end if
 
     if (genpar%withRho) then
        allocate(trace(source(1)%dimt%nt))

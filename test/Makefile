@@ -2,6 +2,7 @@ MOD=../bin/LINUX/Acoustic_modeling.x
 BMOD=../bin/LINUX/Acoustic_Born_modeling.x
 
 REF=../../FWI/Progs/GIS/trunk/WI/build/Release/WIA/WI/WIA.x
+BORNREF=../../FWI/Progs/GIS/trunk/WI/build/Release/LSRTM/RTM/LSRTM.x
 BRU=/work/FWI/Progs/GIS/trunk/RTM/Acoustic/bin/Acoustic3d.main.x
 
 wavelet.H:
@@ -91,6 +92,21 @@ rhodata2%.H: traces.H 3Drho.H
 	task=1 \
 	${param$*} \
 	stdin=wavelet.H > $@
+
+BORNdata2%.H: traces.H 3Drho.H
+	Window3d n3=1 < 3Dref.H > 2Dref.H
+	echo d1=10 d2=10 >> 2Dref.H
+	${BORNREF} \
+	land=1 \
+	Reflectivity=2Dref.H \
+	vel=2Dvel.H \
+	vel_dens_mask=2Dvel.H \
+	traces=traces.H \
+	fmax=60  \
+	snap_coef=0.5 \
+	task=1 \
+	${param$*} tmpwave1=tmpwave1.H tmpwave2=tmpwave2.H \
+	stdin=wavelet.H Modeling=$@ 
 
 rhodata3%.H:  3Drho.H
 	${BRU} \

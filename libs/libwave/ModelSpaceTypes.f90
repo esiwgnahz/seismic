@@ -51,6 +51,7 @@ contains
     if (allocated(mod%rho2))  deallocate(mod%rho2)
     if (allocated(mod%image)) deallocate(mod%image)
     if (allocated(mod%illum)) deallocate(mod%illum)
+    call deallocateWaveSpace(mod%wvfld)
   end subroutine deallocateModelSpace
 
   subroutine deallocateModelSpace_elev(elev)

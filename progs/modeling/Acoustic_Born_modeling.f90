@@ -33,6 +33,7 @@ program Acoustic_Born_modeling
   call from_param('ntaper',genpar%ntaper,20)
   call from_param('snapi',genpar%snapi,4)
 
+  genpar%Born=.true.
   mod%veltag='vel'
   mod%rhotag='rho'
   mod%reftag='ref'
@@ -127,27 +128,27 @@ program Acoustic_Born_modeling
   mod%wvfld%counter=0
 
   do i=1,genpar%ntsnap
-     call srite('wave_fwd',wfld_fwd%wave(1:mod%nz,1:mod%nx,1:mod%ny,i,1),4*mod%nx*mod%ny*mod%nz)
+     call srite('wave_fwd',mod%wvfld%wave(1:mod%nz,1:mod%nx,1:mod%ny,i,1),4*mod%nx*mod%ny*mod%nz)
   end do
 
   if (genpar%twoD) then
      call propagator_acoustic(                          &
      & FD_acoustic_init_coefs,                          &
-     & FD_2nd_2D_derivatives_scalar_adjoint,            &
+     & FD_2nd_2D_derivatives_scalar_forward,            &
      & Injection_Born,                                  &
      & FD_2nd_time_derivative,                          &
      & FDswaptime,                                      &
      & bounds,mod,elev,genpar,                          &
-     & sou=sourcevec,datavec=datavec,ExtractData=Extraction_array_sinc)
+     & datavec=datavec,ExtractData=Extraction_array_sinc)
   else
      call propagator_acoustic(                          &
      & FD_acoustic_init_coefs,                          &
-     & FD_2nd_3D_derivatives_scalar_adjoint,            &
+     & FD_2nd_3D_derivatives_scalar_forward,            &
      & Injection_Born,                                  &
      & FD_2nd_time_derivative_omp,                      &
      & FDswaptime_omp,                                  &
      & bounds,mod,elev,genpar,                          &
-     & sou=sourcevec,datavec=datavec,ExtractData=Extraction_array_sinc)    
+     & datavec=datavec,ExtractData=Extraction_array_sinc)    
   end if
   write(0,*) 'after wave propagator'
 
@@ -177,12 +178,11 @@ program Acoustic_Born_modeling
      call to_history('n4',genpar%ntsnap,'wave_fwd')
   end if
 
-
   do i=1,size(datavec)
      call deallocateTraceSpace(datavec(i))
   end do
   call deallocateWaveSpace(wfld_fwd)
   call deallocateTraceSpace(sourcevec(1))
-  deallocate(datavec)
+  deallocate(datavec,sourcevec)
 
 end program Acoustic_Born_modeling

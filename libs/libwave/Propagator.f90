@@ -126,20 +126,29 @@ contains
        
     TIME_LOOPS:do it=genpar%tmin,genpar%tmax,genpar%tstep    
 
-       if (mod(it,50).eq.0) write (0,*) "Step",it," of ",genpar%tmax,"time steps (Source Wavefield)"
+       if (mod(it,100).eq.0) write (0,*) "Step",it," of ",genpar%tmax,"time steps (Source Wavefield)"
 
        call system_clock(counting(1),count_rate,count_max)
-       if (present(datavec)) call ExtractData(bounds,model,datavec,u(:,:,:,2),genpar,it) 
+       if (present(datavec)) &
+       &  call ExtractData(bounds,model,datavec,u(:,:,:,2),genpar,it) 
+       
        call system_clock(counting(2),count_rate,count_max)    
-       if (present(wfld)) call Extraction_wavefield(bounds,model,wfld,elev,u,genpar,it)
+       if (present(wfld)) &
+       &  call Extraction_wavefield(bounds,model,wfld,elev,u(:,:,:,2),genpar,it)
+       
        call system_clock(counting(3),count_rate,count_max)
        call Boundary_set_free_surface(bounds,model,elev,u,genpar)
+       
        call system_clock(counting(4),count_rate,count_max)
        call FD_scheme(genpar,bounds,u,model)
+       
        call system_clock(counting(5),count_rate,count_max)
-       if (present(sou)) call Injection(bounds,model,sou,u(:,:,:,3),genpar,it)
+       if (present(sou).or.associated(model%wvfld)) &
+       & call Injection(bounds,model,sou,u(:,:,:,3),genpar,it)
+       
        call system_clock(counting(6),count_rate,count_max)
        call TimeDer(genpar,bounds,u)
+       
        call system_clock(counting(7),count_rate,count_max)
        if (genpar%shot_type.eq.0) then
           call Boundary0_opt(genpar,bounds,u,model,hig)
@@ -147,9 +156,10 @@ contains
        else
           call Boundary1(genpar,bounds,u,model,hig)
        end if
+       
        call system_clock(counting(8),count_rate,count_max)
-
        call TimeSwap(genpar,bounds,u)
+
        call system_clock(counting(9),count_rate,count_max)
        
        do i=1,8

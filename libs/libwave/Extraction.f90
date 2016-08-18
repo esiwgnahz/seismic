@@ -342,7 +342,7 @@ contains
     type(ModelSpace_elevation) ::                  elev
     type(GeneralParam)::                                  genpar
     real              ::                               u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
-    &                                            bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
+    &                                            bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
     integer           :: it
     integer           :: i,k,j
     
@@ -357,13 +357,13 @@ contains
              buffer_sou = 0.
              do j=1,model%nx
                 do i=elev%ielev_z(j,k),model%nz
-                   buffer_sou(i,j) = u(i,j,k,2)
+                   buffer_sou(i,j) = u(i,j,k)
                 end do
              end do
              dat%wave(:,:,k,dat%counter,1)=buffer_sou
           end do
        else
-          dat%wave(:,:,:,dat%counter,1)=u(1:model%nz,1:model%nx,1:model%ny,2)         
+          dat%wave(:,:,:,dat%counter,1)=u(1:model%nz,1:model%nx,1:model%ny)         
        end if
     end if MODULO
     

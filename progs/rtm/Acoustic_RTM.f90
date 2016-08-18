@@ -163,7 +163,7 @@ program Acoustic_rtm
      if (.not.genpar%withRho) then
         call propagator_acoustic(                        &
         & FD_acoustic_init_coefs,                        &
-        & FD_2nd_2D_derivatives_scalar_forward,          &
+        & FD_2nd_2D_derivatives_scalar_adjoint,          &
         & Injection_sinc,                                &
         & FD_2nd_time_derivative,                        &
         & FDswaptime,                                    &
@@ -183,7 +183,7 @@ program Acoustic_rtm
      if (.not.genpar%withRho) then
         call propagator_acoustic(                        &
         & FD_acoustic_init_coefs,                        &
-        & FD_2nd_3D_derivatives_scalar_forward,          &
+        & FD_2nd_3D_derivatives_scalar_adjoint,          &
         & Injection_sinc,                                &
         & FD_2nd_time_derivative_omp,                    &
         & FDswaptime_omp,                                &

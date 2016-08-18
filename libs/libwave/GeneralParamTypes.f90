@@ -5,6 +5,7 @@ module GeneralParam_types
  
      logical :: twoD
      logical :: withRho
+     logical :: Born
 
      real    :: dt
 
