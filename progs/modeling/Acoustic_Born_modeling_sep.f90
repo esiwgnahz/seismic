@@ -1,4 +1,4 @@
-program Acoustic_Born_modeling
+program Acoustic_Born_modeling_sep
 
   use sep
   use Readsouvelrho_mod
@@ -60,33 +60,10 @@ program Acoustic_Born_modeling
 
   call readvel(mod,genpar,bounds)
   call readref(mod,genpar,bounds)
-  call readsoucoord(sourcevec,mod) 
-
-  if (genpar%twoD) then
-     allocate(datavec(mod%nx))
-  else
-     allocate(datavec(mod%nx+mod%ny))
-  end if
-
-  ! Acquisition on 2 perpendicular lines
-  do i=1,mod%nx
-     allocate(datavec(i)%trace(sourcevec(1)%dimt%nt,1)) ! 1 component trace    
-     datavec(i)%trace=0.
-     datavec(i)%coord(1)=genpar%omodel(1)  ! Z
-     datavec(i)%coord(2)=genpar%omodel(2)+(i-1)*mod%dx ! X
-     datavec(i)%coord(3)=(mod%ny-1)*mod%dy/2+genpar%omodel(3)
-     datavec(i)%dimt%nt=sourcevec(1)%dimt%nt
-  end do
-  if (.not.genpar%twoD) then
-     do i=1,mod%ny
-        allocate(datavec(i+mod%nx)%trace(sourcevec(1)%dimt%nt,1)) ! 1 component trace    
-        datavec(i+mod%nx)%trace=0.
-        datavec(i+mod%nx)%coord(1)=genpar%omodel(1)  ! Z
-        datavec(i+mod%nx)%coord(3)=genpar%omodel(3)+(i-1)*mod%dy ! X
-        datavec(i+mod%nx)%coord(2)=(mod%nx-1)*mod%dx/2+genpar%omodel(2)
-        datavec(i)%dimt%nt=sourcevec(1)%dimt%nt
-     end do
-  end if
+  call readtraces(datavec,sourcevec,genpar)
+  call readcoords(datavec,sourcevec,genpar)
+  call are_traces_within_model(datavec,mod)
+  call are_traces_within_model(sourcevec,mod)
 
   genpar%ntsnap=int(genpar%nt/genpar%snapi)
 
@@ -185,4 +162,4 @@ program Acoustic_Born_modeling
   call deallocateTraceSpace(sourcevec(1))
   deallocate(datavec,sourcevec)
 
-end program Acoustic_Born_modeling
+end program Acoustic_Born_modeling_sep

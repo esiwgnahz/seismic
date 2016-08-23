@@ -11,6 +11,127 @@ module Readsouvelrho_mod
 
 contains
 
+  logical function is_trace_within_model(data,mod)
+    type(TraceSpace) ::            data
+    type(ModelSpace) ::                 mod
+    real :: minb(3)
+    real :: maxb(3)
+    integer :: i
+    is_trace_within_model=.true.
+
+    minb(1)=mod%oz
+    maxb(1)=mod%oz+mod%dz*mod%nz
+    minb(2)=mod%ox
+    maxb(2)=mod%ox+mod%dx*mod%nx
+    minb(3)=mod%oy
+    maxb(3)=mod%oy+mod%dy*mod%ny
+    
+    do i=1,3
+       if ((data%coord(i).lt.minb(i)).or.(data%coord(i).gt.maxb(i))) then
+          is_trace_within_model=.false.
+          exit
+       end if
+    end do
+  end function is_trace_within_model
+
+  subroutine are_traces_within_model(datavec,mod)
+    type(TraceSpace), dimension(:) ::datavec
+    type(ModelSpace)               ::        mod
+    integer                        :: i
+                     
+    do i=1,size(datavec)
+       if(.not.is_trace_within_model(datavec(i),mod)) then
+          write(0,*) 'ERROR: Trace(',i,') is not within model bounds'
+          write(0,*) 'ERROR: Z=',datavec(i)%coord(1)
+          write(0,*) 'ERROR: X=',datavec(i)%coord(2)
+          write(0,*) 'ERROR: Y=',datavec(i)%coord(3)
+          write(0,*) 'ERROR: Quit now'
+          call erexit('ERROR: trace is not withing velocity model bounds')
+       end if
+    end do
+  end subroutine are_traces_within_model
+
+  subroutine readtraces(datavec,sourcevec,genpar)
+    type(TraceSpace), dimension(:), allocatable :: datavec
+    type(TraceSpace), dimension(:) :: sourcevec
+    type(GeneralParam)             :: genpar
+    integer                        :: ntraces,n1,i
+    real                           :: d1,o1
+
+    write(0,*) 'INFO:------------------------'
+    write(0,*) 'INFO: Starting reading traces'
+
+    call from_aux('traces','n1',n1)
+    call from_aux('traces','d1',d1)
+    call from_aux('traces','o1',o1)
+    call from_aux('traces','n2',ntraces)
+    if (n1.ne.sourcevec(1)%dimt%nt) then
+       call erexit('ERROR: nt traces and sources are different, exit now')
+    end if
+    allocate(datavec(ntraces))
+    do i=1,ntraces
+       allocate(datavec(i)%trace(n1,1))
+       call sreed('traces',datavec(i)%trace(:,1),4*n1)
+       datavec(i)%dimt%nt=n1
+       datavec(i)%dimt%ot=o1
+       datavec(i)%dimt%dt=d1     
+    end do
+
+    write(0,*) 'INFO: Finished reading traces'
+    write(0,*) 'INFO: -----------------------'
+
+  end subroutine readtraces
+
+  subroutine readcoords(datavec,sourcevec,genpar)
+    type(TraceSpace), dimension(:) :: datavec,sourcevec
+    type(GeneralParam)             :: genpar
+    integer :: index_gx,   index_gy,index_sx,index_sy
+    integer :: index_selev,index_gelev
+    integer :: nkeys,ntraces,i
+    real, allocatable, dimension(:) :: tracekeys
+
+    write(0,*) 'INFO:-------------------------------------------'
+    write(0,*) 'INFO: Starting reading traces/source coordinates'
+
+    call from_param('keygx',index_gx)
+    call from_param('keysx',index_sx)
+    call from_param('keygy',index_gy)
+    call from_param('keysy',index_sy)
+    call from_param('keyselev',index_selev)
+    call from_param('keygelev',index_gelev)
+
+    call from_aux('coordfile','n1',nkeys)
+    call from_aux('coordfile','n2',ntraces)
+
+    if(ntraces.ne.size(datavec)) then
+       call erexit('ERROR: size datavec ne number of traces in coordfiles, exit')
+    end if
+
+    allocate(tracekeys(nkeys))
+    do i=1,ntraces
+       tracekeys=0.
+       call sreed('coordfile',tracekeys,4*nkeys)      
+       datavec(i)%coord(1)=tracekeys(index_gelev)    
+       datavec(i)%coord(2)=tracekeys(index_gx)    
+       datavec(i)%coord(3)=tracekeys(index_gy)
+    end do
+
+    sourcevec(1)%coord(1)=tracekeys(index_selev)   
+    sourcevec(i)%coord(2)=tracekeys(index_sx)    
+    sourcevec(i)%coord(3)=tracekeys(index_sy)
+
+    write(0,*) 'INFO: Source coordinates'
+    write(0,*) 'INFO: ------------------'
+    write(0,*) 'INFO: z=',sourcevec(1)%coord(1)
+    write(0,*) 'INFO: x=',sourcevec(1)%coord(2)
+    write(0,*) 'INFO: y=',sourcevec(1)%coord(3)
+    write(0,*) 'INFO: '
+
+    write(0,*) 'INFO: Finished reading traces/source coordinates'
+    write(0,*) 'INFO:-------------------------------------------'
+
+  end subroutine readcoords
+
   subroutine readsou(source,genpar)
     type(TraceSpace), dimension(:), allocatable ::source
     type(GeneralParam) ::   genpar
@@ -191,10 +312,10 @@ contains
        call sreed(mod%veltag,tmp,4*mod%nz*mod%nx*mod%ny)
        call auxclose(mod%veltag)
        call vel_check(tmp,genpar)
-       call model_extend(tmp,mod%vel,bounds,mod%nz,mod%nx,mod%ny,genpar%twoD)
+       call model_pad(tmp,mod%vel,bounds,mod%nz,mod%nx,mod%ny,genpar%twoD)
     end if
     
-    call srite('tmpvel',mod%vel,4*(bounds%nmax1-bounds%nmin1+1)*(bounds%nmax2-bounds%nmin2+1)*(bounds%nmax3-bounds%nmin3+1))
+!    call srite('tmpvel',mod%vel,4*(bounds%nmax1-bounds%nmin1+1)*(bounds%nmax2-bounds%nmin2+1)*(bounds%nmax3-bounds%nmin3+1))
     call to_history('n1',bounds%nmax1-bounds%nmin1+1,'tmpvel')
     call to_history('n2',bounds%nmax2-bounds%nmin2+1,'tmpvel')
     call to_history('n3',bounds%nmax3-bounds%nmin3+3,'tmpvel')
@@ -208,7 +329,7 @@ contains
           allocate(mod%rho2(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
           call sreed(mod%rhotag,tmp,4*mod%nz*mod%nx*mod%ny)
           call auxclose(mod%rhotag)
-          call model_extend(tmp,mod%rho,bounds,mod%nz,mod%nx,mod%ny,genpar%twoD)
+          call model_pad(tmp,mod%rho,bounds,mod%nz,mod%nx,mod%ny,genpar%twoD)
           call Interpolate(mod,bounds)
        end if
     end if
@@ -234,12 +355,12 @@ contains
        allocate(mod%image(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
        call sreed(mod%reftag,tmp,4*mod%nz*mod%nx*mod%ny)
        call auxclose(mod%reftag)
-       call model_extend(tmp,mod%image,bounds,mod%nz,mod%nx,mod%ny,genpar%twoD)
+       call model_pad(tmp,mod%image,bounds,mod%nz,mod%nx,mod%ny,genpar%twoD)
     end if
     deallocate(tmp)
   end subroutine readref
   
-  subroutine model_extend(tmp,field,bounds,nz,nx,ny,twoD)
+  subroutine model_pad(tmp,field,bounds,nz,nx,ny,twoD)
     type(FDbounds)         :: bounds
     real, dimension(:,:,:) :: tmp
     real                   :: field(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3)
@@ -289,7 +410,7 @@ contains
        end do
        
     end if
-  end subroutine model_extend
+  end subroutine model_pad
 
   !
   ! Subroutine to check the parameters supplied for stability and accuracy

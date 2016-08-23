@@ -1,4 +1,4 @@
-program Acoustic_modeling
+program Acoustic_modeling_sep
 
   use sep
   use Readsouvelrho_mod
@@ -59,33 +59,10 @@ program Acoustic_modeling
   end if
 
   call readvel(mod,genpar,bounds)
-  call readsoucoord(sourcevec,mod) 
-
-  if (genpar%twoD) then
-     allocate(datavec(mod%nx))
-  else
-     allocate(datavec(mod%nx+mod%ny))
-  end if
-
-  ! Acquisition on 2 perpendicular lines
-  do i=1,mod%nx
-     allocate(datavec(i)%trace(sourcevec(1)%dimt%nt,1)) ! 1 component trace    
-     datavec(i)%trace=0.
-     datavec(i)%coord(1)=genpar%omodel(1)  ! Z
-     datavec(i)%coord(2)=genpar%omodel(2)+(i-1)*mod%dx ! X
-     datavec(i)%coord(3)=(mod%ny-1)*mod%dy/2+genpar%omodel(3)
-     datavec(i)%dimt%nt=sourcevec(1)%dimt%nt
-  end do
-  if (.not.genpar%twoD) then
-     do i=1,mod%ny
-        allocate(datavec(i+mod%nx)%trace(sourcevec(1)%dimt%nt,1)) ! 1 component trace    
-        datavec(i+mod%nx)%trace=0.
-        datavec(i+mod%nx)%coord(1)=genpar%omodel(1)  ! Z
-        datavec(i+mod%nx)%coord(3)=genpar%omodel(3)+(i-1)*mod%dy ! X
-        datavec(i+mod%nx)%coord(2)=(mod%nx-1)*mod%dx/2+genpar%omodel(2)
-        datavec(i)%dimt%nt=sourcevec(1)%dimt%nt
-     end do
-  end if
+  call readtraces(datavec,sourcevec,genpar)
+  call readcoords(datavec,sourcevec,genpar)
+  call are_traces_within_model(datavec,mod)
+  call are_traces_within_model(sourcevec,mod)
 
   genpar%ntsnap=int(genpar%nt/genpar%snapi)
 
@@ -154,11 +131,6 @@ program Acoustic_modeling
      call srite('data',datavec(i)%trace(:,1),4*sourcevec(1)%dimt%nt)
   end do
 
-!  do i=1,genpar%ntsnap
-!     call srite('wave_fwd',wfld_fwd%wave(1:mod%nz,1:mod%nx,1:mod%ny,i,1),4*mod%nx*mod%ny*mod%nz)
-!  end do
-
-
   call to_history('n1',sourcevec(1)%dimt%nt,'data')
   call to_history('n2',size(datavec),'data')
   call to_history('d1',sourcevec(1)%dimt%dt,'data')
@@ -166,27 +138,12 @@ program Acoustic_modeling
   call to_history('o1',0.,'data')
   call to_history('o2',0.,'data')
 
-!  call to_history('n1',mod%nz,'wave_fwd')
-!  call to_history('n2',mod%nx,'wave_fwd')
-!  call to_history('d1',mod%dz,'wave_fwd')
-!  call to_history('d2',mod%dx,'wave_fwd')
-!  call to_history('o1',genpar%omodel(1),'wave_fwd')
-!  call to_history('o2',genpar%omodel(2),'wave_fwd')
-!  if (genpar%twoD) then
-!     call to_history('n3',genpar%ntsnap,'wave_fwd')
-!  else
-!     call to_history('n3',mod%ny,'wave_fwd')
-!     call to_history('d3',mod%dy,'wave_fwd')
-!     call to_history('o3',genpar%omodel(3),'wave_fwd')
-!     call to_history('n4',genpar%ntsnap,'wave_fwd')
-!  end if
-
-
   do i=1,size(datavec)
      call deallocateTraceSpace(datavec(i))
   end do
   call deallocateWaveSpace(wfld_fwd)
   call deallocateTraceSpace(sourcevec(1))
   deallocate(datavec)
+  deallocate(sourcevec)
 
-end program Acoustic_modeling
+end program Acoustic_modeling_sep

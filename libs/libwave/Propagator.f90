@@ -18,7 +18,6 @@ module Propagator_mod
 
 contains
 
-!  subroutine propagator_acoustic(FD_coefs,FD_scheme,bounds,mod,elev,genpar,nbound)
   subroutine propagator_acoustic(FD_coefs,FD_scheme,Injection,TimeDer,TimeSwap,bounds,model,elev,genpar,               sou,wfld,datavec,ExtractData)
     optional     sou,wfld,datavec,ExtractData
     interface
@@ -27,14 +26,15 @@ contains
          type(UnscaledFDcoefs)   ::      coef        
        end subroutine FD_coefs
 
-       subroutine FD_scheme     (genpar,bounds,u,model)
+       subroutine FD_scheme     (genpar,bounds,u2,u3,model)
          use ModelSpace_types
          use GeneralParam_types
          use FD_types
          type(GeneralParam)   :: genpar
          type(ModelSpace)     ::                 model
          type(FDbounds)       ::        bounds
-         real                 :: u(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
+         real                 :: u2(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+         real                 :: u3(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
        end subroutine FD_scheme
 
        subroutine ExtractData(bounds,model,datavec,u,genpar,it)
@@ -65,20 +65,18 @@ contains
          integer           :: it
        end subroutine Injection
 
-       subroutine TimeDer(genpar,bounds,u)
+       subroutine TimeDer(genpar,bounds,grid)
          use GeneralParam_types
+         use DataSpace_types
          use FD_types
          type(GeneralParam) :: genpar
          type(FDbounds)     ::        bounds
-         real               ::               u(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
+         type(USpace)       :: grid
        end subroutine TimeDer
        
-       subroutine TimeSwap(genpar,bounds,u)
-         use GeneralParam_types
-         use FD_types
-         type(GeneralParam) :: genpar
-         type(FDbounds)     ::        bounds
-         real               ::               u(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
+       subroutine TimeSwap(grid)
+         use DataSpace_types
+         type(USpace)   :: grid
        end subroutine TimeSwap
        
       end interface
@@ -95,12 +93,15 @@ contains
     type(UnscaledFDcoefs)      :: fdcoefs
     integer                    :: it
     real, allocatable :: u(:,:,:,:)
+    type(USpace) :: grid
 
     integer :: i,counting(9),count_rate,count_max,tmin,tmax,tstep
     real    :: totcount(8)
 
     allocate(u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3))
     
+    call allocateUSpace(grid,genpar,bounds)
+
     if (genpar%surf_type.ne.0) then
        allocate(elev%ielev_z(bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
        allocate(elev%delev_z(bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
@@ -126,39 +127,38 @@ contains
        
     TIME_LOOPS:do it=genpar%tmin,genpar%tmax,genpar%tstep    
 
-       if (mod(it,100).eq.0) write (0,*) "Step",it," of ",genpar%tmax,"time steps (Source Wavefield)"
+       if (mod(it,100).eq.0) write (0,*) "Step",it," of ",genpar%tmax,"time steps"
 
        call system_clock(counting(1),count_rate,count_max)
        if (present(datavec)) &
-       &  call ExtractData(bounds,model,datavec,u(:,:,:,2),genpar,it) 
-       
+       &  call ExtractData(bounds,model,datavec,grid%u2,genpar,it) 
+
        call system_clock(counting(2),count_rate,count_max)    
        if (present(wfld)) &
-       &  call Extraction_wavefield(bounds,model,wfld,elev,u(:,:,:,2),genpar,it)
+       &  call Extraction_wavefield(bounds,model,wfld,elev,grid%u2,genpar,it)
        
-       call system_clock(counting(3),count_rate,count_max)
-       call Boundary_set_free_surface(bounds,model,elev,u,genpar)
-       
+       call system_clock(counting(3),count_rate,count_max)      
+       call Boundary_set_free_surface_grid(bounds,model,elev,grid,genpar)
+
        call system_clock(counting(4),count_rate,count_max)
-       call FD_scheme(genpar,bounds,u,model)
-       
+       call FD_scheme(genpar,bounds,grid%u2,grid%u3,model)
+
        call system_clock(counting(5),count_rate,count_max)
        if (present(sou).or.associated(model%wvfld)) &
-       & call Injection(bounds,model,sou,u(:,:,:,3),genpar,it)
+       & call Injection(bounds,model,sou,grid%u3(:,:,:),genpar,it)
        
        call system_clock(counting(6),count_rate,count_max)
-       call TimeDer(genpar,bounds,u)
-       
+       call TimeDer(genpar,bounds,grid)
+
        call system_clock(counting(7),count_rate,count_max)
-       if (genpar%shot_type.eq.0) then
-          call Boundary0_opt(genpar,bounds,u,model,hig)
-!          call Boundary0(genpar,bounds,u,model,hig)
+      if (genpar%shot_type.eq.0) then
+          call Boundary0_opt_grid(genpar,bounds,grid,model,hig)
        else
-          call Boundary1(genpar,bounds,u,model,hig)
+          call Boundary1_opt_grid(genpar,bounds,grid,model,hig)
        end if
        
        call system_clock(counting(8),count_rate,count_max)
-       call TimeSwap(genpar,bounds,u)
+       call TimeSwap(grid)
 
        call system_clock(counting(9),count_rate,count_max)
        

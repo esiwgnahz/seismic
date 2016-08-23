@@ -1,4 +1,4 @@
-program Acoustic_rtm
+program Acoustic_rtm_sep
 
   use sep
   use Readsouvelrho_mod
@@ -35,6 +35,7 @@ program Acoustic_rtm
 
   mod%veltag='vel'
   mod%rhotag='rho'
+  genpar%Born=.false.
 
   call from_param('twoD',genpar%twoD,.false.)
 
@@ -57,33 +58,13 @@ program Acoustic_rtm
   end if
 
   call readvel(mod,genpar,bounds)
-  call readsoucoord(sourcevec,mod) 
-
-  if (genpar%twoD) then
-     allocate(datavec(mod%nx))
-  else
-     allocate(datavec(mod%nx+mod%ny))
-  end if
-
-  ! Acquisition on 2 perpendicular lines
-  do i=1,mod%nx
-     allocate(datavec(i)%trace(sourcevec(1)%dimt%nt,1)) ! 1 component trace    
-     datavec(i)%trace=0.
-     datavec(i)%coord(1)=genpar%omodel(1)  ! Z
-     datavec(i)%coord(2)=genpar%omodel(2)+(i-1)*mod%dx ! X
-     datavec(i)%coord(3)=(mod%ny-1)*mod%dy/2+genpar%omodel(3)
-     datavec(i)%dimt%nt=sourcevec(1)%dimt%nt
-  end do
-  if (.not.genpar%twoD) then
-     do i=1,mod%ny
-        allocate(datavec(i+mod%nx)%trace(sourcevec(1)%dimt%nt,1)) ! 1 component trace    
-        datavec(i+mod%nx)%trace=0.
-        datavec(i+mod%nx)%coord(1)=genpar%omodel(1)  ! Z
-        datavec(i+mod%nx)%coord(3)=genpar%omodel(3)+(i-1)*mod%dy ! X
-        datavec(i+mod%nx)%coord(2)=(mod%nx-1)*mod%dx/2+genpar%omodel(2)
-        datavec(i)%dimt%nt=sourcevec(1)%dimt%nt
-     end do
-  end if
+  call readtraces(datavec,sourcevec,genpar)
+  call readcoords(datavec,sourcevec,genpar)
+  ! I need to remove readvel and window a velocity cube according
+  ! to trace coordinates
+  ! Then when writing image on disk, this image needs to pad padded
+  call are_traces_within_model(datavec,mod)
+  call are_traces_within_model(sourcevec,mod)
 
   genpar%ntsnap=int(genpar%nt/genpar%snapi)
 
@@ -149,7 +130,7 @@ program Acoustic_rtm
   write(0,*) 'after wave propagator'
   
   do i=1,size(datavec)
-     call srite('data',datavec(i)%trace(:,1),4*sourcevec(1)%dimt%nt)
+     call srite('modeled_data',datavec(i)%trace(:,1),4*sourcevec(1)%dimt%nt)
   end do
 
   do i=1,genpar%ntsnap
@@ -206,12 +187,12 @@ program Acoustic_rtm
      call srite('wave_bwd',wfld_bwd%wave(1:mod%nz,1:mod%nx,1:mod%ny,i,1),4*mod%nx*mod%ny*mod%nz)
   end do
 
-  call to_history('n1',sourcevec(1)%dimt%nt,'data')
-  call to_history('n2',size(datavec),'data')
-  call to_history('d1',sourcevec(1)%dimt%dt,'data')
-  call to_history('d2',1.,'data')
-  call to_history('o1',0.,'data')
-  call to_history('o2',0.,'data')
+  call to_history('n1',sourcevec(1)%dimt%nt,'modeled_data')
+  call to_history('n2',size(datavec),'modeled_data')
+  call to_history('d1',sourcevec(1)%dimt%dt,'modeled_data')
+  call to_history('d2',1.,'modeled_data')
+  call to_history('o1',0.,'modeled_data')
+  call to_history('o2',0.,'modeled_data')
 
   call to_history('n1',mod%nz,'wave_bwd')
   call to_history('n2',mod%nx,'wave_bwd')
@@ -243,7 +224,6 @@ program Acoustic_rtm
      call to_history('n4',genpar%ntsnap,'wave_fwd')
   end if
 
-
   do i=1,size(datavec)
      call deallocateTraceSpace(datavec(i))
   end do
@@ -251,5 +231,6 @@ program Acoustic_rtm
   call deallocateWaveSpace(wfld_bwd)
   call deallocateTraceSpace(sourcevec(1))
   deallocate(datavec)
+  deallocate(sourcevec)
 
-end program Acoustic_rtm
+end program Acoustic_rtm_sep

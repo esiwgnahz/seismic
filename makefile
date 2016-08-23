@@ -1,5 +1,6 @@
 ADIR=../../
 
+UF90FLAGS= -ip -xHOST -ansi-alias -fno-alias -qopt-report3 -align array64byte
 UF90INCLUDES= -I/${MKLROOT}/include/intel64/lp64/ -qopenmp
 #UF90LIBS= -L/work/fftw/lib/ -qopenmp  -lbei -lsepfft -lsep2df90 -lsep3df90 -lsep3d -lsepf90 -lsep -lsupersetf90 -lsuperset  -lfftw3f  -L/${MKLROOT}/lib/intel64 -qopenmp -lmkl_intel_lp64 -lmkl_lapack95_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm -ldl -lAdec -lAinv -lAfut 
 UF90LIBS= -L/work/fftw/lib/ -qopenmp  -lbei -lsepfft -lsep2df90 -lsep3df90 -lsep3d -lsepf90 -lsep -lsupersetf90 -lsuperset  -lfftw3f  -L/${MKLROOT}/lib/intel64 -qopenmp -lmkl_intel_lp64 -lmkl_lapack95_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm -ldl -lAwave 

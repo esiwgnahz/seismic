@@ -1,5 +1,8 @@
 module DataSpace_types
 
+  use FD_types
+  use GeneralParam_types
+
   implicit none
 
   type DataSpace
@@ -21,7 +24,16 @@ module DataSpace_types
      real    :: oy
 
   end type WaveSpace
-
+  
+  type USpace
+     real, pointer :: utmp(:,:,:)
+     real, pointer :: u_1(:,:,:)
+     real, pointer :: u0(:,:,:)
+     real, pointer :: u1(:,:,:)
+     real, pointer :: u2(:,:,:)
+     real, pointer :: u3(:,:,:)
+  end type USpace
+  
   type TraceSpace
      type(DataSpace)      :: dimt
      real, allocatable    :: trace(:,:) ! value per component
@@ -41,5 +53,27 @@ contains
     type(TraceSpace) :: dat
     if (allocated(dat%trace)) deallocate(dat%trace)
   end subroutine deallocateTraceSpace
+
+  subroutine deallocateUSpace(grid)
+    type(USpace) :: grid
+    if (allocated(grid%u_1)) deallocate(grid%u_1)
+    if (allocated(grid%u0))  deallocate(grid%u0)
+    if (allocated(grid%u1))  deallocate(grid%u1)
+    if (allocated(grid%u2))  deallocate(grid%u2)
+    if (allocated(grid%u3))  deallocate(grid%u3)
+  end subroutine deallocateUSpace
+
+  subroutine allocateUSpace(grid,genpar,bounds)
+    type(USpace)      ::    grid
+    type(GeneralParam)::         genpar
+    type(FDbounds)    ::                bounds
+
+    allocate(grid%u_1(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound))   
+    allocate( grid%u0(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound))    
+    allocate( grid%u1(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound))    
+    allocate( grid%u2(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound))    
+    allocate( grid%u3(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound))   
+
+  end subroutine allocateUSpace
 
 end module DataSpace_types
