@@ -88,7 +88,6 @@ program Acoustic_rtm
   genpar%ntsnap=int(genpar%nt/genpar%snapi)
 
   allocate(wfld_fwd%wave(mod%nz,mod%nx,mod%ny,genpar%ntsnap,1))
-  allocate(wfld_bwd%wave(mod%nz,mod%nx,mod%ny,genpar%ntsnap,1))
   
   write(0,*) 'bounds%nmin1',bounds%nmin1,'bounds%nmax1',bounds%nmax1
   write(0,*) 'bounds%nmin2',bounds%nmin2,'bounds%nmax2',bounds%nmax2
@@ -155,6 +154,9 @@ program Acoustic_rtm
   do i=1,genpar%ntsnap
      call srite('wave_fwd',wfld_fwd%wave(1:mod%nz,1:mod%nx,1:mod%ny,i,1),4*mod%nx*mod%ny*mod%nz)
   end do
+
+  call deallocateWaveSpace(wfld_fwd)
+  allocate(wfld_bwd%wave(mod%nz,mod%nx,mod%ny,genpar%ntsnap,1))
 
   genpar%tmax=1
   genpar%tmin=sourcevec(1)%dimt%nt
@@ -247,7 +249,6 @@ program Acoustic_rtm
   do i=1,size(datavec)
      call deallocateTraceSpace(datavec(i))
   end do
-  call deallocateWaveSpace(wfld_fwd)
   call deallocateWaveSpace(wfld_bwd)
   call deallocateTraceSpace(sourcevec(1))
   deallocate(datavec)
