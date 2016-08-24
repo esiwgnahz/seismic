@@ -117,8 +117,8 @@ contains
     end do
 
     sourcevec(1)%coord(1)=tracekeys(index_selev)   
-    sourcevec(i)%coord(2)=tracekeys(index_sx)    
-    sourcevec(i)%coord(3)=tracekeys(index_sy)
+    sourcevec(1)%coord(2)=tracekeys(index_sx)    
+    sourcevec(1)%coord(3)=tracekeys(index_sy)
 
     write(0,*) 'INFO: Source coordinates'
     write(0,*) 'INFO: ------------------'
