@@ -1,0 +1,323 @@
+module ExtractPadModel_mod
+
+  use sep
+  use Readsouvelrho_mod
+
+  use DataSpace_types
+  use ModelSpace_types
+  use GeneralParam_types
+
+  implicit none
+  
+contains
+  
+  subroutine extract_coord_source_receiver_patch(datavec,sourcevec,mod,genpar)
+    type(TraceSpace), dimension(:), allocatable::datavec
+    type(ModelSpace)                           ::                  mod
+    type(TraceSpace), dimension(:)             ::        sourcevec
+    type(GeneralParam)                         ::                      genpar
+
+    integer :: i
+    real    :: sx,sy
+    real    :: gx1,gxn,gy1,gyn
+    real    :: minx,miny,maxx,maxy
+    real    :: mx1,mxn,my1,myn
+    real    :: centerx,centery
+    
+    sx=sourcevec(1)%coord(2)
+    sy=sourcevec(1)%coord(3)
+    gx1=datavec(1)%coord(2)
+    gy1=datavec(1)%coord(3)
+    gxn=datavec(1)%coord(2)
+    gyn=datavec(1)%coord(3)
+    ! First find the limits of the receiver box
+    do i=1,size(datavec)
+       gx1=min(gx1,datavec(i)%coord(2))
+       gxn=max(gxn,datavec(i)%coord(2))
+       gy1=min(gy1,datavec(i)%coord(3))
+       gyn=max(gyn,datavec(i)%coord(3))
+    end do
+
+    minx = min(sx, gx1)
+    miny = min(sy, gy1)
+    maxx = max(sx, gxn)
+    maxy = max(sy, gyn)
+
+    mx1 = (gx1+sx)/2                                  ! midpoint location for first receiver in x
+    mxn = (gxn+sx)/2                                  ! midpoint location for last receiver in x
+    my1 = (gy1+sy)/2                                  ! midpoint location for first receiver in y
+    myn = (gyn+sy)/2                                  ! midpoint location for last receiver in y
+    centerx = mx1 + abs(mxn-mx1)/2                    ! Middle between midpoints in x 
+    centery = my1 + abs(myn-my1)/2                    ! Middle between midpoints in y 
+
+    mod%oxw=min(minx,centerx-genpar%aperture(1)/2)
+    mod%endx=max(maxx,centerx+genpar%aperture(1)/2)
+    mod%oyw=min(miny,centery-genpar%aperture(2)/2)
+    mod%endy=max(maxy,centery+genpar%aperture(2)/2)
+    
+    write(0,*) 'INFO:-------------------------------------------------------------------------'
+    write(0,*) 'INFO: Coordinates model according to aperture and source/receiver positions is'
+    write(0,*) 'INFO:-------------------------------------------------------------------------'
+    write(0,*) 'INFO:'
+    write(0,*) 'INFO: endy,oxw ------------------ endy,endx'
+    write(0,*) 'INFO:     |                           |    '
+    write(0,*) 'INFO:     |                           |    '
+    write(0,*) 'INFO:     |                           |    '
+    write(0,*) 'INFO:     |                           |    '
+    write(0,*) 'INFO:     |                           |    '
+    write(0,*) 'INFO:     |                           |    '
+    write(0,*) 'INFO:     |                           |    '
+    write(0,*) 'INFO:     |                           |    ' 
+    write(0,*) 'INFO:  oyw,oxw ------------------- oyw,endx'
+    write(0,*) 'INFO:'
+    write(0,*) 'INFO: oxw =',mod%oxw,'  oyw =',mod%oyw
+    write(0,*) 'INFO: endx=',mod%endx,' endy=',mod%endy
+    write(0,*) 'INFO:'
+    write(0,*) 'INFO:'
+
+  end subroutine extract_coord_source_receiver_patch
+
+  subroutine read_window_vel(mod,genpar,bounds)
+    type(ModelSpace)  ::     mod
+    type(GeneralParam)::         genpar
+    type(FDbounds)    ::                bounds
+    real,allocatable,dimension(:,:,:) :: tmpbig,tmpsmall
+
+    integer  :: fetch, hetch, tetch, getch, auxpar
+    external :: fetch, hetch, tetch, getch, auxpar
+    integer  :: nout
+    
+    if (auxpar('n1','i',mod%nz,mod%veltag).eq.0)  & 
+    &    call erexit('need n1:nz')
+    call putch('From aux(vel): nz','i',mod%nz)
+    if (auxpar('o1','r',genpar%omodel(1),mod%veltag).eq.0.)  & 
+    &    call erexit('need o1:omodel(1)')
+    call putch('From aux(vel): oz','r',mod%oz)
+    if (auxpar('d1','r',genpar%delta(1),mod%veltag).eq.0.)  & 
+    &    call erexit('need d1:delta(1)')
+    call putch('From aux(vel): dz','r',mod%dz)
+    
+    if (auxpar('n2','i',mod%nx,mod%veltag).eq.0)  & 
+    &    call erexit('need n2:nx')
+    call putch('From aux(vel): nx','i',mod%nx)
+    if (auxpar('o2','r',genpar%omodel(2),mod%veltag).eq.0.)  & 
+    &    call erexit('need o2:omodel(2)')
+    call putch('From aux(vel): oz','r',mod%ox)
+    if (auxpar('d2','r',genpar%delta(2),mod%veltag).eq.0.)  & 
+    &    call erexit('need d2:delta(2)')
+    call putch('From aux(vel): dx','r',mod%dx)
+
+    if (genpar%twoD) then
+       mod%ny=1
+       genpar%delta(3)=1
+       genpar%omodel(3)=0.
+    else
+       if (auxpar('n3','i',mod%ny,mod%veltag).eq.0)  & 
+       &    call erexit('need n3:ny')
+       call putch('From aux(vel): ny','i',mod%ny)
+       if (auxpar('o3','r',genpar%omodel(3),mod%veltag).eq.0.)  & 
+       &    call erexit('need o3:omodel(3)')
+       call putch('From aux(vel): oz','r',mod%oy)
+       if (auxpar('d3','r',genpar%delta(3),mod%veltag).eq.0.)  & 
+       &    call erexit('need d3:delta(3)')
+       call putch('From aux(vel): dz','r',mod%dy)
+    end if
+       
+    write(0,*) 'INFO:'
+    write(0,*) 'INFO:-----------------------------'
+    write(0,*) 'INFO:  Velocity Model Dimensions  '
+    write(0,*) 'INFO:-----------------------------'
+    write(0,*) 'INFO: nz  =',mod%nz
+    write(0,*) 'INFO: nx  =',mod%nx
+    write(0,*) 'INFO: ny  =',mod%ny
+    write(0,*) 'INFO:'
+    write(0,*) 'INFO: dz  =',mod%dz
+    write(0,*) 'INFO: dx  =',mod%dx
+    write(0,*) 'INFO: dy  =',mod%dy
+    write(0,*) 'INFO:'
+    write(0,*) 'INFO: oz  =',mod%oz
+    write(0,*) 'INFO: ox  =',mod%ox
+    write(0,*) 'INFO: oy  =',mod%oy
+    write(0,*) 'INFO:-----------------------------'
+    write(0,*) 'INFO:'
+
+    nout=0
+    if ((mod%oxw.lt.mod%ox).or.(mod%oxw.gt.(mod%ox+(mod%nx-1)*mod%dx))) nout=nout+1
+    if ((mod%endx.lt.mod%ox).or.(mod%endx.gt.(mod%ox+(mod%nx-1)*mod%dx))) nout=nout+1
+    if ((mod%oyw.lt.mod%oy).or.(mod%oyw.gt.(mod%oy+(mod%ny-1)*mod%dy))) nout=nout+1
+    if ((mod%endy.lt.mod%oy).or.(mod%endy.gt.(mod%oy+(mod%ny-1)*mod%dy))) nout=nout+1
+
+    if (nout.eq.4) then
+       write(0,*) 'ERROR:'
+       write(0,*) 'ERROR: The source/receiver patch, with aperture, is outside velocity model'
+       write(0,*) 'ERROR:'
+       write(0,*) 'ERROR: Source/receiver patch coordinates'
+       write(0,*) 'ERROR: mod%oxw=',mod%oxw
+       write(0,*) 'ERROR: mod%oyw=',mod%oyw
+       write(0,*) 'ERROR: mod%endx=',mod%endx
+       write(0,*) 'ERROR: mod%endy=',mod%endy
+       write(0,*) 'ERROR:'
+       write(0,*) 'ERROR: Model dimensions coordinates'
+       write(0,*) 'ERROR: begw=',mod%ox
+       write(0,*) 'ERROR: begw=',mod%oy
+       write(0,*) 'ERROR: endx=',mod%ox+(mod%nx-1)*mod%dx
+       write(0,*) 'ERROR: endy=',mod%oy+(mod%ny-1)*mod%dy
+       call erexit('ERROR: leaving now due to improper dimensions of velocity vs. receiver-source patch')
+    end if
+
+
+    mod%nxw=nint((mod%endx-mod%oxw)/mod%dx)+1
+    mod%nyw=nint((mod%endy-mod%oyw)/mod%dy)+1
+  
+    write(0,*) 'INFO:'
+    write(0,*) 'INFO:--------------------------------------'
+    write(0,*) 'INFO:  Windowed velocity Model Dimensions  '
+    write(0,*) 'INFO:--------------------------------------'
+    write(0,*) 'INFO: nz  =',mod%nz
+    write(0,*) 'INFO: nx  =',mod%nxw
+    write(0,*) 'INFO: ny  =',mod%nyw
+    write(0,*) 'INFO:'
+    write(0,*) 'INFO: dz  =',mod%dz
+    write(0,*) 'INFO: dx  =',mod%dx
+    write(0,*) 'INFO: dy  =',mod%dy
+    write(0,*) 'INFO:'
+    write(0,*) 'INFO: oz  =',mod%oz
+    write(0,*) 'INFO: ox  =',mod%oxw
+    write(0,*) 'INFO: oy  =',mod%oyw
+    write(0,*) 'INFO:-----------------------------------'
+    write(0,*) 'INFO:'
+
+    allocate(tmpbig(  mod%nz,mod%nx, mod%ny))
+    allocate(tmpsmall(mod%nz,mod%nxw,mod%nyw))
+
+    tmpbig=0.
+    tmpsmall=0.
+
+    if (.not.exist_file(mod%veltag)) then
+       call erexit('ERROR: Need velocity file, exit now')
+    else
+       call sreed(mod%veltag,tmpbig,4*mod%nz*mod%nx*mod%ny)
+       call auxclose(mod%veltag)
+       call vel_check(tmpbig,genpar)
+    end if
+
+    call mod_window_pad(.true.,tmpbig,tmpsmall,mod)
+
+    genpar%omodel(1)=mod%oz
+    genpar%omodel(2)=mod%oxw
+    genpar%omodel(3)=mod%oyw
+
+    if (genpar%shot_type.gt.0 .or. genpar%surf_type.gt.0) then
+       if (genpar%shot_type.gt.0) bounds%nmin1 = -(genpar%ntaper+genpar%lsinc/2+2)+1
+       if (genpar%surf_type.gt.0) bounds%nmin1 = -genpar%lsinc+1
+    else
+       bounds%nmin1 = -genpar%ntaper+1
+    endif
+    bounds%nmax1 =  mod%nz+genpar%ntaper
+    bounds%nmin2 = -genpar%ntaper+1
+    bounds%nmax2 =  mod%nxw+genpar%ntaper
+    if (.not. genpar%twoD) then
+       bounds%nmin3 = -genpar%ntaper+1
+       bounds%nmax3 =  mod%nyw+genpar%ntaper
+    else
+       bounds%nmin3 = 1
+       bounds%nmax3 = 1
+    end if
+  
+    genpar%delta(1)=mod%dz
+    genpar%delta(2)=mod%dx
+    genpar%delta(3)=mod%dy
+
+    allocate(mod%vel(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
+   
+    call model_pad(tmpsmall,mod%vel,bounds,mod%nz,mod%nxw,mod%nyw,genpar%twoD)
+   
+    tmpsmall=0.
+    tmpbig=0.
+!    call srite('tmpvel',mod%vel,4*(bounds%nmax1-bounds%nmin1+1)*(bounds%nmax2-bounds%nmin2+1)*(bounds%nmax3-bounds%nmin3+1))
+!    call to_history('n1',bounds%nmax1-bounds%nmin1+1,'tmpvel')
+!    call to_history('n2',bounds%nmax2-bounds%nmin2+1,'tmpvel')
+!    call to_history('n3',bounds%nmax3-bounds%nmin3+3,'tmpvel')
+    if(genpar%withRho) then
+       if (.not.exist_file(mod%rhotag)) then
+          call erexit('ERROR: Need rho file, exit now')
+       else
+          call dim_consistency_check(mod%rhotag,mod%veltag,genpar%twoD)
+          allocate(mod%rho(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
+          allocate(mod%rho2(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
+          call sreed(mod%rhotag,tmpbig,4*mod%nz*mod%nx*mod%ny)
+          call auxclose(mod%rhotag)
+          call mod_window_pad(.true.,tmpbig,tmpsmall,mod)
+          call model_pad(tmpsmall,mod%rho,bounds,mod%nz,mod%nxw,mod%nyw,genpar%twoD)
+          call Interpolate(mod,bounds)
+       end if
+    end if
+    deallocate(tmpbig,tmpsmall)
+  end subroutine read_window_vel
+
+  subroutine read_window_ref( mod,genpar,bounds)
+    type(ModelSpace)  ::      mod
+    type(GeneralParam)::          genpar
+    type(FDbounds)    ::                 bounds
+    real,allocatable,dimension(:,:,:) :: tmpbig,tmpsmall
+
+    integer  :: fetch, hetch, tetch, getch, auxpar
+    external :: fetch, hetch, tetch, getch, auxpar
+    
+    allocate(tmpbig(mod%nz,mod%nx,mod%ny))
+    allocate(tmpsmall(mod%nz,mod%nxw,mod%nyw))
+
+    tmpbig=0.
+    tmpsmall=0.
+    if (.not.exist_file(mod%reftag)) then
+       call erexit('ERROR: Need reflectivity file, exit now')
+    else
+       call dim_consistency_check(mod%veltag,mod%reftag,genpar%twoD)
+       allocate(mod%image(bounds%nmin1:bounds%nmax1,bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
+       call sreed(mod%reftag,tmpbig,4*mod%nz*mod%nx*mod%ny)
+       call auxclose(mod%reftag)
+       call mod_window_pad(.true.,tmpbig,tmpsmall,mod)
+       call model_pad(tmpsmall,mod%image,bounds,mod%nz,mod%nxw,mod%nyw,genpar%twoD)
+    end if
+    deallocate(tmpbig,tmpsmall)
+  end subroutine read_window_ref
+
+  subroutine mod_window_pad(adj,big,small,mod)
+    type(ModelSpace) ::                   mod
+    logical         ::      adj
+    real, dimension(:,:,:) ::   big,small
+    
+    integer :: i,j,ix,iy,ix1,iy1
+    real    :: coord_x, coord_y
+
+    if (adj) then
+       do j=1,mod%nyw
+          coord_y=(j-1)*mod%dy+mod%oyw
+          iy=nint((coord_y-mod%oy)/mod%dy)+1
+          iy1=min(mod%ny,max(1,iy))
+          do i=1,mod%nxw
+             coord_x=(i-1)*mod%dx+mod%oxw
+             ix=nint((coord_x-mod%ox)/mod%dx)+1
+             ix1=min(mod%nx,max(1,ix))
+             
+             small(:,i,j)=small(:,i,j)+big(:,ix1,iy1)
+          end do
+       end do
+    else
+       do j=1,mod%nyw
+          coord_y=(j-1)*mod%dy+mod%oyw
+          iy=nint((coord_y-mod%oy)/mod%dy)+1
+          if ((iy.lt.1).or.(iy.gt.mod%ny)) cycle
+          do i=1,mod%nxw
+             coord_x=(i-1)*mod%dx+mod%oxw
+             ix=nint((coord_x-mod%ox)/mod%dx)+1
+             if ((ix.lt.1).or.(ix.gt.mod%nx)) cycle
+
+             big(:,ix,iy)=big(:,ix,iy)+small(:,i,j)
+          end do
+       end do            
+    end if
+
+  end subroutine mod_window_pad
+
+end module ExtractPadModel_mod

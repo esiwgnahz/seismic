@@ -22,17 +22,26 @@ module ModelSpace_types
 
      type(WaveSpace), pointer :: wvfld
 
-     integer :: nx
+     integer :: nx  ! dimensions original model space
      integer :: ny
      integer :: nz
 
-     real    :: ox
+     integer :: nxw ! dimensions windowed model space according to
+     integer :: nyw ! source/receier/aperture parameters
+
+     real    :: ox  ! origins original model space
      real    :: oy
      real    :: oz
+
+     real    :: oxw ! origins windowed model space according to
+     real    :: oyw ! source/receier/aperture parameters
 
      real    :: dx
      real    :: dy
      real    :: dz
+
+     real    :: endx
+     real    :: endy
   end type ModelSpace
 
   type ModelSpace_elevation   

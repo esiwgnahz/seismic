@@ -12,19 +12,19 @@ module Readsouvelrho_mod
 contains
 
   logical function is_trace_within_model(data,mod)
-    type(TraceSpace) ::            data
-    type(ModelSpace) ::                 mod
+    type(TraceSpace) ::                  data
+    type(ModelSpace) ::                       mod
     real :: minb(3)
     real :: maxb(3)
     integer :: i
     is_trace_within_model=.true.
 
     minb(1)=mod%oz
-    maxb(1)=mod%oz+mod%dz*mod%nz
-    minb(2)=mod%ox
-    maxb(2)=mod%ox+mod%dx*mod%nx
-    minb(3)=mod%oy
-    maxb(3)=mod%oy+mod%dy*mod%ny
+    maxb(1)=mod%oz+mod%dz*(mod%nz-1)
+    minb(2)=mod%oxw
+    maxb(2)=mod%oxw+mod%dx*(mod%nxw-1)
+    minb(3)=mod%oyw
+    maxb(3)=mod%oyw+mod%dy*(mod%nyw-1)
     
     do i=1,3
        if ((data%coord(i).lt.minb(i)).or.(data%coord(i).gt.maxb(i))) then
@@ -298,9 +298,15 @@ contains
     mod%ox=genpar%omodel(2)
     mod%oy=genpar%omodel(3)
 
+    mod%oxw=genpar%omodel(2)
+    mod%oyw=genpar%omodel(3)
+
     mod%dz=genpar%delta(1)
     mod%dx=genpar%delta(2)
     mod%dy=genpar%delta(3)
+
+    mod%nxw=mod%nx
+    mod%nyw=mod%ny
 
     allocate(tmp(mod%nz,mod%nx,mod%ny))
     allocate(mod%vel(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))

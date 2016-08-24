@@ -200,8 +200,8 @@ contains
        !
        ! Update the right side operator pad
        ! Taper
-       do j=mod%nx+1,bounds%nmax2
-          fscale = float(j-mod%nx)/float(bounds%nmax2-mod%nx-1)/fscale0
+       do j=mod%nxw+1,bounds%nmax2
+          fscale = float(j-mod%nxw)/float(bounds%nmax2-mod%nxw-1)/fscale0
           do i=bounds%nmin1,bounds%nmax1
              fdum = hig%gx( 9,i,k)*u(i,j-1,k,3)+ &
              &   hig%gx(10,i,k)*u(i,j-2,k,3)+ &
@@ -270,8 +270,8 @@ contains
        !
        ! Update the back side operator pad
        ! Taper
-       do k=mod%ny+1,bounds%nmax3
-          fscale = float(k-mod%ny)/float(bounds%nmax3-mod%ny-1)/fscale0
+       do k=mod%nyw+1,bounds%nmax3
+          fscale = float(k-mod%nyw)/float(bounds%nmax3-mod%nyw-1)/fscale0
           do j=bounds%nmin2,bounds%nmax2
              do i=bounds%nmin1,bounds%nmax1
                 fdum = hig%gy( 9,i,j)*u(i,j,k-1,3)+ &
@@ -447,8 +447,8 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) SCHEDULE(GUIDED)
     do k=bounds%nmin3,bounds%nmax3
-       do j=mod%nx+1,bounds%nmax2
-          fscale = float(j-mod%nx)/float(bounds%nmax2-mod%nx-1)/fscale0
+       do j=mod%nxw+1,bounds%nmax2
+          fscale = float(j-mod%nxw)/float(bounds%nmax2-mod%nxw-1)/fscale0
           do i=bounds%nmin1,bounds%nmax1
              fdum = hig%gx( 9,i,k)*u(i,j-1,k,3)+ &
              &   hig%gx(10,i,k)*u(i,j-2,k,3)+ &
@@ -528,8 +528,8 @@ contains
        ! Update the back side operator pad
        ! Taper
        !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) SCHEDULE(GUIDED)
-       do k=mod%ny+1,bounds%nmax3
-          fscale = float(k-mod%ny)/float(bounds%nmax3-mod%ny-1)/fscale0
+       do k=mod%nyw+1,bounds%nmax3
+          fscale = float(k-mod%nyw)/float(bounds%nmax3-mod%nyw-1)/fscale0
           do j=bounds%nmin2,bounds%nmax2
              do i=bounds%nmin1,bounds%nmax1
                 fdum = hig%gy( 9,i,j)*u(i,j,k-1,3)+ &
@@ -706,8 +706,8 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) SCHEDULE(GUIDED)
     do k=bounds%nmin3,bounds%nmax3
-       do j=mod%nx+1,bounds%nmax2
-          fscale = float(j-mod%nx)/float(bounds%nmax2-mod%nx-1)/fscale0
+       do j=mod%nxw+1,bounds%nmax2
+          fscale = float(j-mod%nxw)/float(bounds%nmax2-mod%nxw-1)/fscale0
           do i=bounds%nmin1,bounds%nmax1
              fdum = hig%gx( 9,i,k)*grid%u3(i,j-1,k)+ &
              &   hig%gx(10,i,k)*grid%u3(i,j-2,k)+ &
@@ -787,8 +787,8 @@ contains
        ! Update the back side operator pad
        ! Taper
        !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) SCHEDULE(GUIDED)
-       do k=mod%ny+1,bounds%nmax3
-          fscale = float(k-mod%ny)/float(bounds%nmax3-mod%ny-1)/fscale0
+       do k=mod%nyw+1,bounds%nmax3
+          fscale = float(k-mod%nyw)/float(bounds%nmax3-mod%nyw-1)/fscale0
           do j=bounds%nmin2,bounds%nmax2
              do i=bounds%nmin1,bounds%nmax1
                 fdum = hig%gy( 9,i,j)*grid%u3(i,j,k-1)+ &
@@ -841,7 +841,7 @@ contains
     real :: fscale0, fscale, fdum
     !
 
-    ntaper = bounds%nmax2 - mod%nx
+    ntaper = bounds%nmax2 - mod%nxw
     if (ntaper.lt.genpar%lsinc/2+2) then
        nz0 = -(genpar%lsinc/2+2)+1
     else
@@ -907,8 +907,8 @@ contains
           end do
        end do
        ! Update the right side operator pad
-       do j=mod%nx+1,bounds%nmax2+4
-          fscale = float(j-mod%nx)/float(bounds%nmax2+4-mod%nx-1)/fscale0
+       do j=mod%nxw+1,bounds%nmax2+4
+          fscale = float(j-mod%nxw)/float(bounds%nmax2+4-mod%nxw-1)/fscale0
           do i=bounds%nmin1,bounds%nmax1
              fdum = hig%gx( 9,i,k)*u(i,j-1,k,3)+ &
              &   hig%gx(10,i,k)*u(i,j-2,k,3)+ &
@@ -944,8 +944,8 @@ contains
           end do
        end do
        ! Update the back side operator pad
-       do k=mod%ny+1,bounds%nmax3+4
-          fscale = float(k-mod%ny)/float(bounds%nmax3+4-mod%ny-1)/fscale0
+       do k=mod%nyw+1,bounds%nmax3+4
+          fscale = float(k-mod%nyw)/float(bounds%nmax3+4-mod%nyw-1)/fscale0
           do j=bounds%nmin2,bounds%nmax2
              do i=bounds%nmin1,bounds%nmax1
                 fdum = hig%gy( 9,i,j)*u(i,j,k-1,3)+ &
@@ -979,7 +979,7 @@ contains
     real :: fscale0, fscale, fdum
     !
 
-    ntaper = bounds%nmax2 - mod%nx
+    ntaper = bounds%nmax2 - mod%nxw
     if (ntaper.lt.genpar%lsinc/2+2) then
        nz0 = -(genpar%lsinc/2+2)+1
     else
@@ -1062,8 +1062,8 @@ contains
     !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) SCHEDULE(GUIDED)
     do k=bounds%nmin3,bounds%nmax3
        ! Update the right side operator pad
-       do j=mod%nx+1,bounds%nmax2+4
-          fscale = float(j-mod%nx)/float(bounds%nmax2+4-mod%nx-1)/fscale0
+       do j=mod%nxw+1,bounds%nmax2+4
+          fscale = float(j-mod%nxw)/float(bounds%nmax2+4-mod%nxw-1)/fscale0
           do i=bounds%nmin1,bounds%nmax1
              fdum = hig%gx( 9,i,k)*u(i,j-1,k,3)+ &
              &   hig%gx(10,i,k)*u(i,j-2,k,3)+ &
@@ -1104,8 +1104,8 @@ contains
 
        ! Update the back side operator pad
        !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) SCHEDULE(GUIDED)
-       do k=mod%ny+1,bounds%nmax3+4
-          fscale = float(k-mod%ny)/float(bounds%nmax3+4-mod%ny-1)/fscale0
+       do k=mod%nyw+1,bounds%nmax3+4
+          fscale = float(k-mod%nyw)/float(bounds%nmax3+4-mod%nyw-1)/fscale0
           do j=bounds%nmin2,bounds%nmax2
              do i=bounds%nmin1,bounds%nmax1
                 fdum = hig%gy( 9,i,j)*u(i,j,k-1,3)+ &
@@ -1138,7 +1138,7 @@ contains
     real :: fscale0, fscale, fdum
     !
 
-    ntaper = bounds%nmax2 - mod%nx
+    ntaper = bounds%nmax2 - mod%nxw
     if (ntaper.lt.genpar%lsinc/2+2) then
        nz0 = -(genpar%lsinc/2+2)+1
     else
@@ -1221,8 +1221,8 @@ contains
     !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) SCHEDULE(GUIDED)
     do k=bounds%nmin3,bounds%nmax3
        ! Update the right side operator pad
-       do j=mod%nx+1,bounds%nmax2+4
-          fscale = float(j-mod%nx)/float(bounds%nmax2+4-mod%nx-1)/fscale0
+       do j=mod%nxw+1,bounds%nmax2+4
+          fscale = float(j-mod%nxw)/float(bounds%nmax2+4-mod%nxw-1)/fscale0
           do i=bounds%nmin1,bounds%nmax1
              fdum = hig%gx( 9,i,k)*grid%u3(i,j-1,k)+ &
              &   hig%gx(10,i,k)*grid%u3(i,j-2,k)+ &
@@ -1263,8 +1263,8 @@ contains
 
        ! Update the back side operator pad
        !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) SCHEDULE(GUIDED)
-       do k=mod%ny+1,bounds%nmax3+4
-          fscale = float(k-mod%ny)/float(bounds%nmax3+4-mod%ny-1)/fscale0
+       do k=mod%nyw+1,bounds%nmax3+4
+          fscale = float(k-mod%nyw)/float(bounds%nmax3+4-mod%nyw-1)/fscale0
           do j=bounds%nmin2,bounds%nmax2
              do i=bounds%nmin1,bounds%nmax1
                 fdum = hig%gy( 9,i,j)*grid%u3(i,j,k-1)+ &

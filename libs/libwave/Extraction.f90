@@ -348,14 +348,14 @@ contains
     
     real, allocatable :: buffer_sou(:,:)
 
-    allocate(buffer_sou(model%nz,model%nx))
+    allocate(buffer_sou(model%nz,model%nxw))
 
     MODULO:if (mod(it,genpar%snapi).eq.0) then
        dat%counter=dat%counter+1
        if (genpar%surf_type.ne.0) then
-          do k=1,model%ny
+          do k=1,model%nyw
              buffer_sou = 0.
-             do j=1,model%nx
+             do j=1,model%nxw
                 do i=elev%ielev_z(j,k),model%nz
                    buffer_sou(i,j) = u(i,j,k)
                 end do
@@ -363,7 +363,7 @@ contains
              dat%wave(:,:,k,dat%counter,1)=buffer_sou
           end do
        else
-          dat%wave(:,:,:,dat%counter,1)=u(1:model%nz,1:model%nx,1:model%ny)         
+          dat%wave(:,:,:,dat%counter,1)=u(1:model%nz,1:model%nxw,1:model%nyw)         
        end if
     end if MODULO
     

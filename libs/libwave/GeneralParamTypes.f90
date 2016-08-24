@@ -29,6 +29,7 @@ module GeneralParam_types
      integer :: tmax
      integer :: tstep
 
+     real    :: aperture(2)
   end type GeneralParam
 
   type HigdonParam

@@ -400,7 +400,7 @@ contains
 
     if (mod(it,genpar%snapi).eq.0) then
        model%wvfld%counter=model%wvfld%counter+1
-       u(1:model%nz,1:model%nx,1:model%ny)=u(1:model%nz,1:model%nx,1:model%ny)+2*dprod(model%image(1:model%nz,1:model%nx,1:model%ny),model%wvfld%wave(1:model%nz,1:model%nx,1:model%ny,model%wvfld%counter,1))/model%vel(1:model%nz,1:model%nx,1:model%ny)
+       u(1:model%nz,1:model%nxw,1:model%nyw)=u(1:model%nz,1:model%nxw,1:model%nyw)+2*dprod(model%image(1:model%nz,1:model%nxw,1:model%nyw),model%wvfld%wave(1:model%nz,1:model%nxw,1:model%nyw,model%wvfld%counter,1))/model%vel(1:model%nz,1:model%nxw,1:model%nyw)
     end if
     
   end subroutine Injection_Born
