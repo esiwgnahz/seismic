@@ -1,0 +1,60 @@
+volvedir=/data/Datasets/Volve3D/
+VP=${volvedir}/Vp.H
+
+shot=${volvedir}/extractshot1000.H
+coord=${volvedir}/extractshot1000.H@@
+
+volvewavelet.H: 
+	Wavelet wavelet=ricker2 fund=8 tdelay=0.1995 n1=2666 d1=0.00150  > $@
+
+
+volvevp.H: ${VP}
+	Interp type=1 d1out=0.025 d2out=0.025 d3out=0.025 maxsize=1000 < ${VP} | Add scale=0.001 > $@
+
+shot1000.H:  ${shot}
+	Interp d1out=0.0015 < ${shot} | Pad beg1=133 | Window3d n1=2666 > $@
+
+coord1000.H:	
+	Window3d < ${coord} > $@
+
+keygx=28
+keygy=30
+keysx=27
+keysy=29
+keyselev=34
+keygelev=33
+mod.H: shot1000.H coord1000.H volvewavelet.H volvevp.H
+	${MODSEP} traces=shot1000.H coordfile=coord1000.H fmax=16 aperture_x=7 aperture_y=1 \
+	keygx=${keygx} \
+	keygy=${keygy} \
+	keysx=${keysx} \
+	keysy=${keysy} \
+	keyselev=${keyselev} \
+	keygelev=${keygelev} \
+	< volvewavelet.H twoD=0 withRho=0 \
+	vel=volvevp.H snapi=100 ntaper=10 \
+	wave=wave$@ \
+	data=$@ 
+
+rtm.H: shot1000.H coord1000.H volvewavelet.H volvevp.H
+	Window3d < shot1000.H > shot1000w.H
+	Window3d < volvewavelet.H > vw.H
+	${RTMSEP} traces=shot1000w.H coordfile=coord1000.H fmax=16 aperture_x=7 aperture_y=1 \
+	keygx=${keygx} \
+	keygy=${keygy} \
+	keysx=${keysx} \
+	keysy=${keysy} \
+	keyselev=${keyselev} \
+	keygelev=${keygelev} \
+	< vw.H twoD=0 withRho=0 \
+	vel=volvevp.H snapi=10 ntaper=10 \
+	wave_fwd=wavefwd$@ wave_bwd=wavebwd$@ \
+	data=$@ 
+
+modbru.H: shot1000.H coord1000.H volvewavelet.H volvevp.H
+	${BRU} traces=shot1000.H coordfile=coord1000.H fmax=16 aperture_x=7 aperture_y=1 \
+	< volvewavelet.H  \
+	vel=tmpvel.H snapi=100 ntaper=0 \
+	ishot_x=200 ishot_y=60 \
+	max_file_size=3000 \
+	Seismogram=$@ 

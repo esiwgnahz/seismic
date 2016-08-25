@@ -33,6 +33,10 @@ program Acoustic_rtm
   call from_param('ntaper',genpar%ntaper,20)
   call from_param('snapi',genpar%snapi,4)
 
+  call from_param('num_threads',genpar%nthreads,4)
+
+  call omp_set_num_threads(genpar%nthreads)
+
   mod%veltag='vel'
   mod%rhotag='rho'
 

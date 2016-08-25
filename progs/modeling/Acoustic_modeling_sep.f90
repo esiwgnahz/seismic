@@ -2,6 +2,7 @@ program Acoustic_modeling_sep
 
   use sep
   use Readsouvelrho_mod
+  use ExtractPadModel_mod
   use FDcoefs_assign
   use Propagator_mod
   use Interpolate_mod
@@ -31,8 +32,14 @@ program Acoustic_modeling_sep
 
   call from_param('fmax',genpar%fmax,30.)
   call from_param('ntaper',genpar%ntaper,20)
+  call from_param('aperture_x',genpar%aperture(1))
+  call from_param('aperture_y',genpar%aperture(2))
+  call from_param('num_threads',genpar%nthreads,4)
 
-  genpar%snapi=4
+  call omp_set_num_threads(genpar%nthreads)
+
+
+  call from_param('snapi',genpar%snapi,4)
 
   mod%veltag='vel'
   mod%rhotag='rho'
@@ -58,15 +65,14 @@ program Acoustic_modeling_sep
      genpar%coefpower=2
   end if
 
-  call readvel(mod,genpar,bounds)
   call readtraces(datavec,sourcevec,genpar)
   call readcoords(datavec,sourcevec,genpar)
-  call are_traces_within_model(datavec,mod)
-  call are_traces_within_model(sourcevec,mod)
+  call extract_coord_source_receiver_patch(datavec,sourcevec,mod,genpar)
+  call read_window_vel(mod,genpar,bounds)
 
   genpar%ntsnap=int(genpar%nt/genpar%snapi)
 
-  allocate(wfld_fwd%wave(mod%nz,mod%nx,mod%ny,genpar%ntsnap,1))
+  allocate(wfld_fwd%wave(mod%nz,mod%nxw,mod%nyw,genpar%ntsnap,1))
   
   write(0,*) 'bounds%nmin1',bounds%nmin1,'bounds%nmax1',bounds%nmax1
   write(0,*) 'bounds%nmin2',bounds%nmin2,'bounds%nmax2',bounds%nmax2
@@ -130,6 +136,25 @@ program Acoustic_modeling_sep
   do i=1,size(datavec)
      call srite('data',datavec(i)%trace(:,1),4*sourcevec(1)%dimt%nt)
   end do
+
+  do i=1,genpar%ntsnap
+     call srite('wave_fwd',wfld_fwd%wave(1:mod%nz,1:mod%nxw,1:mod%nyw,i,1),4*mod%nxw*mod%nyw*mod%nz)
+  end do
+  
+  call to_history('n1',mod%nz,'wave_fwd')
+  call to_history('n2',mod%nxw,'wave_fwd')
+  call to_history('d1',mod%dz,'wave_fwd')
+  call to_history('d2',mod%dx,'wave_fwd')
+  call to_history('o1',genpar%omodel(1),'wave_fwd')
+  call to_history('o2',genpar%omodel(2),'wave_fwd')
+  if (genpar%twoD) then
+     call to_history('n3',genpar%ntsnap,'wave_fwd')
+  else
+     call to_history('n3',mod%nyw,'wave_fwd')
+     call to_history('d3',mod%dy,'wave_fwd')
+     call to_history('o3',genpar%omodel(3),'wave_fwd')
+     call to_history('n4',genpar%ntsnap,'wave_fwd')
+  end if
 
   call to_history('n1',sourcevec(1)%dimt%nt,'data')
   call to_history('n2',size(datavec),'data')

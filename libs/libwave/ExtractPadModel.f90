@@ -31,7 +31,7 @@ contains
     gxn=datavec(1)%coord(2)
     gyn=datavec(1)%coord(3)
     ! First find the limits of the receiver box
-    do i=1,size(datavec)
+    do i=2,size(datavec)
        gx1=min(gx1,datavec(i)%coord(2))
        gxn=max(gxn,datavec(i)%coord(2))
        gy1=min(gy1,datavec(i)%coord(3))
@@ -90,35 +90,35 @@ contains
     if (auxpar('n1','i',mod%nz,mod%veltag).eq.0)  & 
     &    call erexit('need n1:nz')
     call putch('From aux(vel): nz','i',mod%nz)
-    if (auxpar('o1','r',genpar%omodel(1),mod%veltag).eq.0.)  & 
+    if (auxpar('o1','r',mod%oz,mod%veltag).eq.0.)  & 
     &    call erexit('need o1:omodel(1)')
     call putch('From aux(vel): oz','r',mod%oz)
-    if (auxpar('d1','r',genpar%delta(1),mod%veltag).eq.0.)  & 
+    if (auxpar('d1','r',mod%dz,mod%veltag).eq.0.)  & 
     &    call erexit('need d1:delta(1)')
     call putch('From aux(vel): dz','r',mod%dz)
     
     if (auxpar('n2','i',mod%nx,mod%veltag).eq.0)  & 
     &    call erexit('need n2:nx')
     call putch('From aux(vel): nx','i',mod%nx)
-    if (auxpar('o2','r',genpar%omodel(2),mod%veltag).eq.0.)  & 
+    if (auxpar('o2','r',mod%ox,mod%veltag).eq.0.)  & 
     &    call erexit('need o2:omodel(2)')
     call putch('From aux(vel): oz','r',mod%ox)
-    if (auxpar('d2','r',genpar%delta(2),mod%veltag).eq.0.)  & 
+    if (auxpar('d2','r',mod%dx,mod%veltag).eq.0.)  & 
     &    call erexit('need d2:delta(2)')
     call putch('From aux(vel): dx','r',mod%dx)
 
     if (genpar%twoD) then
        mod%ny=1
-       genpar%delta(3)=1
-       genpar%omodel(3)=0.
+       mod%dy=1.
+       mod%oy=0.
     else
        if (auxpar('n3','i',mod%ny,mod%veltag).eq.0)  & 
        &    call erexit('need n3:ny')
        call putch('From aux(vel): ny','i',mod%ny)
-       if (auxpar('o3','r',genpar%omodel(3),mod%veltag).eq.0.)  & 
+       if (auxpar('o3','r',mod%oy,mod%veltag).eq.0.)  & 
        &    call erexit('need o3:omodel(3)')
        call putch('From aux(vel): oz','r',mod%oy)
-       if (auxpar('d3','r',genpar%delta(3),mod%veltag).eq.0.)  & 
+       if (auxpar('d3','r',mod%dy,mod%veltag).eq.0.)  & 
        &    call erexit('need d3:delta(3)')
        call putch('From aux(vel): dz','r',mod%dy)
     end if
@@ -165,7 +165,6 @@ contains
        call erexit('ERROR: leaving now due to improper dimensions of velocity vs. receiver-source patch')
     end if
 
-
     mod%nxw=nint((mod%endx-mod%oxw)/mod%dx)+1
     mod%nyw=nint((mod%endy-mod%oyw)/mod%dy)+1
   
@@ -192,6 +191,10 @@ contains
 
     tmpbig=0.
     tmpsmall=0.
+
+    genpar%delta(1)=mod%dz
+    genpar%delta(2)=mod%dx
+    genpar%delta(3)=mod%dy
 
     if (.not.exist_file(mod%veltag)) then
        call erexit('ERROR: Need velocity file, exit now')
@@ -228,28 +231,28 @@ contains
     genpar%delta(2)=mod%dx
     genpar%delta(3)=mod%dy
 
-    allocate(mod%vel(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
+    allocate(mod%vel(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)) 
    
-    call model_pad(tmpsmall,mod%vel,bounds,mod%nz,mod%nxw,mod%nyw,genpar%twoD)
+    call model_pad(tmpsmall,mod%vel,bounds,mod%nz,mod%nxw,mod%nyw,genpar)
    
     tmpsmall=0.
     tmpbig=0.
-!    call srite('tmpvel',mod%vel,4*(bounds%nmax1-bounds%nmin1+1)*(bounds%nmax2-bounds%nmin2+1)*(bounds%nmax3-bounds%nmin3+1))
-!    call to_history('n1',bounds%nmax1-bounds%nmin1+1,'tmpvel')
-!    call to_history('n2',bounds%nmax2-bounds%nmin2+1,'tmpvel')
-!    call to_history('n3',bounds%nmax3-bounds%nmin3+3,'tmpvel')
+    call srite('tmpvel',mod%vel,4*(bounds%nmax1-bounds%nmin1+9)*(bounds%nmax2-bounds%nmin2+9)*(bounds%nmax3-bounds%nmin3+2*genpar%nbound+1))
+    call to_history('n1',bounds%nmax1-bounds%nmin1+9,'tmpvel')
+    call to_history('n2',bounds%nmax2-bounds%nmin2+9,'tmpvel')
+    call to_history('n3',bounds%nmax3-bounds%nmin3+2*genpar%nbound+1,'tmpvel')
     if(genpar%withRho) then
        if (.not.exist_file(mod%rhotag)) then
           call erexit('ERROR: Need rho file, exit now')
        else
           call dim_consistency_check(mod%rhotag,mod%veltag,genpar%twoD)
-          allocate(mod%rho(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
-          allocate(mod%rho2(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
+          allocate(mod%rho(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound))
+          allocate(mod%rho2(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound))
           call sreed(mod%rhotag,tmpbig,4*mod%nz*mod%nx*mod%ny)
           call auxclose(mod%rhotag)
           call mod_window_pad(.true.,tmpbig,tmpsmall,mod)
-          call model_pad(tmpsmall,mod%rho,bounds,mod%nz,mod%nxw,mod%nyw,genpar%twoD)
-          call Interpolate(mod,bounds)
+          call model_pad(tmpsmall,mod%rho,bounds,mod%nz,mod%nxw,mod%nyw,genpar)
+          call Interpolate(mod,bounds,genpar)
        end if
     end if
     deallocate(tmpbig,tmpsmall)
@@ -273,11 +276,11 @@ contains
        call erexit('ERROR: Need reflectivity file, exit now')
     else
        call dim_consistency_check(mod%veltag,mod%reftag,genpar%twoD)
-       allocate(mod%image(bounds%nmin1:bounds%nmax1,bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
+       allocate(mod%image(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound))
        call sreed(mod%reftag,tmpbig,4*mod%nz*mod%nx*mod%ny)
        call auxclose(mod%reftag)
        call mod_window_pad(.true.,tmpbig,tmpsmall,mod)
-       call model_pad(tmpsmall,mod%image,bounds,mod%nz,mod%nxw,mod%nyw,genpar%twoD)
+       call model_pad(tmpsmall,mod%image,bounds,mod%nz,mod%nxw,mod%nyw,genpar)
     end if
     deallocate(tmpbig,tmpsmall)
   end subroutine read_window_ref

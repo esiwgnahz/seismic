@@ -127,7 +127,7 @@ contains
        
     TIME_LOOPS:do it=genpar%tmin,genpar%tmax,genpar%tstep    
 
-       if (mod(it,100).eq.0) write (0,*) "Step",it," of ",genpar%tmax,"time steps"
+       if (mod(it,100).eq.0) write (0,*) "Step",it," of ",max(genpar%tmin,genpar%tmax),"time steps"
 
        call system_clock(counting(1),count_rate,count_max)
        if (present(datavec)) &

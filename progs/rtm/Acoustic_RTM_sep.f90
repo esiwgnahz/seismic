@@ -2,6 +2,7 @@ program Acoustic_rtm_sep
 
   use sep
   use Readsouvelrho_mod
+  use ExtractPadModel_mod
   use FDcoefs_assign
   use Propagator_mod
   use Interpolate_mod
@@ -32,6 +33,11 @@ program Acoustic_rtm_sep
   call from_param('fmax',genpar%fmax,30.)
   call from_param('ntaper',genpar%ntaper,20)
   call from_param('snapi',genpar%snapi,4)
+  call from_param('aperture_x',genpar%aperture(1))
+  call from_param('aperture_y',genpar%aperture(2))
+  call from_param('num_threads',genpar%nthreads,4)
+
+  call omp_set_num_threads(genpar%nthreads)
 
   mod%veltag='vel'
   mod%rhotag='rho'
@@ -57,18 +63,14 @@ program Acoustic_rtm_sep
      genpar%coefpower=2
   end if
 
-  call readvel(mod,genpar,bounds)
   call readtraces(datavec,sourcevec,genpar)
   call readcoords(datavec,sourcevec,genpar)
-  ! I need to remove readvel and window a velocity cube according
-  ! to trace coordinates
-  ! Then when writing image on disk, this image needs to pad padded
-  call are_traces_within_model(datavec,mod)
-  call are_traces_within_model(sourcevec,mod)
+  call extract_coord_source_receiver_patch(datavec,sourcevec,mod,genpar)
+  call read_window_vel(mod,genpar,bounds)
 
   genpar%ntsnap=int(genpar%nt/genpar%snapi)
 
-  allocate(wfld_fwd%wave(mod%nz,mod%nx,mod%ny,genpar%ntsnap,1))
+  allocate(wfld_fwd%wave(mod%nz,mod%nxw,mod%nyw,genpar%ntsnap,1))
   
   write(0,*) 'bounds%nmin1',bounds%nmin1,'bounds%nmax1',bounds%nmax1
   write(0,*) 'bounds%nmin2',bounds%nmin2,'bounds%nmax2',bounds%nmax2
@@ -133,11 +135,12 @@ program Acoustic_rtm_sep
   end do
 
   do i=1,genpar%ntsnap
-     call srite('wave_fwd',wfld_fwd%wave(1:mod%nz,1:mod%nx,1:mod%ny,i,1),4*mod%nx*mod%ny*mod%nz)
+     write(0,*) 'INFO: writing source wavefield =',i,'/',genpar%ntsnap
+     call srite('wave_fwd',wfld_fwd%wave(1:mod%nz,1:mod%nxw,1:mod%nyw,i,1),4*mod%nxw*mod%nyw*mod%nz)
   end do
 
   call deallocateWaveSpace(wfld_fwd)
-  allocate(wfld_bwd%wave(mod%nz,mod%nx,mod%ny,genpar%ntsnap,1))
+  allocate(wfld_bwd%wave(mod%nz,mod%nxw,mod%nyw,genpar%ntsnap,1))
 
   genpar%tmax=1
   genpar%tmin=sourcevec(1)%dimt%nt
@@ -186,7 +189,8 @@ program Acoustic_rtm_sep
   write(0,*) 'after wave propagator'
 
   do i=genpar%ntsnap,1,-1
-     call srite('wave_bwd',wfld_bwd%wave(1:mod%nz,1:mod%nx,1:mod%ny,i,1),4*mod%nx*mod%ny*mod%nz)
+     write(0,*) 'INFO: writing receiver wavefield =',i,'/',genpar%ntsnap
+     call srite('wave_bwd',wfld_bwd%wave(1:mod%nz,1:mod%nxw,1:mod%nyw,i,1),4*mod%nxw*mod%nyw*mod%nz)
   end do
 
   call to_history('n1',sourcevec(1)%dimt%nt,'modeled_data')
@@ -197,7 +201,7 @@ program Acoustic_rtm_sep
   call to_history('o2',0.,'modeled_data')
 
   call to_history('n1',mod%nz,'wave_bwd')
-  call to_history('n2',mod%nx,'wave_bwd')
+  call to_history('n2',mod%nxw,'wave_bwd')
   call to_history('d1',mod%dz,'wave_bwd')
   call to_history('d2',mod%dx,'wave_bwd')
   call to_history('o1',genpar%omodel(1),'wave_bwd')
@@ -205,14 +209,14 @@ program Acoustic_rtm_sep
   if (genpar%twoD) then
      call to_history('n3',genpar%ntsnap,'wave_bwd')
   else
-     call to_history('n3',mod%ny,'wave_bwd')
+     call to_history('n3',mod%nyw,'wave_bwd')
      call to_history('d3',mod%dy,'wave_bwd')
      call to_history('o3',genpar%omodel(3),'wave_bwd')
      call to_history('n4',genpar%ntsnap,'wave_bwd')
   end if
 
   call to_history('n1',mod%nz,'wave_fwd')
-  call to_history('n2',mod%nx,'wave_fwd')
+  call to_history('n2',mod%nxw,'wave_fwd')
   call to_history('d1',mod%dz,'wave_fwd')
   call to_history('d2',mod%dx,'wave_fwd')
   call to_history('o1',genpar%omodel(1),'wave_fwd')
@@ -220,7 +224,7 @@ program Acoustic_rtm_sep
   if (genpar%twoD) then
      call to_history('n3',genpar%ntsnap,'wave_fwd')
   else
-     call to_history('n3',mod%ny,'wave_fwd')
+     call to_history('n3',mod%nyw,'wave_fwd')
      call to_history('d3',mod%dy,'wave_fwd')
      call to_history('o3',genpar%omodel(3),'wave_fwd')
      call to_history('n4',genpar%ntsnap,'wave_fwd')

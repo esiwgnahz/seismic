@@ -30,6 +30,7 @@ module GeneralParam_types
      integer :: tstep
 
      real    :: aperture(2)
+     integer :: nthreads
   end type GeneralParam
 
   type HigdonParam

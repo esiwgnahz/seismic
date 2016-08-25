@@ -309,7 +309,7 @@ contains
     mod%nyw=mod%ny
 
     allocate(tmp(mod%nz,mod%nx,mod%ny))
-    allocate(mod%vel(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
+    allocate(mod%vel(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound))
 
     tmp=0.
     if (.not.exist_file(mod%veltag)) then
@@ -318,7 +318,7 @@ contains
        call sreed(mod%veltag,tmp,4*mod%nz*mod%nx*mod%ny)
        call auxclose(mod%veltag)
        call vel_check(tmp,genpar)
-       call model_pad(tmp,mod%vel,bounds,mod%nz,mod%nx,mod%ny,genpar%twoD)
+       call model_pad(tmp,mod%vel,bounds,mod%nz,mod%nx,mod%ny,genpar)
     end if
     
 !    call srite('tmpvel',mod%vel,4*(bounds%nmax1-bounds%nmin1+1)*(bounds%nmax2-bounds%nmin2+1)*(bounds%nmax3-bounds%nmin3+1))
@@ -331,12 +331,12 @@ contains
        else
           tmp=0.
           call dim_consistency_check(mod%rhotag,mod%veltag,genpar%twoD)
-          allocate(mod%rho(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
-          allocate(mod%rho2(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
+          allocate(mod%rho(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound))
+          allocate(mod%rho2(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound))
           call sreed(mod%rhotag,tmp,4*mod%nz*mod%nx*mod%ny)
           call auxclose(mod%rhotag)
-          call model_pad(tmp,mod%rho,bounds,mod%nz,mod%nx,mod%ny,genpar%twoD)
-          call Interpolate(mod,bounds)
+          call model_pad(tmp,mod%rho,bounds,mod%nz,mod%nx,mod%ny,genpar)
+          call Interpolate(mod,bounds,genpar)
        end if
     end if
     deallocate(tmp)
@@ -358,18 +358,19 @@ contains
     else
        tmp=0.
        call dim_consistency_check(mod%veltag,mod%reftag,genpar%twoD)
-       allocate(mod%image(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
+       allocate(mod%image(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound))
        call sreed(mod%reftag,tmp,4*mod%nz*mod%nx*mod%ny)
        call auxclose(mod%reftag)
-       call model_pad(tmp,mod%image,bounds,mod%nz,mod%nx,mod%ny,genpar%twoD)
+       call model_pad(tmp,mod%image,bounds,mod%nz,mod%nx,mod%ny,genpar)
     end if
     deallocate(tmp)
   end subroutine readref
   
-  subroutine model_pad(tmp,field,bounds,nz,nx,ny,twoD)
+  subroutine model_pad(tmp,field,bounds,nz,nx,ny,genpar)
+    type(GeneralParam)     ::                    genpar
     type(FDbounds)         :: bounds
     real, dimension(:,:,:) :: tmp
-    real                   :: field(bounds%nmin1:bounds%nmax1, bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3)
+    real                   :: field(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
     integer :: i,j,k,nx,ny,nz
     logical :: twoD
 
@@ -377,39 +378,39 @@ contains
     
     do k=1,ny
        do j=1,nx           
-          do i=bounds%nmin1,0
+          do i=bounds%nmin1-4,0
              field(i,j,k)=field(1,j,k)
           end do         
-          do i=nz+1,bounds%nmax1
+          do i=nz+1,bounds%nmax1+4
              field(i,j,k)=field(nz,j,k)
           end do
        end do
     end do
 
     do k=1,ny
-       do j=bounds%nmin2,0
-          do i=bounds%nmin1,bounds%nmax1
+       do j=bounds%nmin2-4,0
+          do i=bounds%nmin1-4,bounds%nmax1+4
              field(i,j,k)=field(i,1,k)
           end do         
        end do
-       do j=nx+1,bounds%nmax2
-          do i=bounds%nmin1,bounds%nmax1
+       do j=nx+1,bounds%nmax2+4
+          do i=bounds%nmin1-4,bounds%nmax1+4
              field(i,j,k)=field(i,nx,k)
           end do         
        end do
     end do
 
-    if (.not.twoD) then
-       do k=bounds%nmin3,0
-          do j=bounds%nmin2,bounds%nmax2
-             do i=bounds%nmin1,bounds%nmax1
+    if (.not.genpar%twoD) then
+       do k=bounds%nmin3-genpar%nbound,0
+          do j=bounds%nmin2-4,bounds%nmax2+4
+             do i=bounds%nmin1-4,bounds%nmax1+4
                 field(i,j,k)=field(i,j,1)
              end do
           end do
        end do
-       do k=ny+1,bounds%nmax3
-          do j=bounds%nmin2,bounds%nmax2
-             do i=bounds%nmin1,bounds%nmax1
+       do k=ny+1,bounds%nmax3+genpar%nbound
+          do j=bounds%nmin2-4,bounds%nmax2+4
+             do i=bounds%nmin1-4,bounds%nmax1+4
                 field(i,j,k)=field(i,j,ny)
              end do
           end do
@@ -445,10 +446,13 @@ contains
     !
     integer :: i, j
     real :: vmax, vmin, stab, samplerate,dtn
-    real :: lambdamin, fmax_new
+    real :: lambdamin, fmax_new, stab_cond
     !
     ! check the velocity model for its maximum value
     !
+    stab_cond=0.35
+    if (genpar%twoD) stab_cond=0.45
+
     vmax=maxval(vel)
     vmin=minval(vel)
 
@@ -467,9 +471,14 @@ contains
     !
     ! if the computations are unstable, exit
     !
-    if (stab.gt.0.45) then
-       call putlin(							&
-       &      'The Courant number is >0.45 so calculations for this')
+    if (stab.gt.stab_cond) then
+       if (genpar%twoD) then
+          call putlin(							&
+          &      'The Courant number is >0.45 so calculations for this')
+       else
+          call putlin(							&
+          &      'The Courant number is >0.35 so calculations for this')
+       end if
        call putlin(							&
        &      'set of vmax, dt, and dx is unstable')
        call putlin(							&
@@ -483,16 +492,22 @@ contains
        !
        ! compute the largest stable time step size and write it out to the header
        !
-       dtn=0.45/stab*genpar%dt
+       dtn=stab_cond/stab*genpar%dt
        !
        call putch('dtn = new_dt','r',dtn)
        call putlin('     ')
        call erexit('ERROR: computations will be unstable')
        !
     else
-       call putlin(							&
-       &      'The Courant number is <= 0.45, calculations will procede')
-       call putlin(' ')
+       if (genpar%twoD) then
+          call putlin(							&
+          &      'The Courant number is <= 0.45, calculations will procede')
+          call putlin(' ')
+       else
+          call putlin(							&
+          &      'The Courant number is <= 0.35, calculations will procede')
+          call putlin(' ')
+       end if
     end if
     !
     ! now find the minumum wavelength and see if it is adequately sampled

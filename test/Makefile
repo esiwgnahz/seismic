@@ -1,12 +1,12 @@
-MOD=../bin/LINUX/Acoustic_modeling.x
-BMOD=../bin/LINUX/Acoustic_Born_modeling.x
+include ${SEPINC}/SEP.top
 
-REF=../../FWI/Progs/GIS/trunk/WI/build/Release/WIA/WI/WIA.x
-BORNREF=../../FWI/Progs/GIS/trunk/WI/build/Release/LSRTM/RTM/LSRTM.x
-BRU=/work/FWI/Progs/GIS/trunk/RTM/Acoustic/bin/Acoustic3d.main.x
-
+include EXEMakefile
+include VOLVEMakefile
 wavelet.H:
 	Wavelet wavelet=ricker2 fund=25 tdelay=0.13 n1=1000 d1=0.001 > $@
+
+wavelet3D.H:
+	Wavelet wavelet=ricker2 fund=25 tdelay=0.13 n1=1000 d1=0.0009 > $@
 
 
 3Dvel.H:
@@ -74,11 +74,17 @@ rhodata1%.H: wavelet.H 3Dvel.H 3Drho.H
 3Drhodata1%.H: wavelet.H 3Dvel.H 3Drho.H 
 	${MOD} stdin=wavelet.H vel=3Dvel.H wave=wave1.H twoD=0 withRho=1 rho=3Drho.H ${param$*} fmax=60 data=$@ 
 
-3Ddata1%.H: wavelet.H 3Dvel.H 3Drho.H 
-	${MOD} stdin=wavelet.H vel=3Dvel.H wave=wave1.H twoD=0 withRho=0 rho=3Drho.H ${param$*} fmax=60 data=$@ 
+3Ddata1%.H: wavelet3D.H 3Dvel.H 3Drho.H 
+	${MOD} stdin=wavelet3D.H vel=3Dvel.H wave=wave1.H twoD=0 withRho=0 rho=3Drho.H ${param$*} fmax=60 data=$@ 
 
-3DBorndata1%.H: wavelet.H 3Dvel.H 3Drho.H 3Dref.H
-	${BMOD} stdin=wavelet.H vel=3Dvel.H wave=wave1.H twoD=0 ${param$*} fmax=60 data=$@ ref=3Dref.H
+3DBorndata1%.H: wavelet3D.H 3Dvel.H 3Drho.H 3Dref.H
+	${BMOD} stdin=wavelet3D.H vel=3Dvel.H wave=wave1.H twoD=0 ${param$*} fmax=60 data=$@ ref=3Dref.H
+
+3Drtm1%.H: wavelet3D.H 3Dvel.H 3Drho.H 3Dref.H
+	${RTM} stdin=wavelet3D.H vel=3Dvel.H wave=wave1.H twoD=0 ${param$*} fmax=60 data=$@ ref=3Dref.H
+
+Borndata1%.H: wavelet.H 3Dvel.H 3Drho.H 3Dref.H
+	${BMOD} stdin=wavelet.H vel=3Dvel.H wave=wave1.H twoD=1 ${param$*} fmax=60 data=$@ ref=3Dref.H
 
 rhodata2%.H: traces.H 3Drho.H
 	${REF} \
@@ -121,3 +127,5 @@ rhodata3%.H:  3Drho.H
 	${param$*} \
 	Seismogram=junk1.H
 	Transp plane=12 < junk1.H > $@
+
+include ${SEPINC}/SEP.bottom

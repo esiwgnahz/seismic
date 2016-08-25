@@ -36,8 +36,9 @@ contains
     end do
   end subroutine mksinc
 
-  subroutine Interpolate(model,bounds)
+  subroutine Interpolate(model,bounds,genpar)
    
+    type(GeneralParam)::              genpar
     type(ModelSpace) ::  model
     type(FDbounds)   ::        bounds
     integer :: i, j, k, l, lsinc, nmin, nmax
@@ -46,24 +47,24 @@ contains
     real, allocatable :: sinc(:), trace(:)
     !
     allocate(sinc(lsinc))
-    nmin = min(bounds%nmin1,bounds%nmin2,bounds%nmin3) - lsinc
-    nmax = max(bounds%nmax1,bounds%nmax2,bounds%nmax3) + lsinc
+    nmin = min(bounds%nmin1-4,bounds%nmin2-4,bounds%nmin3-genpar%nbound) - lsinc
+    nmax = max(bounds%nmax1+4,bounds%nmax2+4,bounds%nmax3+genpar%nbound) + lsinc
     allocate(trace(nmin:nmax))
     !
     ! z-axis
     call mksinc(sinc,lsinc,0.5)
-    do k=bounds%nmin3,bounds%nmax3
-       do j=bounds%nmin2,bounds%nmax2
-          do i=bounds%nmin1,bounds%nmax1
+    do k=bounds%nmin3-genpar%nbound,bounds%nmax3+genpar%nbound
+       do j=bounds%nmin2-4,bounds%nmax2+4
+          do i=bounds%nmin1-4,bounds%nmax1+4
              trace(i) = model%rho(i,j,k)
           end do
-          do i=bounds%nmin1-lsinc,bounds%nmin1-1
-             trace(i) = trace(bounds%nmin1)
+          do i=bounds%nmin1-4-lsinc,bounds%nmin1-4-1
+             trace(i) = trace(bounds%nmin1-4)
           end do
-          do i=bounds%nmax1+1,bounds%nmax1+lsinc
-             trace(i) = trace(bounds%nmax1)
+          do i=bounds%nmax1+4+1,bounds%nmax1+4+lsinc
+             trace(i) = trace(bounds%nmax1+4)
           end do
-          do i=bounds%nmin1,bounds%nmax1
+          do i=bounds%nmin1-4,bounds%nmax1+4
              fdum  = 0.
              do l=-lsinc/2,lsinc/2
                 fdum = fdum + sinc(lsinc/2+1+l)*trace(i+l)
@@ -75,18 +76,18 @@ contains
     !
     ! x-axis
     call mksinc(sinc,lsinc,0.5)
-    do k=bounds%nmin3,bounds%nmax3
-       do i=bounds%nmin1,bounds%nmax1
-          do j=bounds%nmin2,bounds%nmax2
+    do k=bounds%nmin3-genpar%nbound,bounds%nmax3+genpar%nbound
+       do i=bounds%nmin1-4,bounds%nmax1+4
+          do j=bounds%nmin2-4,bounds%nmax2+4
              trace(j) = model%rho2(i,j,k)
           end do
-          do j=bounds%nmin2-lsinc,bounds%nmin2-1
-             trace(j) = trace(bounds%nmin2)
+          do j=bounds%nmin2-4-lsinc,bounds%nmin2-4-1
+             trace(j) = trace(bounds%nmin2-4)
           end do
-          do j=bounds%nmax2+1,bounds%nmax2+lsinc
-             trace(j) = trace(bounds%nmax2)
+          do j=bounds%nmax2+4+1,bounds%nmax2+4+lsinc
+             trace(j) = trace(bounds%nmax2+4)
           end do
-          do j=bounds%nmin2,bounds%nmax2
+          do j=bounds%nmin2-4,bounds%nmax2+4
              fdum  = 0.
              do l=-lsinc/2,lsinc/2
                 fdum = fdum + sinc(lsinc/2+1+l)*trace(j+l)
@@ -97,20 +98,20 @@ contains
     end do
     !
     ! y-axis
-    if (bounds%nmax3.gt.1) then
+    if ((bounds%nmax3+genpar%nbound).gt.1) then
        call mksinc(sinc,lsinc,0.5)
-       do j=bounds%nmin2,bounds%nmax2
-          do i=bounds%nmin1,bounds%nmax1
-             do k=bounds%nmin3,bounds%nmax3
+       do j=bounds%nmin2-4,bounds%nmax2+4
+          do i=bounds%nmin1-4,bounds%nmax1+4
+             do k=bounds%nmin3-genpar%nbound,bounds%nmax3+genpar%nbound
                 trace(k) = model%rho2(i,j,k)
              end do
-             do k=bounds%nmin3-lsinc,bounds%nmin3-1
-                trace(k) = trace(bounds%nmin3)
+             do k=bounds%nmin3-genpar%nbound-lsinc,bounds%nmin3-genpar%nbound-1
+                trace(k) = trace(bounds%nmin3-genpar%nbound)
              end do
-             do k=bounds%nmax3+1,bounds%nmax3+lsinc
-                trace(k) = trace(bounds%nmax3)
+             do k=bounds%nmax3+genpar%nbound+1,bounds%nmax3+genpar%nbound+lsinc
+                trace(k) = trace(bounds%nmax3+genpar%nbound)
              end do
-             do k=bounds%nmin3,bounds%nmax3
+             do k=bounds%nmin3-genpar%nbound,bounds%nmax3+genpar%nbound
                 fdum  = 0.
                 do l=-lsinc/2,lsinc/2
                    fdum = fdum + sinc(lsinc/2+1+l)*trace(k+l)
