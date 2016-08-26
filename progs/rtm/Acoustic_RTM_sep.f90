@@ -20,7 +20,7 @@ program Acoustic_rtm_sep
   type(ModelSpace_elevation) :: elev
 
   type(WaveSpace)                             :: wfld_fwd,wfld_bwd
-  type(TraceSpace), dimension(:), allocatable :: datavec
+  type(TraceSpace), dimension(:), allocatable :: datavec,datamodvec
   type(TraceSpace), dimension(:), allocatable :: sourcevec
 
   integer :: i,j,k 
@@ -67,6 +67,12 @@ program Acoustic_rtm_sep
   call readcoords(datavec,sourcevec,genpar)
   call extract_coord_source_receiver_patch(datavec,sourcevec,mod,genpar)
   call read_window_vel(mod,genpar,bounds)
+  allocate(datamodvec(size(datavec)))
+  do i=1,size(datavec)
+     allocate(datamodvec(i)%trace(sourcevec(1)%dimt%nt,1))
+     datamodvec(i)%coord(:)=datavec(i)%coord(:)
+     datamodvec(i)%trace=0.
+  end do
 
   genpar%ntsnap=int(genpar%nt/genpar%snapi)
 
@@ -91,7 +97,7 @@ program Acoustic_rtm_sep
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &    
-        & sou=sourcevec,wfld=wfld_fwd,datavec=datavec,   &
+        & sou=sourcevec,wfld=wfld_fwd,datavec=datamodvec,   &
         & ExtractData=Extraction_array_sinc              ) 
      else
         call propagator_acoustic(                        &
@@ -101,7 +107,7 @@ program Acoustic_rtm_sep
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &    
-        & sou=sourcevec,wfld=wfld_fwd,datavec=datavec,   &
+        & sou=sourcevec,wfld=wfld_fwd,datavec=datamodvec,   &
         & ExtractData=Extraction_array_sinc              )
      end if
   else
@@ -113,7 +119,7 @@ program Acoustic_rtm_sep
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &    
-        & sou=sourcevec,wfld=wfld_fwd,datavec=datavec,   &
+        & sou=sourcevec,wfld=wfld_fwd,datavec=datamodvec,   &
         & ExtractData=Extraction_array_sinc              ) 
      else
         call propagator_acoustic(                        &
@@ -123,7 +129,7 @@ program Acoustic_rtm_sep
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &    
-        & sou=sourcevec,wfld=wfld_fwd,datavec=datavec,   &
+        & sou=sourcevec,wfld=wfld_fwd,datavec=datamodvec,   &
         & ExtractData=Extraction_array_sinc              )
      end if
   end if
@@ -131,7 +137,7 @@ program Acoustic_rtm_sep
   write(0,*) 'after wave propagator'
   
   do i=1,size(datavec)
-     call srite('modeled_data',datavec(i)%trace(:,1),4*sourcevec(1)%dimt%nt)
+     call srite('modeled_data',datamodvec(i)%trace(:,1),4*sourcevec(1)%dimt%nt)
   end do
 
   do i=1,genpar%ntsnap
@@ -169,7 +175,7 @@ program Acoustic_rtm_sep
      if (.not.genpar%withRho) then
         call propagator_acoustic(                        &
         & FD_acoustic_init_coefs,                        &
-        & FD_2nd_3D_derivatives_scalar_adjoint_grid,     &
+        & FD_2nd_3D_derivatives_scalar_forward_grid,     &
         & Injection_sinc,                                &
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
@@ -232,10 +238,12 @@ program Acoustic_rtm_sep
 
   do i=1,size(datavec)
      call deallocateTraceSpace(datavec(i))
+     call deallocateTraceSpace(datamodvec(i))
   end do
   call deallocateWaveSpace(wfld_bwd)
   call deallocateTraceSpace(sourcevec(1))
   deallocate(datavec)
+  deallocate(datamodvec)
   deallocate(sourcevec)
 
 end program Acoustic_rtm_sep

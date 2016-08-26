@@ -39,7 +39,7 @@ mod.H: shot1000.H coord1000.H volvewavelet.H volvevp.H
 rtm.H: shot1000.H coord1000.H volvewavelet.H volvevp.H
 	Window3d < shot1000.H > shot1000w.H
 	Window3d < volvewavelet.H > vw.H
-	${RTMSEP} traces=shot1000w.H coordfile=coord1000.H fmax=16 aperture_x=7 aperture_y=1 \
+	${RTMSEP} traces=shot1000w.H coordfile=shot1000.H@@ fmax=16 aperture_x=7 aperture_y=1 \
 	keygx=${keygx} \
 	keygy=${keygy} \
 	keysx=${keysx} \
