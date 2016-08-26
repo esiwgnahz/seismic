@@ -41,6 +41,8 @@ program Acoustic_rtm_sep
 
   mod%veltag='vel'
   mod%rhotag='rho'
+  mod%waFtag='wave_fwd'
+  mod%waBtag='wave_bwd'
   genpar%Born=.false.
 
   call from_param('twoD',genpar%twoD,.false.)
@@ -76,7 +78,7 @@ program Acoustic_rtm_sep
 
   genpar%ntsnap=int(genpar%nt/genpar%snapi)
 
-  allocate(wfld_fwd%wave(mod%nz,mod%nxw,mod%nyw,genpar%ntsnap,1))
+!  allocate(wfld_fwd%wave(mod%nz,mod%nxw,mod%nyw,genpar%ntsnap,1))
   
   write(0,*) 'bounds%nmin1',bounds%nmin1,'bounds%nmax1',bounds%nmax1
   write(0,*) 'bounds%nmin2',bounds%nmin2,'bounds%nmax2',bounds%nmax2
@@ -88,124 +90,7 @@ program Acoustic_rtm_sep
   genpar%tmin=1
   genpar%tmax=sourcevec(1)%dimt%nt
   genpar%tstep=1
-  if (genpar%twoD) then
-     if (.not.genpar%withRho) then
-        call propagator_acoustic(                        &
-        & FD_acoustic_init_coefs,                        &
-        & FD_2nd_2D_derivatives_scalar_forward_grid,     &
-        & Injection_sinc,                                &
-        & FD_2nd_time_derivative_grid,                   &
-        & FDswaptime_pointer,                            &
-        & bounds,mod,elev,genpar,                        &    
-        & sou=sourcevec,wfld=wfld_fwd,datavec=datamodvec,   &
-        & ExtractData=Extraction_array_sinc              ) 
-     else
-        call propagator_acoustic(                        &
-        & FD_acoustic_rho_init_coefs,                    &
-        & FD_2D_derivatives_acoustic_forward_grid,       &
-        & Injection_rho_sinc,                            &
-        & FD_2nd_time_derivative_grid,                   &
-        & FDswaptime_pointer,                            &
-        & bounds,mod,elev,genpar,                        &    
-        & sou=sourcevec,wfld=wfld_fwd,datavec=datamodvec,   &
-        & ExtractData=Extraction_array_sinc              )
-     end if
-  else
-     if (.not.genpar%withRho) then
-        call propagator_acoustic(                        &
-        & FD_acoustic_init_coefs,                        &
-        & FD_2nd_3D_derivatives_scalar_forward_grid,     &
-        & Injection_sinc,                                &
-        & FD_2nd_time_derivative_grid,                   &
-        & FDswaptime_pointer,                            &
-        & bounds,mod,elev,genpar,                        &    
-        & sou=sourcevec,wfld=wfld_fwd,datavec=datamodvec,   &
-        & ExtractData=Extraction_array_sinc              ) 
-     else
-        call propagator_acoustic(                        &
-        & FD_acoustic_rho_init_coefs,                    &
-        & FD_3D_derivatives_acoustic_forward_grid,       &
-        & Injection_rho_sinc,                            &
-        & FD_2nd_time_derivative_grid,                   &
-        & FDswaptime_pointer,                            &
-        & bounds,mod,elev,genpar,                        &    
-        & sou=sourcevec,wfld=wfld_fwd,datavec=datamodvec,   &
-        & ExtractData=Extraction_array_sinc              )
-     end if
-  end if
-
-  write(0,*) 'after wave propagator'
   
-  do i=1,size(datavec)
-     call srite('modeled_data',datamodvec(i)%trace(:,1),4*sourcevec(1)%dimt%nt)
-  end do
-
-  do i=1,genpar%ntsnap
-     write(0,*) 'INFO: writing source wavefield =',i,'/',genpar%ntsnap
-     call srite('wave_fwd',wfld_fwd%wave(1:mod%nz,1:mod%nxw,1:mod%nyw,i,1),4*mod%nxw*mod%nyw*mod%nz)
-  end do
-
-  call deallocateWaveSpace(wfld_fwd)
-  allocate(wfld_bwd%wave(mod%nz,mod%nxw,mod%nyw,genpar%ntsnap,1))
-
-  genpar%tmax=1
-  genpar%tmin=sourcevec(1)%dimt%nt
-  genpar%tstep=-1
-  if (genpar%twoD) then
-     if (.not.genpar%withRho) then
-        call propagator_acoustic(                        &
-        & FD_acoustic_init_coefs,                        &
-        & FD_2nd_2D_derivatives_scalar_adjoint_grid,     &
-        & Injection_sinc,                                &
-        & FD_2nd_time_derivative_grid,                   &
-        & FDswaptime_pointer,                            &
-        & bounds,mod,elev,genpar,                        &
-        & sou=datavec,wfld=wfld_bwd)
-     else
-        call propagator_acoustic(                        &
-        & FD_acoustic_rho_init_coefs,                    &
-        & FD_2D_derivatives_acoustic_forward_grid,       &
-        & Injection_rho_sinc,                            &
-        & FD_2nd_time_derivative_grid,                   &
-        & FDswaptime_pointer,                            &
-        & bounds,mod,elev,genpar,                        &
-        & sou=datavec,wfld=wfld_bwd)
-     end if
-  else
-     if (.not.genpar%withRho) then
-        call propagator_acoustic(                        &
-        & FD_acoustic_init_coefs,                        &
-        & FD_2nd_3D_derivatives_scalar_forward_grid,     &
-        & Injection_sinc,                                &
-        & FD_2nd_time_derivative_grid,                   &
-        & FDswaptime_pointer,                            &
-        & bounds,mod,elev,genpar,                        &
-        & sou=datavec,wfld=wfld_bwd)
-     else
-        call propagator_acoustic(                        &
-        & FD_acoustic_rho_init_coefs,                    &
-        & FD_3D_derivatives_acoustic_forward_grid,       &
-        & Injection_rho_sinc,                            &
-        & FD_2nd_time_derivative_grid,                   &
-        & FDswaptime_pointer,                            &
-        & bounds,mod,elev,genpar,                        &
-        & sou=datavec,wfld=wfld_bwd)
-     end if
-  end if
-  write(0,*) 'after wave propagator'
-
-  do i=genpar%ntsnap,1,-1
-     write(0,*) 'INFO: writing receiver wavefield =',i,'/',genpar%ntsnap
-     call srite('wave_bwd',wfld_bwd%wave(1:mod%nz,1:mod%nxw,1:mod%nyw,i,1),4*mod%nxw*mod%nyw*mod%nz)
-  end do
-
-  call to_history('n1',sourcevec(1)%dimt%nt,'modeled_data')
-  call to_history('n2',size(datavec),'modeled_data')
-  call to_history('d1',sourcevec(1)%dimt%dt,'modeled_data')
-  call to_history('d2',1.,'modeled_data')
-  call to_history('o1',0.,'modeled_data')
-  call to_history('o2',0.,'modeled_data')
-
   call to_history('n1',mod%nz,'wave_bwd')
   call to_history('n2',mod%nxw,'wave_bwd')
   call to_history('d1',mod%dz,'wave_bwd')
@@ -236,11 +121,129 @@ program Acoustic_rtm_sep
      call to_history('n4',genpar%ntsnap,'wave_fwd')
   end if
 
+  if (genpar%twoD) then
+     if (.not.genpar%withRho) then
+        call propagator_acoustic(                        &
+        & FD_acoustic_init_coefs,                        &
+        & FD_2nd_2D_derivatives_scalar_forward_grid,     &
+        & Injection_sinc,                                &
+        & FD_2nd_time_derivative_grid,                   &
+        & FDswaptime_pointer,                            &
+        & bounds,mod,elev,genpar,                        &    
+        & sou=sourcevec,ExtractWave=Extraction_wavefield_copy_to_disk,datavec=datamodvec,   &
+        & ExtractData=Extraction_array_sinc              ) 
+     else
+        call propagator_acoustic(                        &
+        & FD_acoustic_rho_init_coefs,                    &
+        & FD_2D_derivatives_acoustic_forward_grid,       &
+        & Injection_rho_sinc,                            &
+        & FD_2nd_time_derivative_grid,                   &
+        & FDswaptime_pointer,                            &
+        & bounds,mod,elev,genpar,                        &    
+        & sou=sourcevec,ExtractWave=Extraction_wavefield_copy_to_disk,datavec=datamodvec,   &
+        & ExtractData=Extraction_array_sinc              )
+     end if
+  else
+     if (.not.genpar%withRho) then
+        call propagator_acoustic(                        &
+        & FD_acoustic_init_coefs,                        &
+        & FD_2nd_3D_derivatives_scalar_forward_grid,     &
+        & Injection_sinc,                                &
+        & FD_2nd_time_derivative_grid,                   &
+        & FDswaptime_pointer,                            &
+        & bounds,mod,elev,genpar,                        &    
+        & sou=sourcevec,ExtractWave=Extraction_wavefield_copy_to_disk,datavec=datamodvec,   &
+        & ExtractData=Extraction_array_sinc              ) 
+     else
+        call propagator_acoustic(                        &
+        & FD_acoustic_rho_init_coefs,                    &
+        & FD_3D_derivatives_acoustic_forward_grid,       &
+        & Injection_rho_sinc,                            &
+        & FD_2nd_time_derivative_grid,                   &
+        & FDswaptime_pointer,                            &
+        & bounds,mod,elev,genpar,                        &    
+        & sou=sourcevec,ExtractWave=Extraction_wavefield_copy_to_disk,datavec=datamodvec,   &
+        & ExtractData=Extraction_array_sinc              )
+     end if
+  end if
+
+  write(0,*) 'after wave propagator'
+  
+  do i=1,size(datavec)
+     call srite('modeled_data',datamodvec(i)%trace(:,1),4*sourcevec(1)%dimt%nt)
+  end do
+
+!  do i=1,genpar%ntsnap
+!     write(0,*) 'INFO: writing source wavefield =',i,'/',genpar%ntsnap
+!     call srite('wave_fwd',wfld_fwd%wave(1:mod%nz,1:mod%nxw,1:mod%nyw,i,1),4*mod%nxw*mod%nyw*mod%nz)
+!  end do
+
+!  call deallocateWaveSpace(wfld_fwd)
+!  allocate(wfld_bwd%wave(mod%nz,mod%nxw,mod%nyw,genpar%ntsnap,1))
+
+  genpar%tmax=1
+  genpar%tmin=sourcevec(1)%dimt%nt
+  genpar%tstep=-1
+  if (genpar%twoD) then
+     if (.not.genpar%withRho) then
+        call propagator_acoustic(                        &
+        & FD_acoustic_init_coefs,                        &
+        & FD_2nd_2D_derivatives_scalar_adjoint_grid,     &
+        & Injection_sinc,                                &
+        & FD_2nd_time_derivative_grid,                   &
+        & FDswaptime_pointer,                            &
+        & bounds,mod,elev,genpar,                        &
+        & sou=datavec,ExtractWave=Extraction_wavefield_copy_to_disk)
+     else
+        call propagator_acoustic(                        &
+        & FD_acoustic_rho_init_coefs,                    &
+        & FD_2D_derivatives_acoustic_forward_grid,       &
+        & Injection_rho_sinc,                            &
+        & FD_2nd_time_derivative_grid,                   &
+        & FDswaptime_pointer,                            &
+        & bounds,mod,elev,genpar,                        &
+        & sou=datavec,ExtractWave=Extraction_wavefield_copy_to_disk)
+     end if
+  else
+     if (.not.genpar%withRho) then
+        call propagator_acoustic(                        &
+        & FD_acoustic_init_coefs,                        &
+        & FD_2nd_3D_derivatives_scalar_forward_grid,     &
+        & Injection_sinc,                                &
+        & FD_2nd_time_derivative_grid,                   &
+        & FDswaptime_pointer,                            &
+        & bounds,mod,elev,genpar,                        &
+        & sou=datavec,ExtractWave=Extraction_wavefield_copy_to_disk)
+     else
+        call propagator_acoustic(                        &
+        & FD_acoustic_rho_init_coefs,                    &
+        & FD_3D_derivatives_acoustic_forward_grid,       &
+        & Injection_rho_sinc,                            &
+        & FD_2nd_time_derivative_grid,                   &
+        & FDswaptime_pointer,                            &
+        & bounds,mod,elev,genpar,                        &
+        & sou=datavec,ExtractWave=Extraction_wavefield_copy_to_disk)
+     end if
+  end if
+  write(0,*) 'after wave propagator'
+
+!  do i=genpar%ntsnap,1,-1
+!     write(0,*) 'INFO: writing receiver wavefield =',i,'/',genpar%ntsnap
+!     call srite('wave_bwd',wfld_bwd%wave(1:mod%nz,1:mod%nxw,1:mod%nyw,i,1),4*mod%nxw*mod%nyw*mod%nz)
+!  end do
+
+  call to_history('n1',sourcevec(1)%dimt%nt,'modeled_data')
+  call to_history('n2',size(datavec),'modeled_data')
+  call to_history('d1',sourcevec(1)%dimt%dt,'modeled_data')
+  call to_history('d2',1.,'modeled_data')
+  call to_history('o1',0.,'modeled_data')
+  call to_history('o2',0.,'modeled_data')
+
   do i=1,size(datavec)
      call deallocateTraceSpace(datavec(i))
      call deallocateTraceSpace(datamodvec(i))
   end do
-  call deallocateWaveSpace(wfld_bwd)
+!  call deallocateWaveSpace(wfld_bwd)
   call deallocateTraceSpace(sourcevec(1))
   deallocate(datavec)
   deallocate(datamodvec)

@@ -93,7 +93,7 @@ program Acoustic_Born_modeling_sep
      & FD_2nd_time_derivative_grid,                   &
      & FDswaptime_pointer,                            &
      & bounds,mod,elev,genpar,                        &
-     & sou=sourcevec,wfld=wfld_fwd)
+     & sou=sourcevec,wfld=wfld_fwd,ExtractWave=Extraction_wavefield)
   else
      call propagator_acoustic(                        &
      & FD_acoustic_init_coefs,                        &
@@ -102,7 +102,7 @@ program Acoustic_Born_modeling_sep
      & FD_2nd_time_derivative_grid,                   &
      & FDswaptime_pointer,                            &
      & bounds,mod,elev,genpar,                        &
-     & sou=sourcevec,wfld=wfld_fwd)
+     & sou=sourcevec,wfld=wfld_fwd,ExtractWave=Extraction_wavefield)
   end if
 
   write(0,*) 'after wave propagator'

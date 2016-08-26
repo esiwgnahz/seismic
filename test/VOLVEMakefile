@@ -36,6 +36,22 @@ mod.H: shot1000.H coord1000.H volvewavelet.H volvevp.H
 	wave=wave$@ \
 	data=$@ 
 
+mod2.H: shot1000.H coord1000.H volvewavelet.H volvevp.H
+	Interp d1out=0.0018 < shot1000.H > shot1000w.H
+	Interp d1out=0.0018< volvewavelet.H > vw.H
+	Smooth rect1=2 rect2=4 rect3=4 tridiag=0 < volvevp.H > volvevps.H
+	${MODSEP} traces=shot1000w.H coordfile=coord1000.H fmax=16 aperture_x=7 aperture_y=1 \
+	keygx=${keygx} \
+	keygy=${keygy} \
+	keysx=${keysx} \
+	keysy=${keysy} \
+	keyselev=${keyselev} \
+	keygelev=${keygelev} \
+	< vw.H twoD=0 withRho=0 \
+	vel=volvevp.H snapi=100 ntaper=10 \
+	wave=wave$@ \
+	data=$@ 
+
 rtm.H: shot1000.H coord1000.H volvewavelet.H volvevp.H
 	Window3d < shot1000.H > shot1000w.H
 	Window3d < volvewavelet.H > vw.H

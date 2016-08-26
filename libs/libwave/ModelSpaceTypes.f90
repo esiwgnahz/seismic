@@ -10,6 +10,8 @@ module ModelSpace_types
      character(len=3)  :: veltag
      character(len=3)  :: rhotag
      character(len=3)  :: reftag
+     character(len=8)  :: waFtag
+     character(len=8)  :: waBtag
 
      real, allocatable :: vel(:,:,:)
      real, allocatable :: rho(:,:,:)

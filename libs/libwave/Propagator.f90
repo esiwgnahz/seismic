@@ -18,8 +18,8 @@ module Propagator_mod
 
 contains
 
-  subroutine propagator_acoustic(FD_coefs,FD_scheme,Injection,TimeDer,TimeSwap,bounds,model,elev,genpar,               sou,wfld,datavec,ExtractData)
-    optional     sou,wfld,datavec,ExtractData
+  subroutine propagator_acoustic(FD_coefs,FD_scheme,Injection,TimeDer,TimeSwap,bounds,model,elev,genpar,               sou,wfld,datavec,ExtractData,ExtractWave)
+    optional             sou,wfld,datavec,ExtractData,ExtractWave
     interface
        subroutine FD_coefs      (coef)
          use FD_types
@@ -51,6 +51,23 @@ contains
          integer           :: it
          
        end subroutine ExtractData
+
+       subroutine ExtractWave(bounds,model,elev,u,genpar,it,dat)
+         use GeneralParam_types
+         use ModelSpace_types
+         use DataSpace_types
+         
+         optional :: dat
+
+         type(FDbounds)    :: bounds
+         type(ModelSpace)  ::        model
+         type(WaveSpace)   ::              dat
+         type(ModelSpace_elevation) ::        elev
+         type(GeneralParam)::                         genpar
+         real              ::                       u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+         &                                            bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+         integer           :: it
+       end subroutine ExtractWave
 
        subroutine Injection(bounds,model,sou,u,genpar,it)
          use GeneralParam_types
@@ -130,12 +147,17 @@ contains
        if (mod(it,100).eq.0) write (0,*) "Step",it," of ",max(genpar%tmin,genpar%tmax),"time steps"
 
        call system_clock(counting(1),count_rate,count_max)
-       if (present(datavec)) &
+       if (present(ExtractData)) &
        &  call ExtractData(bounds,model,datavec,grid%u2,genpar,it) 
 
        call system_clock(counting(2),count_rate,count_max)    
-       if (present(wfld)) &
-       &  call Extraction_wavefield(bounds,model,wfld,elev,grid%u2,genpar,it)
+       if (present(ExtractWave)) then
+          if (present(wfld)) then
+             call ExtractWave(bounds,model,elev,grid%u2,genpar,it,dat=wfld)
+          else
+             call ExtractWave(bounds,model,elev,grid%u2,genpar,it)
+          end if
+       end if
        
        call system_clock(counting(3),count_rate,count_max)      
        call Boundary_set_free_surface_grid(bounds,model,elev,grid,genpar)

@@ -26,9 +26,11 @@ contains
           call Injection_source_sinc_xz(bounds,model,tracevec(i),u,genpar,it)
        end do
     else
+       !$OMP PARALLEL DO PRIVATE(i)
        do i=1,size(tracevec)
           call Injection_source_sinc_xyz(bounds,model,tracevec(i),u,genpar,it) 
-       end do
+       end do    
+       !$OMP END PARALLEL DO
     end if
     
   end subroutine Injection_sinc
@@ -49,9 +51,11 @@ contains
           call Injection_source_rho_sinc_xz(bounds,model,tracevec(i),u,genpar,it)
        end do
     else
+       !$OMP PARALLEL DO PRIVATE(i)
        do i=1,size(tracevec)
           call Injection_source_rho_sinc_xyz(bounds,model,tracevec(i),u,genpar,it) 
-       end do
+       end do    
+       !$OMP END PARALLEL DO
     end if
     
   end subroutine Injection_rho_sinc

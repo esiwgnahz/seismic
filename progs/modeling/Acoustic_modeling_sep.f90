@@ -95,7 +95,7 @@ program Acoustic_modeling_sep
         & FDswaptime_pointer,                              &
         & bounds,mod,elev,genpar,                          &
         & sou=sourcevec,wfld=wfld_fwd,datavec=datavec,     &
-        & ExtractData=Extraction_array_sinc)
+        & ExtractData=Extraction_array_sinc,ExtractWave=Extraction_wavefield)
      else
         call propagator_acoustic(                          &
         & FD_acoustic_rho_init_coefs,                      &
@@ -105,7 +105,7 @@ program Acoustic_modeling_sep
         & FDswaptime_pointer,                              &
         & bounds,mod,elev,genpar,                          &
         & sou=sourcevec,wfld=wfld_fwd,datavec=datavec,     &
-        & ExtractData=Extraction_array_sinc)
+        & ExtractData=Extraction_array_sinc,ExtractWave=Extraction_wavefield)
      end if
   else
      if (.not.genpar%withRho) then
@@ -117,7 +117,7 @@ program Acoustic_modeling_sep
         & FDswaptime_pointer,                              &
         & bounds,mod,elev,genpar,                          &
         & sou=sourcevec,wfld=wfld_fwd,datavec=datavec,     &
-        & ExtractData=Extraction_array_sinc) 
+        & ExtractData=Extraction_array_sinc,ExtractWave=Extraction_wavefield) 
      else
         call propagator_acoustic(                          &
         & FD_acoustic_rho_init_coefs,                      &
@@ -127,7 +127,7 @@ program Acoustic_modeling_sep
         & FDswaptime_pointer,                              &
         & bounds,mod,elev,genpar,                          &
         & sou=sourcevec,wfld=wfld_fwd,datavec=datavec,     &
-        & ExtractData=Extraction_array_sinc)
+        & ExtractData=Extraction_array_sinc,ExtractWave=Extraction_wavefield)
      end if
   end if
 

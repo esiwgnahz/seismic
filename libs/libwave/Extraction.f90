@@ -145,6 +145,7 @@ contains
     end do
     
     if (genpar%rec_type.eq.0) then
+       !$OMP PARALLEL DO PRIVATE(k,j,i)
        do k=miny,maxy
           do j=minx,maxx
              do i=minz,maxz
@@ -154,8 +155,10 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
     
     else
+       !$OMP PARALLEL DO PRIVATE(k,j,i)
        do k=miny,maxy
           do j=minx,maxx
              do i=minz,maxz
@@ -165,6 +168,7 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
     end if
 
     deallocate(sinc,deltai)
@@ -335,7 +339,8 @@ contains
     
   end subroutine Extraction_1trace_sinc_xy
   
-  subroutine Extraction_wavefield(bounds,model,dat,elev,u,genpar,it)
+  subroutine Extraction_wavefield(bounds,model,elev,u,genpar,it,dat)
+    optional          ::                                        dat
     type(FDbounds)    ::          bounds
     type(ModelSpace)  ::                 model
     type(WaveSpace)   ::                       dat
@@ -370,5 +375,48 @@ contains
     deallocate(buffer_sou)
 
   end subroutine Extraction_wavefield
+
+  subroutine Extraction_wavefield_copy_to_disk(bounds,model,elev,u,genpar,it,dat)
+    optional          ::                                                     dat
+    type(FDbounds)    ::                       bounds
+    type(ModelSpace)  ::                              model
+    type(WaveSpace)   ::                                    dat
+    type(ModelSpace_elevation) ::                               elev
+    type(GeneralParam)::                                               genpar
+    real              ::                               u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                                            bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    integer           :: i,k,j
+    
+    real, allocatable :: buffer_sou(:,:)
+    character(len=8)  :: wavetag
+
+    if (genpar%tmin.eq.1) then
+       wavetag=model%waFtag
+    else
+       wavetag=model%waBtag
+    end if
+
+    allocate(buffer_sou(model%nz,model%nxw))
+
+    MODULO:if (mod(it,genpar%snapi).eq.0) then
+       if (genpar%surf_type.ne.0) then
+          do k=1,model%nyw
+             buffer_sou = 0.
+             do j=1,model%nxw
+                do i=elev%ielev_z(j,k),model%nz
+                   buffer_sou(i,j) = u(i,j,k)
+                end do
+             end do
+             call srite(wavetag,buffer_sou,4*model%nxw*model%nz)
+          end do
+       else  
+          call srite(wavetag,u(1:model%nz,1:model%nxw,1:model%nyw),4*model%nxw*model%nyw*model%nz)
+       end if
+    end if MODULO
+    
+    deallocate(buffer_sou)
+
+  end subroutine Extraction_wavefield_copy_to_disk
 
 end module Extraction_mod

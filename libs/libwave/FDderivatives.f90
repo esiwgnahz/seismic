@@ -609,95 +609,38 @@ contains
     real                 :: u3(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
     real                 :: tmpzz, tmpxx, tmpyy
     integer              :: i,j,k
-    integer              :: ip1,ip2,ip3,ip4,jp1,jp2,jp3,jp4,kp1,kp2,kp3,kp4
-    integer              :: im1,im2,im3,im4,jm1,jm2,jm3,jm4,km1,km2,km3,km4
+    real, allocatable, dimension(:,:,:) :: tmp
 
-    !$OMP PARALLEL DO PRIVATE(k,j,i,tmpxx,tmpzz,tmpyy,kp1,kp2,kp3,kp4,ip1,ip2,ip3,ip4,jp1,jp2,jp3,jp4,im1,im2,im3,im4,jm1,jm2,jm3,jm4,km1,km2,km3,km4)
-    do k=bounds%nmin3,bounds%nmax3
-       kp1=min(bounds%nmax3,k+1)
-       kp2=min(bounds%nmax3,k+2)
-       kp3=min(bounds%nmax3,k+3)
-       kp4=min(bounds%nmax3,k+4)
-       km1=max(bounds%nmin3,k-1)
-       km2=max(bounds%nmin3,k-2)
-       km3=max(bounds%nmin3,k-3)
-       km4=max(bounds%nmin3,k-4)
-       do j=bounds%nmin2,bounds%nmax2
-          jp1=min(bounds%nmax2,j+1)
-          jp2=min(bounds%nmax2,j+2)
-          jp3=min(bounds%nmax2,j+3)
-          jp4=min(bounds%nmax2,j+4)
-          jm1=max(bounds%nmin2,j-1)
-          jm2=max(bounds%nmin2,j-2)
-          jm3=max(bounds%nmin2,j-3)
-          jm4=max(bounds%nmin2,j-4)
-          do i=bounds%nmin1,bounds%nmax1
-             ip1=min(bounds%nmax1,i+1)
-             ip2=min(bounds%nmax1,i+2)
-             ip3=min(bounds%nmax1,i+3)
-             ip4=min(bounds%nmax1,i+4)
-             im1=max(bounds%nmin1,i-1)
-             im2=max(bounds%nmin1,i-2)
-             im3=max(bounds%nmin1,i-3)
-             im4=max(bounds%nmin1,i-4)
-             tmpzz= coefs%c0z*(mod%vel(i  ,j,k)**2*u2(i  ,j,k)) +&
-             &      coefs%c1z*(mod%vel(ip1,j,k)**2*u2(i+1,j,k)+mod%vel(im1,j,k)**2*u2(i-1,j,k))+ &
-             &      coefs%c2z*(mod%vel(ip2,j,k)**2*u2(i+2,j,k)+mod%vel(im2,j,k)**2*u2(i-2,j,k))+ &
-             &      coefs%c3z*(mod%vel(ip3,j,k)**2*u2(i+3,j,k)+mod%vel(im3,j,k)**2*u2(i-3,j,k))+ &
-             &      coefs%c4z*(mod%vel(ip4,j,k)**2*u2(i+4,j,k)+mod%vel(im4,j,k)**2*u2(i-4,j,k))
-             tmpxx= coefs%c0x*(mod%vel(i  ,j,k)**2*u2(i,j  ,k)) +&
-             &      coefs%c1x*(mod%vel(i,jp1,k)**2*u2(i,j+1,k)+mod%vel(i,jm1,k)**2*u2(i,j-1,k))+ &
-             &      coefs%c2x*(mod%vel(i,jp2,k)**2*u2(i,j+2,k)+mod%vel(i,jm2,k)**2*u2(i,j-2,k))+ &
-             &      coefs%c3x*(mod%vel(i,jp3,k)**2*u2(i,j+3,k)+mod%vel(i,jm3,k)**2*u2(i,j-3,k))+ &
-             &      coefs%c4x*(mod%vel(i,jp4,k)**2*u2(i,j+4,k)+mod%vel(i,jm4,k)**2*u2(i,j-4,k))
-             tmpyy= coefs%c0y*(mod%vel(i  ,j,k)**2*u2(i,j,k  )) +&
-             &      coefs%c1y*(mod%vel(i,j,kp1)**2*u2(i,j,k+1)+mod%vel(i,j,km1)**2*u2(i,j,k-1))+ &
-             &      coefs%c2y*(mod%vel(i,j,kp2)**2*u2(i,j,k+2)+mod%vel(i,j,km2)**2*u2(i,j,k-2))+ &
-             &      coefs%c3y*(mod%vel(i,j,kp3)**2*u2(i,j,k+3)+mod%vel(i,j,km3)**2*u2(i,j,k-3))+ &
-             &      coefs%c4y*(mod%vel(i,j,kp4)**2*u2(i,j,k+4)+mod%vel(i,j,km4)**2*u2(i,j,k-4))
-             u3(i,j,k)=tmpxx+tmpzz+tmpyy
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-  end subroutine FD_2nd_3D_derivatives_scalar_adjoint_grid
-  
-  subroutine FD_2nd_3D_derivatives_scalar_adjoint_grid2(genpar,bounds,u2,u3,mod)
-    type(GeneralParam)   ::                       genpar
-    type(ModelSpace)     ::                                       mod
-    type(FDbounds)       ::                              bounds
-    real                 :: u2(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
-    real                 :: u3(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
-    real                 :: tmpzz, tmpxx, tmpyy
-    integer              :: i,j,k
+    allocate(tmp(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound))
+    tmp=mod%vel**2*u2
 
     !$OMP PARALLEL DO PRIVATE(k,j,i,tmpxx,tmpzz,tmpyy)
     do k=bounds%nmin3,bounds%nmax3
        do j=bounds%nmin2,bounds%nmax2
           do i=bounds%nmin1,bounds%nmax1
-             tmpzz= coefs%c0z*(mod%vel(i  ,j,k)**2*u2(i  ,j,k)) +&
-             &      coefs%c1z*(mod%vel(i-1,j,k)**2*u2(i+1,j,k)+mod%vel(i-1,j,k)**2*u2(i-1,j,k))+ &
-             &      coefs%c2z*(mod%vel(i-2,j,k)**2*u2(i+2,j,k)+mod%vel(i-2,j,k)**2*u2(i-2,j,k))+ &
-             &      coefs%c3z*(mod%vel(i-3,j,k)**2*u2(i+3,j,k)+mod%vel(i-3,j,k)**2*u2(i-3,j,k))+ &
-             &      coefs%c4z*(mod%vel(i-4,j,k)**2*u2(i+4,j,k)+mod%vel(i-4,j,k)**2*u2(i-4,j,k))
-             tmpxx= coefs%c0x*(mod%vel(i  ,j,k)**2*u2(i,j  ,k)) +&
-             &      coefs%c1x*(mod%vel(i,j-1,k)**2*u2(i,j+1,k)+mod%vel(i,j-1,k)**2*u2(i,j-1,k))+ &
-             &      coefs%c2x*(mod%vel(i,j-2,k)**2*u2(i,j+2,k)+mod%vel(i,j-2,k)**2*u2(i,j-2,k))+ &
-             &      coefs%c3x*(mod%vel(i,j-3,k)**2*u2(i,j+3,k)+mod%vel(i,j-3,k)**2*u2(i,j-3,k))+ &
-             &      coefs%c4x*(mod%vel(i,j-4,k)**2*u2(i,j+4,k)+mod%vel(i,j-4,k)**2*u2(i,j-4,k))
-             tmpyy= coefs%c0y*(mod%vel(i  ,j,k)**2*u2(i,j,k  )) +&
-             &      coefs%c1y*(mod%vel(i,j,k-1)**2*u2(i,j,k+1)+mod%vel(i,j,k-1)**2*u2(i,j,k-1))+ &
-             &      coefs%c2y*(mod%vel(i,j,k-2)**2*u2(i,j,k+2)+mod%vel(i,j,k-2)**2*u2(i,j,k-2))+ &
-             &      coefs%c3y*(mod%vel(i,j,k-3)**2*u2(i,j,k+3)+mod%vel(i,j,k-3)**2*u2(i,j,k-3))+ &
-             &      coefs%c4y*(mod%vel(i,j,k-4)**2*u2(i,j,k+4)+mod%vel(i,j,k-4)**2*u2(i,j,k-4))
+             tmpzz= coefs%c0z*tmp(i,j,k) +&
+             &      coefs%c1z*(tmp(i+1,j,k)+tmp(i-1,j,k))+ &
+             &      coefs%c2z*(tmp(i+2,j,k)+tmp(i-2,j,k))+ &
+             &      coefs%c3z*(tmp(i+3,j,k)+tmp(i-3,j,k))+ &
+             &      coefs%c4z*(tmp(i+4,j,k)+tmp(i-4,j,k))
+             tmpxx= coefs%c0x*tmp(i,j,k) +&
+             &      coefs%c1x*(tmp(i,j+1,k)+tmp(i,j-1,k))+ &
+             &      coefs%c2x*(tmp(i,j+2,k)+tmp(i,j-2,k))+ &
+             &      coefs%c3x*(tmp(i,j+3,k)+tmp(i,j-3,k))+ &
+             &      coefs%c4x*(tmp(i,j+4,k)+tmp(i,j-4,k))
+             tmpyy= coefs%c0y*tmp(i,j,k) +&
+             &      coefs%c1y*(tmp(i,j,k+1)+tmp(i,j,k-1))+ &
+             &      coefs%c2y*(tmp(i,j,k+2)+tmp(i,j,k-2))+ &
+             &      coefs%c3y*(tmp(i,j,k+3)+tmp(i,j,k-3))+ &
+             &      coefs%c4y*(tmp(i,j,k+4)+tmp(i,j,k-4))
              u3(i,j,k)=tmpxx+tmpzz+tmpyy
           end do
        end do
     end do
     !$OMP END PARALLEL DO
+    deallocate(tmp)
 
-  end subroutine FD_2nd_3D_derivatives_scalar_adjoint_grid2
+  end subroutine FD_2nd_3D_derivatives_scalar_adjoint_grid
   
   subroutine FD_2nd_2D_derivatives_scalar_adjoint(genpar,bounds,u,mod)
     type(GeneralParam)   ::                       genpar
