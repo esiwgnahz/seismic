@@ -38,7 +38,7 @@ all:
 #	(cd libs/libdec; make)
 #	(cd libs/libinv; make)
 	(cd libs/libwave; make)
-	(cd progs/modeling; make)
+#	(cd progs/modeling; make)
 	(cd progs/rtm; make)
 #	(cd progs/logdecon; make)
 #	(cd progs/futterman; make)

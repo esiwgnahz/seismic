@@ -6,6 +6,7 @@ program Acoustic_rtm_sep
   use FDcoefs_assign
   use Propagator_mod
   use Interpolate_mod
+  use Imaging_mod
 
   use DataSpace_types
   use ModelSpace_types
@@ -19,12 +20,12 @@ program Acoustic_rtm_sep
   type(FDbounds)     :: bounds
   type(ModelSpace_elevation) :: elev
 
-  type(WaveSpace)                             :: wfld_fwd,wfld_bwd
   type(TraceSpace), dimension(:), allocatable :: datavec,datamodvec
   type(TraceSpace), dimension(:), allocatable :: sourcevec
 
-  integer :: i,j,k 
+  integer :: i,j,k
   integer :: ntsnap
+  real :: d1
 
   call sep_init()
   
@@ -78,15 +79,12 @@ program Acoustic_rtm_sep
 
   genpar%ntsnap=int(genpar%nt/genpar%snapi)
 
-!  allocate(wfld_fwd%wave(mod%nz,mod%nxw,mod%nyw,genpar%ntsnap,1))
-  
   write(0,*) 'bounds%nmin1',bounds%nmin1,'bounds%nmax1',bounds%nmax1
   write(0,*) 'bounds%nmin2',bounds%nmin2,'bounds%nmax2',bounds%nmax2
   write(0,*) 'bounds%nmin3',bounds%nmin3,'bounds%nmax3',bounds%nmax3
 
   allocate(elev%elev(bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
   elev%elev=0.
-  write(0,*) 'before wave propagator'
   genpar%tmin=1
   genpar%tmax=sourcevec(1)%dimt%nt
   genpar%tstep=1
@@ -121,6 +119,7 @@ program Acoustic_rtm_sep
      call to_history('n4',genpar%ntsnap,'wave_fwd')
   end if
 
+  write(0,*) 'Starting forward modeling'
   if (genpar%twoD) then
      if (.not.genpar%withRho) then
         call propagator_acoustic(                        &
@@ -167,23 +166,16 @@ program Acoustic_rtm_sep
      end if
   end if
 
-  write(0,*) 'after wave propagator'
+  write(0,*) 'Done with forward modeling'
   
   do i=1,size(datavec)
      call srite('modeled_data',datamodvec(i)%trace(:,1),4*sourcevec(1)%dimt%nt)
   end do
 
-!  do i=1,genpar%ntsnap
-!     write(0,*) 'INFO: writing source wavefield =',i,'/',genpar%ntsnap
-!     call srite('wave_fwd',wfld_fwd%wave(1:mod%nz,1:mod%nxw,1:mod%nyw,i,1),4*mod%nxw*mod%nyw*mod%nz)
-!  end do
-
-!  call deallocateWaveSpace(wfld_fwd)
-!  allocate(wfld_bwd%wave(mod%nz,mod%nxw,mod%nyw,genpar%ntsnap,1))
-
   genpar%tmax=1
   genpar%tmin=sourcevec(1)%dimt%nt
   genpar%tstep=-1
+  write(0,*) 'Starting backward propagation'
   if (genpar%twoD) then
      if (.not.genpar%withRho) then
         call propagator_acoustic(                        &
@@ -225,12 +217,7 @@ program Acoustic_rtm_sep
         & sou=datavec,ExtractWave=Extraction_wavefield_copy_to_disk)
      end if
   end if
-  write(0,*) 'after wave propagator'
-
-!  do i=genpar%ntsnap,1,-1
-!     write(0,*) 'INFO: writing receiver wavefield =',i,'/',genpar%ntsnap
-!     call srite('wave_bwd',wfld_bwd%wave(1:mod%nz,1:mod%nxw,1:mod%nyw,i,1),4*mod%nxw*mod%nyw*mod%nz)
-!  end do
+  write(0,*) 'Done with backward propagation'
 
   call to_history('n1',sourcevec(1)%dimt%nt,'modeled_data')
   call to_history('n2',size(datavec),'modeled_data')
@@ -243,10 +230,38 @@ program Acoustic_rtm_sep
      call deallocateTraceSpace(datavec(i))
      call deallocateTraceSpace(datamodvec(i))
   end do
-!  call deallocateWaveSpace(wfld_bwd)
   call deallocateTraceSpace(sourcevec(1))
   deallocate(datavec)
   deallocate(datamodvec)
   deallocate(sourcevec)
+
+!  call from_aux(mod%waFtag,'d1',d1)
+!  call from_aux(mod%waBtag,'d1',d1)
+
+  call Imaging_condition_from_disk(mod,genpar)
+
+  do i=1,mod%ny
+     call srite('image',mod%image(:,:,i),4*mod%nx*mod%nz)
+  end do
+  do i=1,mod%ny
+     call srite('image',mod%illum(:,:,i),4*mod%nx*mod%nz)
+  end do
+
+  call to_history('n1',mod%nz,'image')
+  call to_history('n2',mod%nx,'image')
+  call to_history('d1',mod%dz,'image')
+  call to_history('d2',mod%dx,'image')
+  call to_history('o1',mod%oz,'image')
+  call to_history('o2',mod%ox,'image')
+  if (genpar%twoD) then
+     call to_history('n3',2,'image')
+  else
+     call to_history('n3',mod%ny,'image')
+     call to_history('d3',mod%dy,'image')
+     call to_history('o3',mod%oy,'image')
+     call to_history('n4',2,'image')
+  end if
+
+  call deallocateModelSpace(mod)
 
 end program Acoustic_rtm_sep
