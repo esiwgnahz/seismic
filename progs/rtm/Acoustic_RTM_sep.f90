@@ -46,6 +46,8 @@ program Acoustic_rtm_sep
   mod%waBtag='wave_bwd'
   genpar%Born=.false.
 
+  call auxinout(mod%waFtag)
+  call auxinout(mod%waBtag)
   call from_param('twoD',genpar%twoD,.false.)
 
   if (.not.genpar%twoD) then     
@@ -235,11 +237,10 @@ program Acoustic_rtm_sep
   deallocate(datamodvec)
   deallocate(sourcevec)
 
-!  call from_aux(mod%waFtag,'d1',d1)
-!  call from_aux(mod%waBtag,'d1',d1)
-
   call Imaging_condition_from_disk(mod,genpar)
 
+  call auxclose(mod%waBtag)
+  call auxclose(mod%waFtag)
   do i=1,mod%ny
      call srite('image',mod%image(:,:,i),4*mod%nx*mod%nz)
   end do

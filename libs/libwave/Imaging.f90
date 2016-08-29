@@ -30,7 +30,7 @@ contains
     allocate(fwd(model%nz,model%nxw,model%nyw))
     allocate(bwd(model%nz,model%nxw,model%nyw))
 
-    blocksize=model%nz*model%nxw*model%nyw
+    blocksize=4*model%nz*model%nxw*model%nyw
     call sseek(model%waFtag,0,0)
     call sseek(model%waBtag,0,0)
     do l=1,genpar%ntsnap
@@ -39,9 +39,9 @@ contains
        bwd=0.
 
        index=genpar%ntsnap-l
-       call sseek_block(model%waFtag,index,4*blocksize,0)
-       call sreed(model%waBtag,bwd,4*blocksize)
-       call sreed(model%waFtag,fwd,4*blocksize)
+       call sseek_block(model%waFtag,index,blocksize,0)
+       call sreed(model%waBtag,bwd,blocksize)
+       call sreed(model%waFtag,fwd,blocksize)
        
        !$OMP PARALLEL DO PRIVATE(k,j,i)
        do k=1,model%nyw

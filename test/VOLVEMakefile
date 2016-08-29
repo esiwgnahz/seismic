@@ -5,17 +5,45 @@ shot=${volvedir}/extractshot1000.H
 coord=${volvedir}/extractshot1000.H@@
 
 volvewavelet.H: 
-	Wavelet wavelet=ricker2 fund=8 tdelay=0.1995 n1=2666 d1=0.00150  > $@
+	Wavelet wavelet=ricker2 fund=8 tdelay=0.18 n1=2222 d1=0.0018  > $@
 
 
 volvevp.H: ${VP}
 	Interp type=1 d1out=0.025 d2out=0.025 d3out=0.025 maxsize=1000 < ${VP} | Add scale=0.001 > $@
 
-shot1000.H:  ${shot}
-	Interp d1out=0.0015 < ${shot} | Pad beg1=133 | Window3d n1=2666 > $@
+#shot1000.H:  ${shot}
+#	Interp d1out=0.0015 < ${shot} | Pad beg1=133 | Window3d n1=2666 > $@
+#
+#coord1000.H:	
+#	Window3d < ${coord} > $@
 
-coord1000.H:	
-	Window3d < ${coord} > $@
+dat/shot%.H:
+	Window_key key1=f_fldr hff=${PWD}/$@@@ kindex1=35 mink1=$* maxk1=$* < ${volvedir}/shotmath.H synch=1 > $@ datapath=${PWD}/dat/ 
+
+img/rtm%.H: dat/shot%.H volvewavelet.H volvevp.H
+	Interp d1out=0.0018 < dat/shot$*.H | Pad beg1=100 | Window3d n1=2222 > shot$*w.H
+	${RTMSEP} traces=shot$*w.H coordfile=dat/shot$*.H@@ fmax=16 aperture_x=7 aperture_y=5 \
+	keygx=${keygx} \
+	keygy=${keygy} \
+	keysx=${keysx} \
+	keysy=${keysy} \
+	keyselev=${keyselev} \
+	keygelev=${keygelev} \
+	< volvewavelet.H twoD=0 withRho=0 \
+	vel=volvevp.H snapi=5 ntaper=10 \
+	wave_fwd=wavefwd.H wave_bwd=wavebwd.H \
+	image=$@ 
+	Rm wavefwd.H wavebwd.H shot$*.H 
+
+mig:
+#	make img/rtm1.H
+#	Cp img/rtm1.H RTMVolve.H
+	for number in `seq 30 10 2500`; do \
+		make img/rtm$$number.H ;\
+		Math file1=RTMVolve.H file2=img/rtm$$number.H exp="file1+file2" > junk.H ;\
+		Cp junk.H RTMVolve.H ;\
+		Rm junk.H ;\
+	done
 
 keygx=28
 keygy=30
@@ -53,8 +81,8 @@ mod2.H: shot1000.H coord1000.H volvewavelet.H volvevp.H
 	data=$@ 
 
 rtm.H: shot1000.H coord1000.H volvewavelet.H volvevp.H
-	Window3d < shot1000.H > shot1000w.H
-	Window3d < volvewavelet.H > vw.H
+	Interp  d1out=0.0018 < shot1000.H > shot1000w.H
+	Interp  d1out=0.0018 < volvewavelet.H > vw.H
 	${RTMSEP} traces=shot1000w.H coordfile=shot1000.H@@ fmax=16 aperture_x=7 aperture_y=1 \
 	keygx=${keygx} \
 	keygy=${keygy} \
@@ -63,7 +91,7 @@ rtm.H: shot1000.H coord1000.H volvewavelet.H volvevp.H
 	keyselev=${keyselev} \
 	keygelev=${keygelev} \
 	< vw.H twoD=0 withRho=0 \
-	vel=volvevp.H snapi=10 ntaper=10 \
+	vel=volvevp.H snapi=5 ntaper=10 \
 	wave_fwd=wavefwd$@ wave_bwd=wavebwd$@ \
 	data=$@ 
 
