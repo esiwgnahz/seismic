@@ -1,9 +1,10 @@
 volvedir=/data/Datasets/Volve3D/
-VP=${volvedir}/Vp.H
+volvedir=${BINS}/efwi/statoil/paul/
+VP=${BINS}/efwi/statoil/paul/vp.rsf
 
 shot=${volvedir}/extractshot1000.H
 coord=${volvedir}/extractshot1000.H@@
-
+#RTMSEP=/u/st/by/aguitton/bins/seismic/test/Acoustic_RTM_sep.x
 volvewavelet.H: 
 	Wavelet wavelet=ricker2 fund=8 tdelay=0.18 n1=2222 d1=0.0018  > $@
 
@@ -28,9 +29,9 @@ img/rtm%.H: dat/shot%.H volvewavelet.H volvevp.H
 	keysx=${keysx} \
 	keysy=${keysy} \
 	keyselev=${keyselev} \
-	keygelev=${keygelev} \
+	keygelev=${keygelev} num_threads=16 \
 	< volvewavelet.H twoD=0 withRho=0 \
-	vel=volvevp.H snapi=5 ntaper=10 \
+	vel=volvevp.H snapi=2222 ntaper=10 \
 	wave_fwd=wavefwd.H wave_bwd=wavebwd.H \
 	image=$@ 
 	Rm wavefwd.H wavebwd.H shot$*.H 

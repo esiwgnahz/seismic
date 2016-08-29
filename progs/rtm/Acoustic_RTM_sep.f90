@@ -38,6 +38,17 @@ program Acoustic_rtm_sep
   call from_param('aperture_y',genpar%aperture(2))
   call from_param('num_threads',genpar%nthreads,4)
 
+  write(0,*) 'INFO: -------- Parameters ---------'
+  write(0,*) 'INFO:'
+  write(0,*) 'INFO: fmax  =',fmax
+  write(0,*) 'INFO: ntaper=',fmax
+  write(0,*) 'INFO: snapi =',fmax
+  write(0,*) 'INFO: aperture_x=',fmax
+  write(0,*) 'INFO: aperture_y=',fmax
+  write(0,*) 'INFO:'
+  write(0,*) 'INFO: num_threads=',num_threads
+  write(0,*) 'INFO: ----------------------------'
+
   call omp_set_num_threads(genpar%nthreads)
 
   mod%veltag='vel'
@@ -60,6 +71,14 @@ program Acoustic_rtm_sep
   call from_param('shot_type',genpar%shot_type,0)
   call from_param('surf_type',genpar%surf_type,0)
 
+  write(0,*) 'INFO: -------- Source/Receiver parameters ------'
+  write(0,*) 'INFO:'
+  write(0,*) 'INFO: rec_type =',rec_type
+  write(0,*) 'INFO: shot_type=',shot_type
+  write(0,*) 'INFO: surf_type=',surf_type
+  write(0,*) 'INFO:'
+  write(0,*) 'INFO: ------------------------------------------'
+
   call readsou(sourcevec,genpar)
  
   if (genpar%withRho) then
@@ -81,10 +100,14 @@ program Acoustic_rtm_sep
 
   genpar%ntsnap=int(genpar%nt/genpar%snapi)
 
-  write(0,*) 'bounds%nmin1',bounds%nmin1,'bounds%nmax1',bounds%nmax1
-  write(0,*) 'bounds%nmin2',bounds%nmin2,'bounds%nmax2',bounds%nmax2
-  write(0,*) 'bounds%nmin3',bounds%nmin3,'bounds%nmax3',bounds%nmax3
-
+  write(0,*) 'INFO: ------- Size model space for propagation --------'
+  write(0,*) 'INFO:'
+  write(0,*) 'INFO: bounds%nmin1',bounds%nmin1,'bounds%nmax1',bounds%nmax1
+  write(0,*) 'INFO: bounds%nmin2',bounds%nmin2,'bounds%nmax2',bounds%nmax2
+  write(0,*) 'INFO: bounds%nmin3',bounds%nmin3,'bounds%nmax3',bounds%nmax3
+  write(0,*) 'INFO:'
+  write(0,*) 'INFO: ------------------------------------------------'
+  
   allocate(elev%elev(bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
   elev%elev=0.
   genpar%tmin=1

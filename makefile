@@ -1,9 +1,7 @@
 ADIR=../../
 
-UF90FLAGS= -ip -xHOST -ansi-alias -fno-alias -qopt-report3 -align array64byte
 UF90INCLUDES= -I/${MKLROOT}/include/intel64/lp64/ -qopenmp
-#UF90LIBS= -L/work/fftw/lib/ -qopenmp  -lbei -lsepfft -lsep2df90 -lsep3df90 -lsep3d -lsepf90 -lsep -lsupersetf90 -lsuperset  -lfftw3f  -L/${MKLROOT}/lib/intel64 -qopenmp -lmkl_intel_lp64 -lmkl_lapack95_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm -ldl -lAdec -lAinv -lAfut 
-UF90LIBS= -L/work/fftw/lib/ -qopenmp  -lbei -lsepfft -lsep2df90 -lsep3df90 -lsep3d -lsepf90 -lsep -lsupersetf90 -lsuperset  -lfftw3f  -L/${MKLROOT}/lib/intel64 -qopenmp -lmkl_intel_lp64 -lmkl_lapack95_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm -ldl -lAwave 
+UF90LIBS= -L/u/st/by/aguitton/bins/fftw/lib/ -qopenmp  -lbei -lsepfft -lsep2df90 -lsep3df90 -lsep3d -lsepf90 -lsep -lsupersetf90 -lsuperset  -lfftw3f  -L/${MKLROOT}/lib/intel64 -qopenmp -lmkl_intel_lp64 -lmkl_lapack95_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm -ldl -lAdec -lAinv -lAfut -lAwave
 UF77LIBS:= ${UF77LIBS} -qopenmp -lbei
 
 LIBDIR  = ${ADIR}/lib/$(MTYPE)
@@ -28,17 +26,20 @@ clean:
 #	(cd libs/libdec; make aclean)
 #	(cd libs/libinv; make aclean)
 	(cd libs/libwave; make aclean)
-	(cd progs/modeling; make aclean)
-	(cd progs/rtm; make aclean)
 #	(cd progs/logdecon; make aclean)
 #	(cd progs/futterman; make aclean)
+	(cd progs/modeling; make aclean)
+	(cd progs/rtm; make aclean)
+
 
 all: 
+#	make dirstruct
 #	(cd libs/libfut; make)
 #	(cd libs/libdec; make)
 #	(cd libs/libinv; make)
 	(cd libs/libwave; make)
-#	(cd progs/modeling; make)
-	(cd progs/rtm; make)
 #	(cd progs/logdecon; make)
 #	(cd progs/futterman; make)
+	(cd progs/modeling; make)
+	(cd progs/rtm; make)
+
