@@ -36,6 +36,112 @@ img/rtm%.H: dat/shot%.H volvewavelet.H volvevp.H
 	image=$@ 
 	Rm wavefwd.H wavebwd.H shot$*.H 
 
+img/rtm_test_threads_%.H: dat/shot1000.H volvewavelet.H volvevp.H
+	Interp d1out=0.0018 < dat/shot1000.H | Pad beg1=100 | Window3d n1=2222 > shot1000w.H
+	${RTMSEP} traces=shot1000w.H coordfile=dat/shot1000.H@@ fmax=16 aperture_x=7 aperture_y=5 \
+	keygx=${keygx} \
+	keygy=${keygy} \
+	keysx=${keysx} \
+	keysy=${keysy} \
+	keyselev=${keyselev} \
+	keygelev=${keygelev} num_threads=$* \
+	< volvewavelet.H twoD=0 withRho=0 \
+	vel=volvevp.H snapi=2222 ntaper=10 \
+	wave_fwd=wavefwd.H wave_bwd=wavebwd.H \
+	image=$@ 
+	Rm wavefwd.H wavebwd.H shot1000w.H 
+
+img/FASTtestthreads_RTM_disk_%.H: dat/shot1000.H volvewavelet.H volvevp.H
+	Interp d1out=0.0018 < dat/shot1000.H | Pad beg1=100 | Window3d n1=2222 > shot1000w.H
+	${RTMSEPOPT} traces=shot1000w.H coordfile=dat/shot1000.H@@ fmax=16 aperture_x=7 aperture_y=5 \
+	keygx=${keygx} \
+	keygy=${keygy} \
+	keysx=${keysx} \
+	keysy=${keysy} \
+	keyselev=${keyselev} \
+	keygelev=${keygelev} num_threads=$* \
+	< volvewavelet.H twoD=0 withRho=0 \
+	vel=volvevp.H snapi=5 ntaper=10 \
+	wave_fwd=wavefwd.H wave_bwd=wavebwd.H \
+	image=$@ 
+	Rm wavefwd.H wavebwd.H shot1000w.H 
+
+img/VERYFASTtestthreads_RTM_disk_%.H: dat/shot1000.H volvewavelet.H volvevp.H
+	Interp d1out=0.0018 < dat/shot1000.H | Pad beg1=100  | Window3d n1=2222 > shot1000w.H
+	Window3d  < volvewavelet.H > vw.H
+	${RTMSEPOPT2} traces=shot1000w.H coordfile=dat/shot1000.H@@ fmax=16 aperture_x=7 aperture_y=5 \
+	keygx=${keygx} \
+	keygy=${keygy} \
+	keysx=${keysx} \
+	keysy=${keysy} \
+	keyselev=${keyselev} \
+	keygelev=${keygelev} num_threads=$* \
+	< vw.H twoD=0 withRho=0 \
+	vel=volvevp.H snapi=5 ntaper=10 \
+	wave_fwd=wavefwd.H wave_bwd=wavebwd.H \
+	image=$@ 
+	Rm shot1000w.H 
+
+img/testthreads_RTM_disk_%.H: dat/shot1000.H volvewavelet.H volvevp.H
+	Interp d1out=0.0018 < dat/shot1000.H | Pad beg1=100 | Window3d n1=2222 > shot1000w.H
+	${RTMSEP} traces=shot1000w.H coordfile=dat/shot1000.H@@ fmax=16 aperture_x=7 aperture_y=5 \
+	keygx=${keygx} \
+	keygy=${keygy} \
+	keysx=${keysx} \
+	keysy=${keysy} \
+	keyselev=${keyselev} \
+	keygelev=${keygelev} num_threads=$* \
+	< volvewavelet.H twoD=0 withRho=0 \
+	vel=volvevp.H snapi=5 ntaper=10 \
+	wave_fwd=wavefwd.H wave_bwd=wavebwd.H \
+	image=$@ 
+	Rm wavefwd.H wavebwd.H shot1000w.H 
+
+img/newtestthreads_RTM_disk_%.H: dat/shot1000.H volvewavelet.H volvevp.H
+	Interp d1out=0.0018 < dat/shot1000.H | Pad beg1=100 | Window3d n1=2222 > shot1000w.H
+	mkdir /localscratch/antoine/
+	${RTMSEP} traces=shot1000w.H coordfile=dat/shot1000.H@@ fmax=16 aperture_x=7 aperture_y=5 \
+	keygx=${keygx} \
+	keygy=${keygy} \
+	keysx=${keysx} \
+	keysy=${keysy} \
+	keyselev=${keyselev} \
+	keygelev=${keygelev} num_threads=$* \
+	< volvewavelet.H twoD=0 withRho=0 \
+	vel=volvevp.H snapi=5 ntaper=10 \
+	wave_fwd=/localscratch/antoine/wavefwd.H wave_bwd=/localscratch/antoine/wavebwd.H \
+	image=/localscratch/antoine/img.H datapath=/localscratch/antoine/
+	Rm wavefwd.H wavebwd.H shot1000w.H 
+	Cp /localscratch/antoine/img.H $@ 
+	Rm /localscratch/antoine/img.H
+	\rm -rf /localscratch/antoine/
+
+
+img/FASTnewtestthreads_RTM_disk_%.H: dat/shot1000.H volvewavelet.H volvevp.H
+	Interp d1out=0.0018 < dat/shot1000.H | Pad beg1=100 | Window3d n1=2222 > shot1000w.H
+	mkdir /localscratch/antoine/
+	${RTMSEPOPT} traces=shot1000w.H coordfile=dat/shot1000.H@@ fmax=16 aperture_x=7 aperture_y=5 \
+	keygx=${keygx} \
+	keygy=${keygy} \
+	keysx=${keysx} \
+	keysy=${keysy} \
+	keyselev=${keyselev} \
+	keygelev=${keygelev} num_threads=$* \
+	< volvewavelet.H twoD=0 withRho=0 \
+	vel=volvevp.H snapi=5 ntaper=10 \
+	wave_fwd=/localscratch/antoine/wavefwd.H wave_bwd=/localscratch/antoine/wavebwd.H \
+	image=/localscratch/antoine/img.H datapath=/localscratch/antoine/
+	Rm wavefwd.H wavebwd.H shot1000w.H 
+	Cp /localscratch/antoine/img.H $@ 
+	Rm /localscratch/antoine/img.H
+	\rm -rf /localscratch/antoine/
+
+
+testthreads:
+	for number in `seq 1 1 16`; do \
+		make img/testthreads_RTM_disk_$$number.H;\
+	done
+
 mig:
 #	make img/rtm1.H
 #	Cp img/rtm1.H RTMVolve.H

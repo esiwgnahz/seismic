@@ -294,6 +294,7 @@ contains
     real    :: coord_x, coord_y
 
     if (adj) then
+       !$OMP PARALLEL DO PRIVATE(j,coord_y,iy,i,coord_x,ix)
        do j=1,mod%nyw
           coord_y=(j-1)*mod%dy+mod%oyw
           iy=nint((coord_y-mod%oy)/mod%dy)+1
@@ -306,7 +307,9 @@ contains
              small(:,i,j)=small(:,i,j)+big(:,ix1,iy1)
           end do
        end do
+       !$OMP END PARALLEL DO
     else
+       !$OMP PARALLEL DO PRIVATE(j,coord_y,iy,i,coord_x,ix)
        do j=1,mod%nyw
           coord_y=(j-1)*mod%dy+mod%oyw
           iy=nint((coord_y-mod%oy)/mod%dy)+1
@@ -318,9 +321,46 @@ contains
 
              big(:,ix,iy)=big(:,ix,iy)+small(:,i,j)
           end do
-       end do            
+       end do       
+       !$OMP END PARALLEL DO     
     end if
 
   end subroutine mod_window_pad
+
+  subroutine mod_copy_image_to_disk(mod)
+    type(ModelSpace) ::                   mod
+    real, dimension(:,:,:), allocatable :: tmpim,tmpil
+
+    integer :: i,j,ix,iy,ix1,iy1
+    real    :: coord_x, coord_y
+
+    allocate(tmpim(mod%nz,mod%nx,mod%ny))
+    allocate(tmpil(mod%nz,mod%nx,mod%ny))
+    tmpim=0.
+    tmpil=0.
+
+    !$OMP PARALLEL DO PRIVATE(j,coord_y,iy,i,coord_x,ix)
+    do j=1,mod%nyw
+       coord_y=(j-1)*mod%dy+mod%oyw
+       iy=nint((coord_y-mod%oy)/mod%dy)+1
+       if ((iy.lt.1).or.(iy.gt.mod%ny)) cycle
+
+       do i=1,mod%nxw
+          coord_x=(i-1)*mod%dx+mod%oxw
+          ix=nint((coord_x-mod%ox)/mod%dx)+1
+          if ((ix.lt.1).or.(ix.gt.mod%nx)) cycle
+          
+          tmpim(:,ix,iy)=tmpim(:,ix,iy)+mod%imagesmall(:,i,j)
+          tmpil(:,ix,iy)=tmpil(:,ix,iy)+mod%illumsmall(:,i,j)
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    call srite('image',tmpim,4*mod%nx*mod%nz*mod%ny)
+    call srite('image',tmpil,4*mod%nx*mod%nz*mod%ny)
+
+    deallocate(tmpim,tmpil) 
+
+  end subroutine mod_copy_image_to_disk
 
 end module ExtractPadModel_mod

@@ -7,6 +7,7 @@ module Propagator_mod
   use GeneralParam_types
 
   ! Computing
+  use Imaging_mod
   use Boundary_mod
   use Injection_mod
   use FDcoefs_assign
@@ -18,13 +19,27 @@ module Propagator_mod
 
 contains
 
-  subroutine propagator_acoustic(FD_coefs,FD_scheme,Injection,TimeDer,TimeSwap,bounds,model,elev,genpar,               sou,wfld,datavec,ExtractData,ExtractWave)
-    optional             sou,wfld,datavec,ExtractData,ExtractWave
+  subroutine propagator_acoustic(FD_coefs,FD_scheme,Injection,TimeDer,TimeSwap,bounds,model,elev,genpar,               sou,wfld,datavec,ExtractData,ExtractWave,ImagingCondition)
+    optional             sou,wfld,datavec,ExtractData,ExtractWave,ImagingCondition
     interface
        subroutine FD_coefs      (coef)
          use FD_types
          type(UnscaledFDcoefs)   ::      coef        
        end subroutine FD_coefs
+
+       subroutine ImagingCondition(bounds,model,elev,u,genpar,it)
+         use GeneralParam_types
+         use ModelSpace_types
+         use DataSpace_types
+         
+         type(FDbounds)    ::      bounds
+         type(ModelSpace)  ::            model
+         type(ModelSpace_elevation) ::          elev
+         type(GeneralParam)::                         genpar
+         real              ::                        u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+         &                                            bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+         integer           :: it
+       end subroutine ImagingCondition
 
        subroutine FD_scheme     (genpar,bounds,u2,u3,model)
          use ModelSpace_types
@@ -112,8 +127,8 @@ contains
     real, allocatable :: u(:,:,:,:)
     type(USpace) :: grid
 
-    integer :: i,counting(9),count_rate,count_max,tmin,tmax,tstep
-    real    :: totcount(8)
+    integer :: i,counting(10),count_rate,count_max,tmin,tmax,tstep
+    real    :: totcount(9)
 
     allocate(u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3))
     
@@ -144,12 +159,15 @@ contains
        
     TIME_LOOPS:do it=genpar%tmin,genpar%tmax,genpar%tstep    
 
-       if (mod(it,100).eq.0) write (0,*) "Step",it," of ",max(genpar%tmin,genpar%tmax),"time steps"
+       if (mod(it,100).eq.0) write (0,*) "INFO: Step",it," of ",max(genpar%tmin,genpar%tmax),"time steps"
 
+!       write(0,*) 'here1',it
        call system_clock(counting(1),count_rate,count_max)
-       if (present(ExtractData)) &
-       &  call ExtractData(bounds,model,datavec,grid%u2,genpar,it) 
+       if (present(ExtractData)) then
+          if (present(datavec)) call ExtractData(bounds,model,datavec,grid%u2,genpar,it) 
+       end if
 
+!       write(0,*) 'here2',it
        call system_clock(counting(2),count_rate,count_max)    
        if (present(ExtractWave)) then
           if (present(wfld)) then
@@ -159,32 +177,45 @@ contains
           end if
        end if
        
-       call system_clock(counting(3),count_rate,count_max)      
+!       write(0,*) 'here3',it
+       call system_clock(counting(3),count_rate,count_max)
+       if (present(ImagingCondition).and.(genpar%tstep.eq.-1)) then
+          call ImagingCondition(bounds,model,elev,grid%u2,genpar,it)
+       end if
+
+!       write(0,*) 'here4',it
+       call system_clock(counting(4),count_rate,count_max)      
        call Boundary_set_free_surface_grid(bounds,model,elev,grid,genpar)
 
-       call system_clock(counting(4),count_rate,count_max)
+!       write(0,*) 'here5',it
+       call system_clock(counting(5),count_rate,count_max)
        call FD_scheme(genpar,bounds,grid%u2,grid%u3,model)
 
-       call system_clock(counting(5),count_rate,count_max)
+!       write(0,*) 'here6'
+       call system_clock(counting(6),count_rate,count_max)
        if (present(sou).or.associated(model%wvfld)) &
        & call Injection(bounds,model,sou,grid%u3(:,:,:),genpar,it)
        
-       call system_clock(counting(6),count_rate,count_max)
+!       write(0,*) 'here7'
+       call system_clock(counting(7),count_rate,count_max)
        call TimeDer(genpar,bounds,grid)
 
-       call system_clock(counting(7),count_rate,count_max)
+!       write(0,*) 'here8'
+       call system_clock(counting(8),count_rate,count_max)
       if (genpar%shot_type.eq.0) then
           call Boundary0_opt_grid(genpar,bounds,grid,model,hig)
        else
           call Boundary1_opt_grid(genpar,bounds,grid,model,hig)
        end if
        
-       call system_clock(counting(8),count_rate,count_max)
+!       write(0,*) 'here9'
+       call system_clock(counting(9),count_rate,count_max)
        call TimeSwap(grid)
 
-       call system_clock(counting(9),count_rate,count_max)
+!       write(0,*) 'here10'
+       call system_clock(counting(10),count_rate,count_max)
        
-       do i=1,8
+       do i=1,9
           totcount(i)=totcount(i)+float(counting(i+1)-counting(i))/float(count_rate)
        end do
 
@@ -195,12 +226,13 @@ contains
     write(0,*) 'INFO ---------------------------'
     write(0,*) 'INFO  * Extract Data          = ',100*totcount(1)/sum(totcount),'%',totcount(1)
     write(0,*) 'INFO  * Extract wave          = ',100*totcount(2)/sum(totcount),'%',totcount(2)
-    write(0,*) 'INFO  * Boundary free surface = ',100*totcount(3)/sum(totcount),'%',totcount(3)
-    write(0,*) 'INFO  * FD stencil            = ',100*totcount(4)/sum(totcount),'%',totcount(4)
-    write(0,*) 'INFO  * Inject Src            = ',100*totcount(5)/sum(totcount),'%',totcount(5)
-    write(0,*) 'INFO  * Time derivative       = ',100*totcount(6)/sum(totcount),'%',totcount(6)
-    write(0,*) 'INFO  * Absorbing boundaries  = ',100*totcount(7)/sum(totcount),'%',totcount(7)
-    write(0,*) 'INFO  * Time Swap             = ',100*totcount(8)/sum(totcount),'%',totcount(8)
+    write(0,*) 'INFO  * Imaging condition     = ',100*totcount(3)/sum(totcount),'%',totcount(3)
+    write(0,*) 'INFO  * Boundary free surface = ',100*totcount(4)/sum(totcount),'%',totcount(4)
+    write(0,*) 'INFO  * FD stencil            = ',100*totcount(5)/sum(totcount),'%',totcount(5)
+    write(0,*) 'INFO  * Inject Src            = ',100*totcount(6)/sum(totcount),'%',totcount(6)
+    write(0,*) 'INFO  * Time derivative       = ',100*totcount(7)/sum(totcount),'%',totcount(7)
+    write(0,*) 'INFO  * Absorbing boundaries  = ',100*totcount(8)/sum(totcount),'%',totcount(8)
+    write(0,*) 'INFO  * Time Swap             = ',100*totcount(9)/sum(totcount),'%',totcount(9)
     write(0,*) 'INFO ---------------------------'
    
     deallocate(u)

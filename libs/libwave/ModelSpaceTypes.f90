@@ -22,6 +22,10 @@ module ModelSpace_types
 
      real, allocatable :: illum(:,:,:)  ! illumination
 
+     real, allocatable :: imagesmall(:,:,:)  ! Resulting image 
+
+     real, allocatable :: illumsmall(:,:,:)  ! illumination
+
      type(WaveSpace), pointer :: wvfld
 
      integer :: nx  ! dimensions original model space
@@ -44,6 +48,9 @@ module ModelSpace_types
 
      real    :: endx
      real    :: endy
+
+     integer :: counter
+
   end type ModelSpace
 
   type ModelSpace_elevation   
@@ -62,6 +69,8 @@ contains
     if (allocated(mod%rho2))  deallocate(mod%rho2)
     if (allocated(mod%image)) deallocate(mod%image)
     if (allocated(mod%illum)) deallocate(mod%illum)
+    if (allocated(mod%imagesmall)) deallocate(mod%imagesmall)
+    if (allocated(mod%illumsmall)) deallocate(mod%illumsmall)
     if (associated(mod%wvfld)) call deallocateWaveSpace(mod%wvfld)
   end subroutine deallocateModelSpace
 

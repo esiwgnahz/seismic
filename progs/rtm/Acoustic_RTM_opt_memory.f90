@@ -1,4 +1,4 @@
-program Acoustic_rtm_sep
+program Acoustic_rtm_opt_memory
 
   use sep
   use Readsouvelrho_mod
@@ -20,7 +20,8 @@ program Acoustic_rtm_sep
   type(FDbounds)     :: bounds
   type(ModelSpace_elevation) :: elev
 
-  type(TraceSpace), dimension(:), allocatable :: datavec,datamodvec
+  type(WaveSpace), target                     :: wfld_fwd
+  type(TraceSpace), dimension(:), allocatable :: datavec
   type(TraceSpace), dimension(:), allocatable :: sourcevec
 
   integer :: i,j,k,counting(4),count_rate,count_max
@@ -28,7 +29,7 @@ program Acoustic_rtm_sep
   real :: d1,totcount(3)
 
   call sep_init()
-
+  
   totcount=0.
 
   genpar%lsinc=7
@@ -55,12 +56,8 @@ program Acoustic_rtm_sep
 
   mod%veltag='vel'
   mod%rhotag='rho'
-  mod%waFtag='wave_fwd'
-  mod%waBtag='wave_bwd'
   genpar%Born=.false.
 
-  call auxinout(mod%waFtag)
-  call auxinout(mod%waBtag)
   call from_param('twoD',genpar%twoD,.false.)
 
   if (.not.genpar%twoD) then     
@@ -93,12 +90,6 @@ program Acoustic_rtm_sep
   call readcoords(datavec,sourcevec,genpar)
   call extract_coord_source_receiver_patch(datavec,sourcevec,mod,genpar)
   call read_window_vel(mod,genpar,bounds)
-  allocate(datamodvec(size(datavec)))
-  do i=1,size(datavec)
-     allocate(datamodvec(i)%trace(sourcevec(1)%dimt%nt,1))
-     datamodvec(i)%coord(:)=datavec(i)%coord(:)
-     datamodvec(i)%trace=0.
-  end do
 
   genpar%ntsnap=int(genpar%nt/genpar%snapi)
 
@@ -115,39 +106,11 @@ program Acoustic_rtm_sep
   genpar%tmin=1
   genpar%tmax=sourcevec(1)%dimt%nt
   genpar%tstep=1
-  
-  call to_history('n1',mod%nz,'wave_bwd')
-  call to_history('n2',mod%nxw,'wave_bwd')
-  call to_history('d1',mod%dz,'wave_bwd')
-  call to_history('d2',mod%dx,'wave_bwd')
-  call to_history('o1',genpar%omodel(1),'wave_bwd')
-  call to_history('o2',genpar%omodel(2),'wave_bwd')
-  if (genpar%twoD) then
-     call to_history('n3',genpar%ntsnap,'wave_bwd')
-  else
-     call to_history('n3',mod%nyw,'wave_bwd')
-     call to_history('d3',mod%dy,'wave_bwd')
-     call to_history('o3',genpar%omodel(3),'wave_bwd')
-     call to_history('n4',genpar%ntsnap,'wave_bwd')
-  end if
-
-  call to_history('n1',mod%nz,'wave_fwd')
-  call to_history('n2',mod%nxw,'wave_fwd')
-  call to_history('d1',mod%dz,'wave_fwd')
-  call to_history('d2',mod%dx,'wave_fwd')
-  call to_history('o1',genpar%omodel(1),'wave_fwd')
-  call to_history('o2',genpar%omodel(2),'wave_fwd')
-  if (genpar%twoD) then
-     call to_history('n3',genpar%ntsnap,'wave_fwd')
-  else
-     call to_history('n3',mod%nyw,'wave_fwd')
-     call to_history('d3',mod%dy,'wave_fwd')
-     call to_history('o3',genpar%omodel(3),'wave_fwd')
-     call to_history('n4',genpar%ntsnap,'wave_fwd')
-  end if
 
   call system_clock(counting(1),count_rate,count_max)
 
+  allocate(wfld_fwd%wave(mod%nz,mod%nxw,mod%nyw,genpar%ntsnap,1))
+  
   write(0,*) 'INFO: Starting forward modeling'
   if (genpar%twoD) then
      if (.not.genpar%withRho) then
@@ -158,8 +121,7 @@ program Acoustic_rtm_sep
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &    
-        & sou=sourcevec,ExtractWave=Extraction_wavefield_copy_to_disk,datavec=datamodvec,   &
-        & ExtractData=Extraction_array_sinc              ) 
+        & sou=sourcevec,ExtractWave=Extraction_wavefield,wfld=wfld_fwd) 
      else
         call propagator_acoustic(                        &
         & FD_acoustic_rho_init_coefs,                    &
@@ -168,8 +130,7 @@ program Acoustic_rtm_sep
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &    
-        & sou=sourcevec,ExtractWave=Extraction_wavefield_copy_to_disk,datavec=datamodvec,   &
-        & ExtractData=Extraction_array_sinc              )
+        & sou=sourcevec,ExtractWave=Extraction_wavefield,wfld=wfld_fwd)
      end if
   else
      if (.not.genpar%withRho) then
@@ -180,8 +141,7 @@ program Acoustic_rtm_sep
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &    
-        & sou=sourcevec,ExtractWave=Extraction_wavefield_copy_to_disk,datavec=datamodvec,   &
-        & ExtractData=Extraction_array_sinc              ) 
+        & sou=sourcevec,ExtractWave=Extraction_wavefield,wfld=wfld_fwd) 
      else
         call propagator_acoustic(                        &
         & FD_acoustic_rho_init_coefs,                    &
@@ -190,22 +150,26 @@ program Acoustic_rtm_sep
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &    
-        & sou=sourcevec,ExtractWave=Extraction_wavefield_copy_to_disk,datavec=datamodvec,   &
-        & ExtractData=Extraction_array_sinc              )
+        & sou=sourcevec,ExtractWave=Extraction_wavefield,wfld=wfld_fwd)
      end if
   end if
 
-  write(0,*) 'INFO: Done with forward modeling'
-  
   call system_clock(counting(2),count_rate,count_max)
 
-  do i=1,size(datavec)
-     call srite('modeled_data',datamodvec(i)%trace(:,1),4*sourcevec(1)%dimt%nt)
-  end do
+  write(0,*) 'INFO: Done with forward modeling'
+  
+  allocate(mod%imagesmall(mod%nz,mod%nxw,mod%nyw))
+  allocate(mod%illumsmall(mod%nz,mod%nxw,mod%nyw))
+  mod%imagesmall=0.
+  mod%illumsmall=0.
 
   genpar%tmax=1
   genpar%tmin=sourcevec(1)%dimt%nt
   genpar%tstep=-1
+
+  mod%counter=0
+  mod%wvfld=>wfld_fwd
+
   write(0,*) 'INFO: Starting backward propagation'
   if (genpar%twoD) then
      if (.not.genpar%withRho) then
@@ -216,7 +180,7 @@ program Acoustic_rtm_sep
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &
-        & sou=datavec,ExtractWave=Extraction_wavefield_copy_to_disk)
+        & sou=datavec,ImagingCondition=Imaging_condition_sourceonly_from_memory)
      else
         call propagator_acoustic(                        &
         & FD_acoustic_rho_init_coefs,                    &
@@ -225,7 +189,7 @@ program Acoustic_rtm_sep
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &
-        & sou=datavec,ExtractWave=Extraction_wavefield_copy_to_disk)
+        & sou=datavec,ImagingCondition=Imaging_condition_sourceonly_from_memory)
      end if
   else
      if (.not.genpar%withRho) then
@@ -236,7 +200,7 @@ program Acoustic_rtm_sep
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &
-        & sou=datavec,ExtractWave=Extraction_wavefield_copy_to_disk)
+        & sou=datavec,ImagingCondition=Imaging_condition_sourceonly_from_memory)
      else
         call propagator_acoustic(                        &
         & FD_acoustic_rho_init_coefs,                    &
@@ -245,12 +209,10 @@ program Acoustic_rtm_sep
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &
-        & sou=datavec,ExtractWave=Extraction_wavefield_copy_to_disk)
+        & sou=datavec,ImagingCondition=Imaging_condition_sourceonly_from_memory)
      end if
   end if
   write(0,*) 'INFO: Done with backward propagation'
-
-  call system_clock(counting(3),count_rate,count_max)
 
   call to_history('n1',sourcevec(1)%dimt%nt,'modeled_data')
   call to_history('n2',size(datavec),'modeled_data')
@@ -261,23 +223,16 @@ program Acoustic_rtm_sep
 
   do i=1,size(datavec)
      call deallocateTraceSpace(datavec(i))
-     call deallocateTraceSpace(datamodvec(i))
   end do
   call deallocateTraceSpace(sourcevec(1))
   deallocate(datavec)
-  deallocate(datamodvec)
   deallocate(sourcevec)
 
-  call Imaging_condition_from_disk(mod,genpar)
+  call deallocateWaveSpace(wfld_fwd)
+  
+  call system_clock(counting(3),count_rate,count_max)
 
-  call auxclose(mod%waBtag)
-  call auxclose(mod%waFtag)
-  do i=1,mod%ny
-     call srite('image',mod%image(:,:,i),4*mod%nx*mod%nz)
-  end do
-  do i=1,mod%ny
-     call srite('image',mod%illum(:,:,i),4*mod%nx*mod%nz)
-  end do
+  call mod_copy_image_to_disk(mod)
 
   call system_clock(counting(4),count_rate,count_max)
 
@@ -302,12 +257,12 @@ program Acoustic_rtm_sep
      totcount(i)=totcount(i)+float(counting(i+1)-counting(i))/float(count_rate)
   end do
 
-  write(0,*) 'INFO ---------------------------'
-  write(0,*) 'INFO Total Wall-clock time    = ',sum(totcount)
-  write(0,*) 'INFO ---------------------------'
-  write(0,*) 'INFO  * Source propagation    = ',100*totcount(1)/sum(totcount),'%',totcount(1)
-  write(0,*) 'INFO  * Receiver propagation  = ',100*totcount(2)/sum(totcount),'%',totcount(2)
-  write(0,*) 'INFO  * IC+Copy to disk      =  ',100*totcount(3)/sum(totcount),'%',totcount(3)
-  write(0,*) 'INFO ---------------------------'
+  write(0,*) 'INFO ------------------------------'
+  write(0,*) 'INFO Total Wall-clock time       = ',sum(totcount)
+  write(0,*) 'INFO ------------------------------'
+  write(0,*) 'INFO  * Source propagation       = ',100*totcount(1)/sum(totcount),'%',totcount(1)
+  write(0,*) 'INFO  * Receiver propagation     = ',100*totcount(2)/sum(totcount),'%',totcount(2)
+  write(0,*) 'INFO  * Copy image/illum to disk = ',100*totcount(3)/sum(totcount),'%',totcount(3)
+  write(0,*) 'INFO ------------------------------'
 
-end program Acoustic_rtm_sep
+end program Acoustic_rtm_opt_memory
