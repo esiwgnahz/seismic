@@ -783,4 +783,42 @@ contains
 
   end subroutine FD_2nd_time_derivative_grid
   
+  subroutine FD_2nd_time_derivative_grid2(genpar,bounds,grid)
+    type(GeneralParam)   ::         genpar
+    type(FDbounds)       ::                bounds
+    type(USpace)         ::                        grid
+    integer              :: i,j,k,ii,ij,ik,kstep,jstep,istep
+    real                 :: div11,dt2
+
+    div11=1./11
+    dt2=genpar%dt**2
+
+    kstep=2
+    jstep=4
+    istep=8
+
+    !$OMP PARALLEL DO PRIVATE(ik,ij,ii)
+
+    do ik=bounds%nmin3,bounds%nmax3,kstep
+       do ij=bounds%nmin2,bounds%nmax2,jstep
+          do ii=bounds%nmin1,bounds%nmax1,istep
+
+             do k=ik,min(bounds%nmax3,ik+kstep-1)
+                do j=ij,min(bounds%nmax2,ij+jstep-1)
+                   do i=ii,min(bounds%nmax1,ii+istep-1)
+
+                      grid%u3(i,j,k) = ( 20.*grid%u2(i,j,k) - 6.*grid%u1(i,j,k) - &
+                      &                   4.*grid%u0(i,j,k) +    grid%u_1(i,j,k) + &
+                      &              12.*dt2*grid%u3(i,j,k) ) * div11
+
+                   end do
+                end do
+             end do
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+  end subroutine FD_2nd_time_derivative_grid2
+  
 end module FD_derivatives

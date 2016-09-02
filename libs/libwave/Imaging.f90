@@ -19,6 +19,7 @@ contains
     integer :: i,j,k,l,counter
     real, dimension (:,:,:), allocatable :: fwd,bwd,tmpim,tmpil
  
+    real    :: maxillu
     integer :: ierr,blocksize,index
 
     allocate(tmpim(model%nz,model%nxw,model%nyw))
@@ -55,6 +56,10 @@ contains
        !$OMP END PARALLEL DO
 
     end do
+
+    maxillu=maxval(tmpil)
+    tmpil=(tmpil+maxillu*1e-4)/rms(tmpil,model%nz,model%nxw,model%nyw)/(model%nz*model%nxw*model%nyw)
+
     deallocate(fwd,bwd)
     
     allocate(model%image(model%nz,model%nx,model%ny))
@@ -69,6 +74,34 @@ contains
     deallocate(tmpim,tmpil)
 
   end subroutine Imaging_condition_from_disk
+
+  subroutine scale_illumination(mod)
+    type(ModelSpace) ::  mod
+    real :: maxillu
+
+    maxillu=maxval(mod%illumsmall)
+    mod%illumsmall=(mod%illumsmall+maxillu*1e-4)/rms(mod%illumsmall,mod%nz,mod%nxw,mod%nyw)/(mod%nz*mod%nxw*mod%nyw)
+  
+  end subroutine scale_illumination
+
+  real function rms(array,nz,nx,ny)
+    real, dimension(nz,nx,ny) :: array
+    integer :: nx,nz,ny
+    integer :: i,j,k
+    
+    !$OMP PARALLEL DO PRIVATE(k,j,i)
+    do k=1,ny
+       do j=1,nx
+          do i=1,nz
+             rms=rms+array(i,j,k)**2      
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    rms=sqrt(rms)
+
+  end function rms
 
   subroutine Imaging_condition_sourceonly_from_disk(bounds,model,elev,u,genpar,it)
     type(FDbounds)    ::                            bounds

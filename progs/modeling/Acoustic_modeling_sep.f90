@@ -25,6 +25,7 @@ program Acoustic_modeling_sep
 
   integer :: i,j,k 
   integer :: ntsnap
+  logical :: i_want_wavefield
 
   call sep_init()
   
@@ -35,6 +36,7 @@ program Acoustic_modeling_sep
   call from_param('aperture_x',genpar%aperture(1))
   call from_param('aperture_y',genpar%aperture(2))
   call from_param('num_threads',genpar%nthreads,4)
+  call from_param('i_want_wavefield',i_want_wavefield,.false.)
 
   call omp_set_num_threads(genpar%nthreads)
 
@@ -83,6 +85,11 @@ program Acoustic_modeling_sep
   genpar%tmin=1
   genpar%tmax=sourcevec(1)%dimt%nt
   genpar%tstep=1
+
+  ! Set datavec to zero: modeling!
+  do i=1,size(datavec)
+     datavec(i)%trace(:,1)=0.
+  end do
 
   write(0,*) 'before wave propagator'
   if (genpar%twoD) then
@@ -137,24 +144,6 @@ program Acoustic_modeling_sep
      call srite('data',datavec(i)%trace(:,1),4*sourcevec(1)%dimt%nt)
   end do
 
-  do i=1,genpar%ntsnap
-     call srite('wave_fwd',wfld_fwd%wave(1:mod%nz,1:mod%nxw,1:mod%nyw,i,1),4*mod%nxw*mod%nyw*mod%nz)
-  end do
-  
-  call to_history('n1',mod%nz,'wave_fwd')
-  call to_history('n2',mod%nxw,'wave_fwd')
-  call to_history('d1',mod%dz,'wave_fwd')
-  call to_history('d2',mod%dx,'wave_fwd')
-  call to_history('o1',genpar%omodel(1),'wave_fwd')
-  call to_history('o2',genpar%omodel(2),'wave_fwd')
-  if (genpar%twoD) then
-     call to_history('n3',genpar%ntsnap,'wave_fwd')
-  else
-     call to_history('n3',mod%nyw,'wave_fwd')
-     call to_history('d3',mod%dy,'wave_fwd')
-     call to_history('o3',genpar%omodel(3),'wave_fwd')
-     call to_history('n4',genpar%ntsnap,'wave_fwd')
-  end if
 
   call to_history('n1',sourcevec(1)%dimt%nt,'data')
   call to_history('n2',size(datavec),'data')
@@ -162,6 +151,29 @@ program Acoustic_modeling_sep
   call to_history('d2',1.,'data')
   call to_history('o1',0.,'data')
   call to_history('o2',0.,'data')
+
+  if (i_want_wavefield) then
+
+     call to_history('n1',mod%nz,'wave_fwd')
+     call to_history('n2',mod%nxw,'wave_fwd')
+     call to_history('d1',mod%dz,'wave_fwd')
+     call to_history('d2',mod%dx,'wave_fwd')
+     call to_history('o1',genpar%omodel(1),'wave_fwd')
+     call to_history('o2',genpar%omodel(2),'wave_fwd')
+     if (genpar%twoD) then
+        call to_history('n3',genpar%ntsnap,'wave_fwd')
+     else
+        call to_history('n3',mod%nyw,'wave_fwd')
+        call to_history('d3',mod%dy,'wave_fwd')
+        call to_history('o3',genpar%omodel(3),'wave_fwd')
+        call to_history('n4',genpar%ntsnap,'wave_fwd')
+     end if
+
+     do i=1,genpar%ntsnap
+        call srite('wave_fwd',wfld_fwd%wave(1:mod%nz,1:mod%nxw,1:mod%nyw,i,1),4*mod%nxw*mod%nyw*mod%nz)
+     end do
+     
+  end if
 
   do i=1,size(datavec)
      call deallocateTraceSpace(datavec(i))

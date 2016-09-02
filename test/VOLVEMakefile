@@ -8,6 +8,9 @@ coord=${volvedir}/extractshot1000.H@@
 volvewavelet.H: 
 	Wavelet wavelet=ricker2 fund=8 tdelay=0.18 n1=2222 d1=0.0018  > $@
 
+finevolvewavelet.H: 
+	Wavelet wavelet=ricker2 fund=8 tdelay=0.16 n1=2500 d1=0.0016  > $@
+
 
 volvevp.H: ${VP}
 	Interp type=1 d1out=0.025 d2out=0.025 d3out=0.025 maxsize=1000 < ${VP} | Add scale=0.001 > $@
@@ -21,20 +24,22 @@ volvevp.H: ${VP}
 dat/shot%.H:
 	Window_key key1=f_fldr hff=${PWD}/$@@@ kindex1=35 mink1=$* maxk1=$* < ${volvedir}/shotmath.H synch=1 > $@ datapath=${PWD}/dat/ 
 
-img/rtm%.H: dat/shot%.H volvewavelet.H volvevp.H
-	Interp d1out=0.0018 < dat/shot$*.H | Pad beg1=100 | Window3d n1=2222 > shot$*w.H
-	${RTMSEP} traces=shot$*w.H coordfile=dat/shot$*.H@@ fmax=16 aperture_x=7 aperture_y=5 \
+
+img/rtm%.H: dat/shot%.H finevolvewavelet.H volvevp.H
+	Interp d1out=0.0016 < dat/shot$*.H | Pad beg1=100 | Window3d j2=2 n1=2500 > shot$*w.H
+	${RTMSEPOPT2} traces=shot$*w.H coordfile=shot$*w.H@@ fmax=16 aperture_x=7 aperture_y=5 \
 	keygx=${keygx} \
 	keygy=${keygy} \
 	keysx=${keysx} \
 	keysy=${keysy} \
 	keyselev=${keyselev} \
 	keygelev=${keygelev} num_threads=16 \
-	< volvewavelet.H twoD=0 withRho=0 \
-	vel=volvevp.H snapi=2222 ntaper=10 \
+	< finevolvewavelet.H twoD=0 withRho=0 \
+	vel=volvevp.H snapi=5 ntaper=10 num_threads=8 \
 	wave_fwd=wavefwd.H wave_bwd=wavebwd.H \
 	image=$@ 
-	Rm wavefwd.H wavebwd.H shot$*.H 
+	Rm wavefwd.H wavebwd.H 
+	Rm3d shot$*w.H 
 
 img/rtm_test_threads_%.H: dat/shot1000.H volvewavelet.H volvevp.H
 	Interp d1out=0.0018 < dat/shot1000.H | Pad beg1=100 | Window3d n1=2222 > shot1000w.H
@@ -137,15 +142,49 @@ img/FASTnewtestthreads_RTM_disk_%.H: dat/shot1000.H volvewavelet.H volvevp.H
 	\rm -rf /localscratch/antoine/
 
 
+compute_data:
+	for number in `seq 10 10 2880`; do\
+		echo computing shot $$number; \
+		make dat/shot$$number.H; \
+	done
+
+check%:
+	Window3d n4=1 min1=2.5 < img/rtm$*.H | Attr
+
+testloop:
+	for number in `seq 1500 10 2880`; do\
+		if (($$number == '1370'))||(($$number == '1850')); then\
+			continue;\
+		else\
+			make check$$number;\
+		fi;\
+	done
+
+#Exclude two shots that have zeroes
+migloop:
+	make img/rtm10.H
+	Cp img/rtm10.H RTMVolve.H
+	for number in `seq 10 10 2880`; do\
+		if (($$number == '1370'))||(($$number == '1850')); then\
+			continue;\
+		else\
+			echo $$number;\
+			make img/rtm$$number.H ;\
+			Math file1=RTMVolve.H file2=img/rtm$$number.H exp="file1+file2" > junk.H ;\
+			Cp junk.H RTMVolve.H ;\
+			Rm junk.H ;\
+		fi;\
+	done
+
 testthreads:
 	for number in `seq 1 1 16`; do \
 		make img/testthreads_RTM_disk_$$number.H;\
 	done
 
 mig:
-#	make img/rtm1.H
-#	Cp img/rtm1.H RTMVolve.H
-	for number in `seq 30 10 2500`; do \
+	make img/rtm10.H
+	Cp img/rtm10.H RTMVolve.H
+	for number in `seq 20 10 150`; do \
 		make img/rtm$$number.H ;\
 		Math file1=RTMVolve.H file2=img/rtm$$number.H exp="file1+file2" > junk.H ;\
 		Cp junk.H RTMVolve.H ;\
