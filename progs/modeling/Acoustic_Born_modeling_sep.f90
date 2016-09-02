@@ -114,6 +114,11 @@ program Acoustic_Born_modeling_sep
      call srite('wave_fwd',mod%wvfld%wave(1:mod%nz,1:mod%nxw,1:mod%nyw,i,1),4*mod%nxw*mod%nyw*mod%nz)
   end do
 
+  ! Set datavec to zero: modeling!
+  do i=1,size(datavec)
+     datavec(i)%trace(:,1)=0.
+  end do
+
   if (genpar%twoD) then
      call propagator_acoustic(                          &
      & FD_acoustic_init_coefs,                          &
