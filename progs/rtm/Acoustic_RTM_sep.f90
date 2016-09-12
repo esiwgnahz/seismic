@@ -7,6 +7,7 @@ program Acoustic_rtm_sep
   use Propagator_mod
   use Interpolate_mod
   use Imaging_mod
+  use Taper_mod
 
   use DataSpace_types
   use ModelSpace_types
@@ -206,6 +207,8 @@ program Acoustic_rtm_sep
   genpar%tmax=1
   genpar%tmin=sourcevec(1)%dimt%nt
   genpar%tstep=-1
+  call compute_taper(mod)
+
   write(0,*) 'INFO: Starting backward propagation'
   if (genpar%twoD) then
      if (.not.genpar%withRho) then

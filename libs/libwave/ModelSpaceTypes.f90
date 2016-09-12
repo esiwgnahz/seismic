@@ -26,6 +26,9 @@ module ModelSpace_types
 
      real, allocatable :: illumsmall(:,:,:)  ! illumination
 
+     real, allocatable :: taperx(:)
+     real, allocatable :: tapery(:)
+
      type(WaveSpace), pointer :: wvfld
 
      integer :: nx  ! dimensions original model space
@@ -71,6 +74,8 @@ contains
     if (allocated(mod%illum)) deallocate(mod%illum)
     if (allocated(mod%imagesmall)) deallocate(mod%imagesmall)
     if (allocated(mod%illumsmall)) deallocate(mod%illumsmall)
+    if (allocated(mod%taperx)) deallocate(mod%taperx)
+    if (allocated(mod%tapery)) deallocate(mod%tapery)
     if (associated(mod%wvfld)) call deallocateWaveSpace(mod%wvfld)
   end subroutine deallocateModelSpace
 

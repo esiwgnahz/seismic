@@ -7,6 +7,7 @@ program Acoustic_rtm_opt_memory
   use Propagator_mod
   use Interpolate_mod
   use Imaging_mod
+  use Taper_mod
 
   use DataSpace_types
   use ModelSpace_types
@@ -169,6 +170,8 @@ program Acoustic_rtm_opt_memory
 
   mod%counter=0
   mod%wvfld=>wfld_fwd
+
+  call compute_taper(mod)
 
   write(0,*) 'INFO: Starting backward propagation'
   if (genpar%twoD) then

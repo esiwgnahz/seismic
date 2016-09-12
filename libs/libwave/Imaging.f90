@@ -19,7 +19,7 @@ contains
     integer :: i,j,k,l,counter
     real, dimension (:,:,:), allocatable :: fwd,bwd,tmpim,tmpil
  
-    real    :: maxillu
+    real    :: maxillu,taper
     integer :: ierr,blocksize,index
 
     allocate(tmpim(model%nz,model%nxw,model%nyw))
@@ -44,12 +44,13 @@ contains
        call sreed(model%waBtag,bwd,blocksize)
        call sreed(model%waFtag,fwd,blocksize)
        
-       !$OMP PARALLEL DO PRIVATE(k,j,i)
+       !$OMP PARALLEL DO PRIVATE(k,j,taper,i)
        do k=1,model%nyw
           do j=1,model%nxw
+             taper=mod%taperx(j)*mod%tapery(k)
              do i=1,model%nz
-                tmpim(i,j,k)=tmpim(i,j,k)+fwd(i,j,k)*bwd(i,j,k)
-                tmpil(i,j,k)=tmpil(i,j,k)+fwd(i,j,k)*fwd(i,j,k)
+                tmpim(i,j,k)=tmpim(i,j,k)+fwd(i,j,k)*bwd(i,j,k)*taper
+                tmpil(i,j,k)=tmpil(i,j,k)+fwd(i,j,k)*fwd(i,j,k)*taper
              end do
           end do
        end do
@@ -115,6 +116,7 @@ contains
     real, dimension (:,:,:), allocatable :: fwd
 
     integer :: ierr,blocksize,index
+    real    :: taper
 
     MODULO:if (mod(it,genpar%snapi).eq.0) then
        model%counter=model%counter+1
@@ -128,23 +130,25 @@ contains
        call sreed(model%waFtag,fwd,blocksize)
 
        if (genpar%surf_type.ne.0) then
-          !$OMP PARALLEL DO PRIVATE(k,j,i)
+          !$OMP PARALLEL DO PRIVATE(k,j,taper,i)
           do k=1,model%nyw
              do j=1,model%nxw
+                taper=mod%taperx(j)*mod%tapery(k)
                 do i=elev%ielev_z(j,k),model%nz
-                   model%imagesmall(i,j,k)= model%imagesmall(i,j,k)+u(i,j,k)*fwd(i,j,k)
-                   model%illumsmall(i,j,k)= model%illumsmall(i,j,k)+fwd(i,j,k)*fwd(i,j,k)
+                   model%imagesmall(i,j,k)= model%imagesmall(i,j,k)+u(i,j,k)*fwd(i,j,k)*taper
+                   model%illumsmall(i,j,k)= model%illumsmall(i,j,k)+fwd(i,j,k)*fwd(i,j,k)*taper
                 end do
              end do
           end do
           !$OMP END PARALLEL DO
        else
-          !$OMP PARALLEL DO PRIVATE(k,j,i)
+          !$OMP PARALLEL DO PRIVATE(k,j,taper,i)
           do k=1,model%nyw
              do j=1,model%nxw
+                taper=mod%taperx(j)*mod%tapery(k)
                 do i=1,model%nz
-                   model%imagesmall(i,j,k)= model%imagesmall(i,j,k)+u(i,j,k)*fwd(i,j,k)
-                   model%illumsmall(i,j,k)= model%illumsmall(i,j,k)+fwd(i,j,k)*fwd(i,j,k)
+                   model%imagesmall(i,j,k)= model%imagesmall(i,j,k)+u(i,j,k)*fwd(i,j,k)*taper
+                   model%illumsmall(i,j,k)= model%illumsmall(i,j,k)+fwd(i,j,k)*fwd(i,j,k)*taper
                 end do
              end do
           end do
@@ -169,6 +173,7 @@ contains
     real, dimension (:,:,:), pointer :: bwd
 
     integer :: ierr,blocksize,index
+    real    :: taper
     
     MODULO:if (mod(it,genpar%snapi).eq.0) then
        
@@ -176,23 +181,25 @@ contains
        index=genpar%ntsnap-model%counter+1
 
        if (genpar%surf_type.ne.0) then
-          !$OMP PARALLEL DO PRIVATE(k,j,i)
+          !$OMP PARALLEL DO PRIVATE(k,j,taper,i)
           do k=1,model%nyw
              do j=1,model%nxw
+                taper=mod%taperx(j)*mod%tapery(k)
                 do i=elev%ielev_z(j,k),model%nz
-                   model%imagesmall(i,j,k)= model%imagesmall(i,j,k)+u(i,j,k)*model%wvfld%wave(i,j,k,index,1)
-                   model%illumsmall(i,j,k)= model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)
+                   model%imagesmall(i,j,k)= model%imagesmall(i,j,k)+u(i,j,k)*model%wvfld%wave(i,j,k,index,1)*taper
+                   model%illumsmall(i,j,k)= model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper
                 end do
              end do
           end do
           !$OMP END PARALLEL DO
        else
-          !$OMP PARALLEL DO PRIVATE(k,j,i)
+          !$OMP PARALLEL DO PRIVATE(k,j,taper,i)
           do k=1,model%nyw
              do j=1,model%nxw
+                taper=mod%taperx(j)*mod%tapery(k)
                 do i=1,model%nz
-                   model%imagesmall(i,j,k)= model%imagesmall(i,j,k)+u(i,j,k)*model%wvfld%wave(i,j,k,index,1)
-                   model%illumsmall(i,j,k)= model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)
+                   model%imagesmall(i,j,k)= model%imagesmall(i,j,k)+u(i,j,k)*model%wvfld%wave(i,j,k,index,1)*taper
+                   model%illumsmall(i,j,k)= model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper
                 end do
              end do
           end do

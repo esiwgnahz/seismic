@@ -3,7 +3,7 @@ include ../../makefile
 
 #default: ${BINDIR}/Acoustic_RTM_sep.x ${BINDIR}/Acoustic_RTM.x
 
-default: ${BINDIR}/Acoustic_RTM_sep.x ${BINDIR}/Acoustic_RTM_opt.x ${BINDIR}/Acoustic_RTM_opt_memory.x
+default: ${BINDIR}/Acoustic_RTM_sep.x ${BINDIR}/Acoustic_RTM_opt.x ${BINDIR}/Acoustic_RTM_opt_memory.x ${BINDIR}/LaplaceFilter.x
 
 aclean: jclean       
 	@-${RM} ${BINDIR}/*.x 

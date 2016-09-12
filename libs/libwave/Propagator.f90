@@ -158,6 +158,8 @@ contains
     if (present(wfld)) wfld%counter=0
        
     TIME_LOOPS:do it=genpar%tmin,genpar%tmax,genpar%tstep    
+       
+       counting=0.
 
        if (mod(it,100).eq.0) write (0,*) "INFO: Step",it," of ",max(genpar%tmin,genpar%tmax),"time steps"
 
@@ -216,23 +218,23 @@ contains
        call system_clock(counting(10),count_rate,count_max)
        
        do i=1,9
-          totcount(i)=totcount(i)+float(counting(i+1)-counting(i))/float(count_rate)
+          totcount(i)=totcount(i)+float(counting(i+1)-counting(i))/float(count_rate)/60.
        end do
 
     end do TIME_LOOPS
 
     write(0,*) 'INFO ---------------------------'
-    write(0,*) 'INFO Total time               = ',sum(totcount)
+    write(0,*) 'INFO Total time               = ',sum(totcount),'mn'
     write(0,*) 'INFO ---------------------------'
-    write(0,*) 'INFO  * Extract Data          = ',100*totcount(1)/sum(totcount),'%',totcount(1)
-    write(0,*) 'INFO  * Extract wave          = ',100*totcount(2)/sum(totcount),'%',totcount(2)
-    write(0,*) 'INFO  * Imaging condition     = ',100*totcount(3)/sum(totcount),'%',totcount(3)
-    write(0,*) 'INFO  * Boundary free surface = ',100*totcount(4)/sum(totcount),'%',totcount(4)
-    write(0,*) 'INFO  * FD stencil            = ',100*totcount(5)/sum(totcount),'%',totcount(5)
-    write(0,*) 'INFO  * Inject Src            = ',100*totcount(6)/sum(totcount),'%',totcount(6)
-    write(0,*) 'INFO  * Time derivative       = ',100*totcount(7)/sum(totcount),'%',totcount(7)
-    write(0,*) 'INFO  * Absorbing boundaries  = ',100*totcount(8)/sum(totcount),'%',totcount(8)
-    write(0,*) 'INFO  * Time Swap             = ',100*totcount(9)/sum(totcount),'%',totcount(9)
+    write(0,*) 'INFO  * Extract Data          = ',100*totcount(1)/sum(totcount),'%',totcount(1),'mn'
+    write(0,*) 'INFO  * Extract wave          = ',100*totcount(2)/sum(totcount),'%',totcount(2),'mn'
+    write(0,*) 'INFO  * Imaging condition     = ',100*totcount(3)/sum(totcount),'%',totcount(3),'mn'
+    write(0,*) 'INFO  * Boundary free surface = ',100*totcount(4)/sum(totcount),'%',totcount(4),'mn'
+    write(0,*) 'INFO  * FD stencil            = ',100*totcount(5)/sum(totcount),'%',totcount(5),'mn'
+    write(0,*) 'INFO  * Inject Src            = ',100*totcount(6)/sum(totcount),'%',totcount(6),'mn'
+    write(0,*) 'INFO  * Time derivative       = ',100*totcount(7)/sum(totcount),'%',totcount(7),'mn'
+    write(0,*) 'INFO  * Absorbing boundaries  = ',100*totcount(8)/sum(totcount),'%',totcount(8),'mn'
+    write(0,*) 'INFO  * Time Swap             = ',100*totcount(9)/sum(totcount),'%',totcount(9),'mn'
     write(0,*) 'INFO ---------------------------'
    
     deallocate(u)
