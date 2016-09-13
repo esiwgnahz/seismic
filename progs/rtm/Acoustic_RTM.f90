@@ -26,12 +26,11 @@ program Acoustic_rtm
   integer :: ntsnap
 
   call sep_init()
-  
-  genpar%lsinc=7
 
   call from_param('fmax',genpar%fmax,30.)
   call from_param('ntaper',genpar%ntaper,20)
   call from_param('snapi',genpar%snapi,4)
+  call from_param('lsinc',genpar%lsinc,7)
 
   call from_param('num_threads',genpar%nthreads,4)
 
@@ -118,7 +117,7 @@ program Acoustic_rtm
         call propagator_acoustic(                        &
         & FD_acoustic_rho_init_coefs,                    &
         & FD_2D_derivatives_acoustic_forward_grid,       &
-        & Injection_rho_sinc,                            &
+        & Injection_sinc,                            &
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &    
@@ -140,7 +139,7 @@ program Acoustic_rtm
         call propagator_acoustic(                        &
         & FD_acoustic_rho_init_coefs,                    &
         & FD_3D_derivatives_acoustic_forward_grid,       &
-        & Injection_rho_sinc,                            &
+        & Injection_sinc,                            &
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &    
@@ -179,7 +178,7 @@ program Acoustic_rtm
         call propagator_acoustic(                        &
         & FD_acoustic_rho_init_coefs,                    &
         & FD_2D_derivatives_acoustic_forward_grid,       &
-        & Injection_rho_sinc,                            &
+        & Injection_sinc,                            &
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &
@@ -199,7 +198,7 @@ program Acoustic_rtm
         call propagator_acoustic(                        &
         & FD_acoustic_rho_init_coefs,                    &
         & FD_3D_derivatives_acoustic_forward_grid,       &
-        & Injection_rho_sinc,                            &
+        & Injection_sinc,                            &
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &
