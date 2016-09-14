@@ -148,8 +148,6 @@ contains
     
     genpar%dt=source(1)%dimt%dt
     genpar%nt=source(1)%dimt%nt
-
-    call from_param('withRho',genpar%withRho,.false.)
     
     if (genpar%Born) then
        allocate(trace(source(1)%dimt%nt))

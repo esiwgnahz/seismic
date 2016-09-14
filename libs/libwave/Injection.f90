@@ -32,10 +32,10 @@ contains
     if (genpar%twoD) then
        do i=1,size(tracevec)
           if (genpar%withRho) then
-             v2r=model%vel(data(i)%icoord(1),data(i)%icoord(2),1)**2* &
-             &   model%rho(data(i)%icoord(1),data(i)%icoord(2),1)
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)**2* &
+             &   model%rho(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)
           else
-             v2r=model%vel(data(i)%icoord(1),data(i)%icoord(2),1)**2
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)**2
           end if
           call Injection_source_lint3_xz(bounds,v2r,tracevec(i),u,genpar,it,type_inject)
        end do
@@ -43,10 +43,10 @@ contains
        !$OMP PARALLEL DO PRIVATE(i,v2r)
        do i=1,size(tracevec)
           if (genpar%withRho) then
-             v2r=model%vel(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))**2* &
-             &   model%rho(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2* &
+             &   model%rho(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))
           else
-             v2r=model%vel(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))**2
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2
           end if
           call Injection_source_lint3_xyz(bounds,v2r,tracevec(i),u,genpar,it,type_inject) 
        end do    
@@ -66,6 +66,7 @@ contains
     integer           :: it
     integer           :: i
     integer           :: type_inject
+    real              :: v2r
 
     if (genpar%tmax.eq.1) then
        type_inject=genpar%rec_type
@@ -76,28 +77,63 @@ contains
     if (genpar%twoD) then
        do i=1,size(tracevec)
           if (genpar%withRho) then
-             v2r=model%vel(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))**2* &
-             &   model%rho(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2* &
+             &   model%rho(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))
           else
-             v2r=model%vel(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))**2
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2
           end if
-          call Injection_source_sinc_xz(bounds,model,tracevec(i),u,genpar,it,type_inject)
+          call Injection_source_sinc_xz(bounds,v2r,tracevec(i),u,genpar,it,type_inject)
        end do
     else
        !$OMP PARALLEL DO PRIVATE(i,v2r)
        do i=1,size(tracevec)
           if (genpar%withRho) then
-             v2r=model%vel(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))**2* &
-             &   model%rho(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2* &
+             &   model%rho(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))
           else
-             v2r=model%vel(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))**2
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2
           end if
-          call Injection_source_sinc_xyz(bounds,model,tracevec(i),u,genpar,it,type_inject) 
+          call Injection_source_sinc_xyz(bounds,v2r,tracevec(i),u,genpar,it,type_inject) 
        end do    
        !$OMP END PARALLEL DO
     end if
     
   end subroutine Injection_sinc
+
+  subroutine Injection_LSRTM_sinc(bounds,model,tracevec,u,genpar,it)
+    
+    type(FDbounds)    ::    bounds
+    type(ModelSpace)  ::           model
+    type(TraceSpace),dimension(:)  ::    tracevec
+    type(GeneralParam)::                            genpar 
+    real              ::                          u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    integer           :: i
+    integer           :: type_inject
+    real              :: v2r
+
+    if (genpar%tmax.eq.1) then
+       type_inject=genpar%rec_type
+    else
+       type_inject=genpar%shot_type
+    end if
+
+    if (genpar%twoD) then
+       do i=1,size(tracevec)
+          v2r=1.          
+          call Injection_source_sinc_xz(bounds,v2r,tracevec(i),u,genpar,it,type_inject)
+       end do
+    else
+       !$OMP PARALLEL DO PRIVATE(i,v2r)
+       do i=1,size(tracevec)
+          v2r=1.
+          call Injection_source_sinc_xyz(bounds,v2r,tracevec(i),u,genpar,it,type_inject) 
+       end do
+       !$OMP END PARALLEL DO
+    end if
+    
+  end subroutine Injection_LSRTM_sinc
 
   subroutine Injection_source_sinc_xyz(bounds,v2r,sou,u,genpar,it,type_inject)
     type(FDbounds)    ::               bounds
@@ -182,7 +218,6 @@ contains
     real, allocatable :: sinc(:,:)
     integer           :: i,j
     integer           :: minx,maxx,minz,maxz
-    integer           :: type_inject
 
     allocate(sinc(genpar%lsinc,2))
     allocate(deltai(3))
@@ -251,7 +286,7 @@ contains
     deltai(3)=1./genpar%delta(3)
 
     do i=1,3
-       f=(data%coord(i)-genpar%omodel(i))*deltai(i)
+       f=(sou%coord(i)-genpar%omodel(i))*deltai(i)
        j=f
        ix(i)=1+j
        fx(i)=f-j
@@ -306,7 +341,7 @@ contains
     deltai(2)=1./genpar%delta(2)
 
     do i=1,2
-       f=(data%coord(i)-genpar%omodel(i))*deltai(i)
+       f=(sou%coord(i)-genpar%omodel(i))*deltai(i)
        j=f
        ix(i)=1+j
        fx(i)=f-j
@@ -331,9 +366,9 @@ contains
 
   end subroutine Injection_source_lint3_xz
 
-  subroutine Injection_source_simple_xyz(bounds,v2r,sou,u,genpar,it,type_inject)
+  subroutine Injection_source_simple_xyz(bounds,model,sou,u,genpar,it,type_inject)
     type(FDbounds)    ::                 bounds
-    real              ::                        v2r
+    type(ModelSpace)  ::                        model
     type(TraceSpace)  ::                            sou
     type(GeneralParam)::                                  genpar 
     real              ::                                u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
@@ -394,51 +429,5 @@ contains
     end if
 
   end subroutine Injection_source_rho_simple_xyz
-
-  subroutine Injection_Born(bounds,model,tracevec,u,genpar,it)
-    
-    type(FDbounds)    ::    bounds
-    type(ModelSpace)  ::           model
-    type(TraceSpace),dimension(:)  ::    tracevec
-    type(GeneralParam)::                            genpar 
-    real              ::                          u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
-    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
-    integer           :: it   
-
-    if (mod(it,genpar%snapi).eq.0) then
-       model%wvfld%counter=model%wvfld%counter+1
-       u(1:model%nz,1:model%nxw,1:model%nyw)=u(1:model%nz,1:model%nxw,1:model%nyw)+2*dprod(model%image(1:model%nz,1:model%nxw,1:model%nyw),model%wvfld%wave(1:model%nz,1:model%nxw,1:model%nyw,model%wvfld%counter,1))/model%vel(1:model%nz,1:model%nxw,1:model%nyw)
-    end if
-    
-  end subroutine Injection_Born
-
-  subroutine Injection_Born_from_disk(bounds,model,tracevec,u,genpar,it)
-    
-    type(FDbounds)    ::    bounds
-    type(ModelSpace)  ::           model
-    type(TraceSpace),dimension(:)  ::    tracevec
-    type(GeneralParam)::                            genpar 
-    real              ::                          u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
-    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
-    integer           :: it   
-    real, dimension (:,:,:), allocatable :: fwd
-    integer :: ierr,blocksize
-
-    allocate(fwd(model%nz,model%nxw,model%nyw))
-    fwd=0.
-
-    blocksize=4*model%nz*model%nxw*model%nyw
-
-    if (mod(it,genpar%snapi).eq.0) then
-
-       call sreed(model%waFtag,fwd,blocksize)
-       
-       u(1:model%nz,1:model%nxw,1:model%nyw)=u(1:model%nz,1:model%nxw,1:model%nyw)+2*dprod(model%image(1:model%nz,1:model%nxw,1:model%nyw),fwd)/model%vel(1:model%nz,1:model%nxw,1:model%nyw)
-
-    end if
-    
-    deallocate(fwd)
-
-  end subroutine Injection_Born_from_disk
 
 end module Injection_mod

@@ -195,9 +195,16 @@ contains
 
 !       write(0,*) 'here6'
        call system_clock(counting(6),count_rate,count_max)
-       if (present(sou).or.associated(model%wvfld)) &
+
+       ! This is regular injection for FD modeling/receiver injection
+       if (present(sou)) &
        & call Injection(bounds,model,sou,grid%u3(:,:,:),genpar,it)
        
+       ! This is Born modeling, with genpar%tstep=+1
+       if (present(ImagingCondition).and.(genpar%tstep.eq.1)) then
+          call ImagingCondition(bounds,model,elev,grid%u3(:,:,:),genpar,it)
+       end if
+
 !       write(0,*) 'here7'
        call system_clock(counting(7),count_rate,count_max)
        call TimeDer(genpar,bounds,grid)

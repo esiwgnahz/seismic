@@ -6,6 +6,7 @@ module GeneralParam_types
      logical :: twoD
      logical :: withRho
      logical :: Born
+     logical :: WriteFwdWvfld
 
      real    :: dt
 
@@ -31,6 +32,7 @@ module GeneralParam_types
 
      real    :: aperture(2)
      integer :: nthreads
+     real    :: max_memory
   end type GeneralParam
 
   type HigdonParam

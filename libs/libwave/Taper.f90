@@ -11,8 +11,8 @@ contains
     
     real    ::pi=3.14159265359
 
-    allocate(mod%taperx(nxw))
-    allocate(mod%tapery(nyw))
+    allocate(mod%taperx(mod%nxw))
+    allocate(mod%tapery(mod%nyw))
 
     mod%taperx=1.
     mod%tapery=1.

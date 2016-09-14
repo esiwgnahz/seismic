@@ -72,15 +72,18 @@ contains
     &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
     integer           :: it
     integer           :: i
+    real              :: v
     
     if (genpar%twoD) then
        do i=1,size(data)
-          call Extraction_1trace_sinc_xy(bounds,model%vel(data(i)%icoord(1),data(i)%icoord(2),1),data(i),u,genpar,it)
+          v=model%vel(data(i)%icoord(1),data(i)%icoord(2),1)
+          call Extraction_1trace_sinc_xy(bounds,v,data(i),u,genpar,it)
        end do
     else      
        !$OMP PARALLEL DO PRIVATE(i)
        do i=1,size(data)       
-          call Extraction_1trace_sinc_xyz(bounds,model%vel(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3)),data(i),u,genpar,it)
+          v=model%vel(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))
+          call Extraction_1trace_sinc_xyz(bounds,v,data(i),u,genpar,it)
        end do       
        !$OMP END PARALLEL DO
     end if
@@ -88,6 +91,33 @@ contains
   end subroutine Extraction_array_sinc
 
   ! Sinc interpolation
+  subroutine Extraction_array_LSRTM_sinc(bounds,model,data,u,genpar,it)
+    type(FDbounds)    ::                 bounds
+    type(ModelSpace)  ::                        model
+    type(TraceSpace), dimension(:) ::                 data
+    type(GeneralParam)::                                     genpar 
+    real              ::                                   u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    integer           :: i
+    real              :: v
+    
+    v=1.
+    if (genpar%twoD) then
+       do i=1,size(data)
+          call Extraction_1trace_sinc_xy(bounds,v,data(i),u,genpar,it)
+       end do
+    else      
+       !$OMP PARALLEL DO PRIVATE(i)
+       do i=1,size(data)       
+          call Extraction_1trace_sinc_xyz(bounds,v,data(i),u,genpar,it)
+       end do       
+       !$OMP END PARALLEL DO
+    end if
+
+  end subroutine Extraction_array_LSRTM_sinc
+
+  ! Linear interpolation
   subroutine Extraction_array_lint3(bounds,model,data,u,genpar,it)
     type(FDbounds)    ::            bounds
     type(ModelSpace)  ::                   model
@@ -97,15 +127,18 @@ contains
     &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
     integer           :: it
     integer           :: i
+    real              :: v
     
     if (genpar%twoD) then
        do i=1,size(data)
-          call Extraction_1trace_lint2_xy(bounds,model%vel(data(i)%icoord(1),data(i)%icoord(2),1),data(i),u,genpar,it)
+          v=model%vel(data(i)%icoord(1),data(i)%icoord(2),1)
+          call Extraction_1trace_lint2_xy(bounds,v,data(i),u,genpar,it)
        end do
     else      
        !$OMP PARALLEL DO PRIVATE(i)
        do i=1,size(data)       
-          call Extraction_1trace_lint3_xyz(bounds,model%vel(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3)),data(i),u,genpar,it)
+          v=model%vel(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))
+          call Extraction_1trace_lint3_xyz(bounds,v,data(i),u,genpar,it)
        end do       
        !$OMP END PARALLEL DO
     end if
@@ -396,7 +429,7 @@ contains
     else
        wavetag=model%waBtag
     end if
-
+    
     allocate(buffer_sou(model%nz,model%nxw))
 
     MODULO:if (mod(it,genpar%snapi).eq.0) then
@@ -410,7 +443,7 @@ contains
              end do
              call srite(wavetag,buffer_sou,4*model%nxw*model%nz)
           end do
-       else  
+       else 
           call srite(wavetag,u(1:model%nz,1:model%nxw,1:model%nyw),4*model%nxw*model%nyw*model%nz)
        end if
     end if MODULO

@@ -29,10 +29,12 @@ program Acoustic_rtm_opt
   real :: d1,totcount(3)
 
   call sep_init()
-  
+
   totcount=0.
 
-  genpar%lsinc=7
+  write(0,*) 'INFO:'
+  write(0,*) 'INFO: -- RTM Starting -- '
+  write(0,*) 'INFO:'
 
   call from_param('fmax',genpar%fmax,30.)
   call from_param('ntaper',genpar%ntaper,20)
@@ -40,6 +42,7 @@ program Acoustic_rtm_opt
   call from_param('aperture_x',genpar%aperture(1))
   call from_param('aperture_y',genpar%aperture(2))
   call from_param('num_threads',genpar%nthreads,4)
+  call from_param('lsinc',genpar%lsinc,7)
 
   write(0,*) 'INFO: -------- Parameters ---------'
   write(0,*) 'INFO:'
@@ -50,6 +53,7 @@ program Acoustic_rtm_opt
   write(0,*) 'INFO: aperture_y=',genpar%aperture(2)
   write(0,*) 'INFO:'
   write(0,*) 'INFO: num_threads=',genpar%nthreads
+  write(0,*) 'INFO: lsinc      =',genpar%lsinc
   write(0,*) 'INFO: ----------------------------'
 
   call omp_set_num_threads(genpar%nthreads)
@@ -81,7 +85,7 @@ program Acoustic_rtm_opt
   write(0,*) 'INFO: ------------------------------------------'
 
   call readsou(sourcevec,genpar)
- 
+
   if (genpar%withRho) then
      genpar%coefpower=1
   else
@@ -102,27 +106,12 @@ program Acoustic_rtm_opt
   write(0,*) 'INFO: bounds%nmin3',bounds%nmin3,'bounds%nmax3',bounds%nmax3
   write(0,*) 'INFO:'
   write(0,*) 'INFO: ------------------------------------------------'
-  
+
   allocate(elev%elev(bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
   elev%elev=0.
   genpar%tmin=1
   genpar%tmax=sourcevec(1)%dimt%nt
   genpar%tstep=1
-  
-  call to_history('n1',mod%nz,'wave_bwd')
-  call to_history('n2',mod%nxw,'wave_bwd')
-  call to_history('d1',mod%dz,'wave_bwd')
-  call to_history('d2',mod%dx,'wave_bwd')
-  call to_history('o1',genpar%omodel(1),'wave_bwd')
-  call to_history('o2',genpar%omodel(2),'wave_bwd')
-  if (genpar%twoD) then
-     call to_history('n3',genpar%ntsnap,'wave_bwd')
-  else
-     call to_history('n3',mod%nyw,'wave_bwd')
-     call to_history('d3',mod%dy,'wave_bwd')
-     call to_history('o3',genpar%omodel(3),'wave_bwd')
-     call to_history('n4',genpar%ntsnap,'wave_bwd')
-  end if
 
   call to_history('n1',mod%nz,'wave_fwd')
   call to_history('n2',mod%nxw,'wave_fwd')
@@ -156,7 +145,7 @@ program Acoustic_rtm_opt
         call propagator_acoustic(                        &
         & FD_acoustic_rho_init_coefs,                    &
         & FD_2D_derivatives_acoustic_forward_grid,       &
-        & Injection_rho_sinc,                            &
+        & Injection_sinc,                            &
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &    
@@ -176,7 +165,7 @@ program Acoustic_rtm_opt
         call propagator_acoustic(                        &
         & FD_acoustic_rho_init_coefs,                    &
         & FD_3D_derivatives_acoustic_forward_grid,       &
-        & Injection_rho_sinc,                            &
+        & Injection_sinc,                            &
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &    
@@ -187,7 +176,7 @@ program Acoustic_rtm_opt
   call system_clock(counting(2),count_rate,count_max)
 
   write(0,*) 'INFO: Done with forward modeling'
-  
+
   allocate(mod%imagesmall(mod%nz,mod%nxw,mod%nyw))
   allocate(mod%illumsmall(mod%nz,mod%nxw,mod%nyw))
   mod%imagesmall=0.
@@ -215,7 +204,7 @@ program Acoustic_rtm_opt
         call propagator_acoustic(                        &
         & FD_acoustic_rho_init_coefs,                    &
         & FD_2D_derivatives_acoustic_forward_grid,       &
-        & Injection_rho_sinc,                            &
+        & Injection_sinc,                            &
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &
@@ -235,7 +224,7 @@ program Acoustic_rtm_opt
         call propagator_acoustic(                        &
         & FD_acoustic_rho_init_coefs,                    &
         & FD_3D_derivatives_acoustic_forward_grid,       &
-        & Injection_rho_sinc,                            &
+        & Injection_sinc,                            &
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &
@@ -259,7 +248,7 @@ program Acoustic_rtm_opt
   deallocate(sourcevec)
 
   call auxclose(mod%waFtag)
-  
+
   call system_clock(counting(3),count_rate,count_max)
 
   call mod_copy_image_to_disk(mod)
@@ -294,5 +283,9 @@ program Acoustic_rtm_opt
   write(0,*) 'INFO  * Receiver propagation     = ',100*totcount(2)/sum(totcount),'%',totcount(2)
   write(0,*) 'INFO  * Copy image/illum to disk = ',100*totcount(3)/sum(totcount),'%',totcount(3)
   write(0,*) 'INFO ------------------------------'
+
+  write(0,*) 'INFO:'
+  write(0,*) 'INFO: -- RTM End -- '
+  write(0,*) 'INFO:'
 
 end program Acoustic_rtm_opt

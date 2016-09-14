@@ -33,6 +33,10 @@ program Acoustic_rtm_opt_memory
   
   totcount=0.
 
+  write(0,*) 'INFO:'
+  write(0,*) 'INFO: -- RTM Starting -- '
+  write(0,*) 'INFO:'
+
   call from_param('fmax',genpar%fmax,30.)
   call from_param('ntaper',genpar%ntaper,20)
   call from_param('snapi',genpar%snapi,4)
@@ -40,6 +44,7 @@ program Acoustic_rtm_opt_memory
   call from_param('aperture_y',genpar%aperture(2))
   call from_param('num_threads',genpar%nthreads,4)
   call from_param('lsinc',genpar%lsinc,7)
+  call from_param('withRho',genpar%withRho,.false.)
 
   write(0,*) 'INFO: -------- Parameters ---------'
   write(0,*) 'INFO:'
@@ -50,6 +55,7 @@ program Acoustic_rtm_opt_memory
   write(0,*) 'INFO: aperture_y=',genpar%aperture(2)
   write(0,*) 'INFO:'
   write(0,*) 'INFO: num_threads=',genpar%nthreads
+  write(0,*) 'INFO: lsinc      =',genpar%lsinc
   write(0,*) 'INFO: ----------------------------'
 
   call omp_set_num_threads(genpar%nthreads)
@@ -110,7 +116,8 @@ program Acoustic_rtm_opt_memory
   call system_clock(counting(1),count_rate,count_max)
 
   allocate(wfld_fwd%wave(mod%nz,mod%nxw,mod%nyw,genpar%ntsnap,1))
-  
+  wfld_fwd%wave=0.
+
   write(0,*) 'INFO: Starting forward modeling'
   if (genpar%twoD) then
      if (.not.genpar%withRho) then
@@ -266,5 +273,9 @@ program Acoustic_rtm_opt_memory
   write(0,*) 'INFO  * Receiver propagation     = ',100*totcount(2)/sum(totcount),'%',totcount(2)
   write(0,*) 'INFO  * Copy image/illum to disk = ',100*totcount(3)/sum(totcount),'%',totcount(3)
   write(0,*) 'INFO ------------------------------'
+
+  write(0,*) 'INFO:'
+  write(0,*) 'INFO: -- RTM End -- '
+  write(0,*) 'INFO:'
 
 end program Acoustic_rtm_opt_memory
