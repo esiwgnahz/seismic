@@ -57,7 +57,7 @@ contains
        call propagator_acoustic(                        &
        & FD_acoustic_init_coefs,                        &
        & FD_2nd_2D_derivatives_scalar_forward_grid,     &
-       & Injection_LSRTM_sinc,                          &
+       & Injection_sinc,                                &
        & FD_2nd_time_derivative_grid,                   &
        & FDswaptime_pointer,                            &
        & bounds,model,elev,genpar,                      &
@@ -66,7 +66,7 @@ contains
        call propagator_acoustic(                        &
        & FD_acoustic_init_coefs,                        &
        & FD_2nd_3D_derivatives_scalar_forward_grid,     &
-       & Injection_LSRTM_sinc,                          &
+       & Injection_sinc,                                &
        & FD_2nd_time_derivative_grid,                   &
        & FDswaptime_pointer,                            &
        & bounds,model,elev,genpar,                      &
@@ -137,7 +137,7 @@ contains
        call propagator_acoustic(                        &
        & FD_acoustic_init_coefs,                        &
        & FD_2nd_2D_derivatives_scalar_forward_grid,     &
-       & Injection_LSRTM_sinc,                          &
+       & Injection_sinc,                                &
        & FD_2nd_time_derivative_grid,                   &
        & FDswaptime_pointer,                            &
        & bounds,model,elev,genpar,                      &
@@ -146,7 +146,7 @@ contains
        call propagator_acoustic(                        &
        & FD_acoustic_init_coefs,                        &
        & FD_2nd_3D_derivatives_scalar_forward_grid,     &
-       & Injection_LSRTM_sinc,                          &
+       & Injection_sinc,                                &
        & FD_2nd_time_derivative_grid,                   &
        & FDswaptime_pointer,                            &
        & bounds,model,elev,genpar,                      &

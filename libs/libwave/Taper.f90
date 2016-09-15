@@ -33,7 +33,7 @@ contains
        array(i)=sin(pi*(i-1)/(2*(min(ntaper,n)-1)))**2
     end do
     do i=max(1,n-ntaper),n
-       array(i)=cos(pi*(i-max(1,n-ntaper))/(2*(n-1)))**2
+       array(i)=cos(pi*(i-max(1,n-ntaper))/(2*(ntaper)))**2
     end do
     
   end subroutine cos_sin_taper

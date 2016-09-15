@@ -167,7 +167,11 @@ contains
 
     mod%nxw=nint((mod%endx-mod%oxw)/mod%dx)+1
     mod%nyw=nint((mod%endy-mod%oyw)/mod%dy)+1
-  
+    if (genpar%twoD) then
+       mod%nyw=1
+       mod%oyw=mod%oy
+    end if
+
     write(0,*) 'INFO:'
     write(0,*) 'INFO:--------------------------------------'
     write(0,*) 'INFO:  Windowed velocity Model Dimensions  '

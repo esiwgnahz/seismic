@@ -33,9 +33,9 @@ contains
        do i=1,size(tracevec)
           if (genpar%withRho) then
              v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)**2* &
-             &   model%rho(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)
+             &   model%rho(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)*product(genpar%delta(1:2))
           else
-             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)**2
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)**2*product(genpar%delta(1:2))
           end if
           call Injection_source_lint3_xz(bounds,v2r,tracevec(i),u,genpar,it,type_inject)
        end do
@@ -44,9 +44,9 @@ contains
        do i=1,size(tracevec)
           if (genpar%withRho) then
              v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2* &
-             &   model%rho(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))
+             &   model%rho(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))*product(genpar%delta(1:3))
           else
-             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2*product(genpar%delta(1:3))
           end if
           call Injection_source_lint3_xyz(bounds,v2r,tracevec(i),u,genpar,it,type_inject) 
        end do    
@@ -121,13 +121,13 @@ contains
 
     if (genpar%twoD) then
        do i=1,size(tracevec)
-          v2r=1.          
+          v2r=1/product(genpar%delta(1:2))
           call Injection_source_sinc_xz(bounds,v2r,tracevec(i),u,genpar,it,type_inject)
        end do
     else
        !$OMP PARALLEL DO PRIVATE(i,v2r)
        do i=1,size(tracevec)
-          v2r=1.
+          v2r=1/product(genpar%delta(1:2))
           call Injection_source_sinc_xyz(bounds,v2r,tracevec(i),u,genpar,it,type_inject) 
        end do
        !$OMP END PARALLEL DO
@@ -152,9 +152,9 @@ contains
 
     allocate(sinc(genpar%lsinc,3))
     allocate(deltai(3))
-    deltai(1)=1./genpar%delta(1)
-    deltai(2)=1./genpar%delta(2)
-    deltai(3)=1./genpar%delta(3)
+    deltai(1)=genpar%delta(1)
+    deltai(2)=genpar%delta(2)
+    deltai(3)=genpar%delta(3)
 
     minx=-genpar%lsinc*0.5
     minz=minx
@@ -165,7 +165,7 @@ contains
     maxy=maxx
 
     do i=1,3
-       call mksinc(sinc(:,i),genpar%lsinc,sou%dcoord(i)*deltai(i))
+       call mksinc(sinc(:,i),genpar%lsinc,sou%dcoord(i)/deltai(i))
     end do
     
     if (type_inject.eq.0) then
@@ -221,8 +221,8 @@ contains
 
     allocate(sinc(genpar%lsinc,2))
     allocate(deltai(3))
-    deltai(1)=1./genpar%delta(1)
-    deltai(2)=1./genpar%delta(2)
+    deltai(1)=genpar%delta(1)
+    deltai(2)=genpar%delta(2)
 
     minx=-genpar%lsinc*0.5
     minz=minx
@@ -231,7 +231,7 @@ contains
     maxz=maxx
 
     do i=1,2
-       call mksinc(sinc(:,i),genpar%lsinc,sou%dcoord(i)*deltai(i))
+       call mksinc(sinc(:,i),genpar%lsinc,sou%dcoord(i)/deltai(i))
     end do
     
     if (genpar%shot_type.eq.0) then
@@ -281,12 +281,12 @@ contains
     integer           :: ix(3)
 
     allocate(deltai(3))
-    deltai(1)=1./genpar%delta(1)
-    deltai(2)=1./genpar%delta(2)
-    deltai(3)=1./genpar%delta(3)
+    deltai(1)=genpar%delta(1)
+    deltai(2)=genpar%delta(2)
+    deltai(3)=genpar%delta(3)
 
     do i=1,3
-       f=(sou%coord(i)-genpar%omodel(i))*deltai(i)
+       f=(sou%coord(i)-genpar%omodel(i))/deltai(i)
        j=f
        ix(i)=1+j
        fx(i)=f-j
@@ -337,11 +337,11 @@ contains
     integer           :: ix(2)
 
     allocate(deltai(2))
-    deltai(1)=1./genpar%delta(1)
-    deltai(2)=1./genpar%delta(2)
+    deltai(1)=genpar%delta(1)
+    deltai(2)=genpar%delta(2)
 
     do i=1,2
-       f=(sou%coord(i)-genpar%omodel(i))*deltai(i)
+       f=(sou%coord(i)-genpar%omodel(i))/deltai(i)
        j=f
        ix(i)=1+j
        fx(i)=f-j
@@ -383,10 +383,10 @@ contains
 
     if(genpar%twoD) then
        iy=1
-       deltai=1./(genpar%delta(1)*genpar%delta(2))
+       deltai=(genpar%delta(1)*genpar%delta(2))
     else
        iy=sou%icoord(3)
-       deltai=1./(genpar%delta(1)*genpar%delta(2)*genpar%delta(3))
+       deltai=(genpar%delta(1)*genpar%delta(2)*genpar%delta(3))
     end if
 
     if (type_inject.eq.0) then
@@ -415,10 +415,10 @@ contains
 
     if(genpar%twoD) then
        iy=1
-       deltai=1./(genpar%delta(1)*genpar%delta(2))
+       deltai=(genpar%delta(1)*genpar%delta(2))
     else
        iy=sou%icoord(3)
-       deltai=1./(genpar%delta(1)*genpar%delta(2)*genpar%delta(3))
+       deltai=(genpar%delta(1)*genpar%delta(2)*genpar%delta(3))
     end if
 
     if (type_inject.eq.0) then

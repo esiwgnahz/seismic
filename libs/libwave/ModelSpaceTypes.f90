@@ -76,7 +76,7 @@ contains
     if (allocated(mod%illumsmall)) deallocate(mod%illumsmall)
     if (allocated(mod%taperx)) deallocate(mod%taperx)
     if (allocated(mod%tapery)) deallocate(mod%tapery)
-    if (associated(mod%wvfld)) call deallocateWaveSpace(mod%wvfld)
+    if (associated(mod%wvfld)) nullify(mod%wvfld)
   end subroutine deallocateModelSpace
 
   subroutine deallocateModelSpace_elev(elev)

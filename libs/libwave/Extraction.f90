@@ -25,9 +25,9 @@ contains
 
 
     allocate(deltai(3))
-    deltai(1)=1./genpar%delta(1)
-    deltai(2)=1./genpar%delta(2)
-    deltai(3)=1./genpar%delta(3)
+    deltai(1)=genpar%delta(1)
+    deltai(2)=genpar%delta(2)
+    deltai(3)=genpar%delta(3)
 
     if (genpar%twoD) then
        if (genpar%rec_type.eq.0) then
@@ -76,7 +76,7 @@ contains
     
     if (genpar%twoD) then
        do i=1,size(data)
-          v=model%vel(data(i)%icoord(1),data(i)%icoord(2),1)
+          v=model%vel(data(i)%icoord(1),data(i)%icoord(2),1)**2
           call Extraction_1trace_sinc_xy(bounds,v,data(i),u,genpar,it)
        end do
     else      
@@ -102,12 +102,13 @@ contains
     integer           :: i
     real              :: v
     
-    v=1.
     if (genpar%twoD) then
+       v=1/product(genpar%delta(1:2))
        do i=1,size(data)
           call Extraction_1trace_sinc_xy(bounds,v,data(i),u,genpar,it)
        end do
     else      
+       v=1/product(genpar%delta(1:3))
        !$OMP PARALLEL DO PRIVATE(i)
        do i=1,size(data)       
           call Extraction_1trace_sinc_xyz(bounds,v,data(i),u,genpar,it)
@@ -131,13 +132,13 @@ contains
     
     if (genpar%twoD) then
        do i=1,size(data)
-          v=model%vel(data(i)%icoord(1),data(i)%icoord(2),1)
+          v=model%vel(data(i)%icoord(1),data(i)%icoord(2),1)**2
           call Extraction_1trace_lint2_xy(bounds,v,data(i),u,genpar,it)
        end do
     else      
        !$OMP PARALLEL DO PRIVATE(i)
        do i=1,size(data)       
-          v=model%vel(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))
+          v=model%vel(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))**2
           call Extraction_1trace_lint3_xyz(bounds,v,data(i),u,genpar,it)
        end do       
        !$OMP END PARALLEL DO
@@ -145,9 +146,9 @@ contains
 
   end subroutine Extraction_array_lint3
 
-  subroutine Extraction_1trace_sinc_xyz(bounds,vel,data,u,genpar,it)
+  subroutine Extraction_1trace_sinc_xyz(bounds,v2,data,u,genpar,it)
     type(FDbounds)    ::                bounds
-    real              ::                       vel
+    real              ::                       v2
     type(TraceSpace)  ::                           data
     type(GeneralParam)::                                    genpar 
     real              ::                                  u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
@@ -161,9 +162,9 @@ contains
 
     allocate(sinc(genpar%lsinc,3))
     allocate(deltai(3))
-    deltai(1)=1./genpar%delta(1)
-    deltai(2)=1./genpar%delta(2)
-    deltai(3)=1./genpar%delta(3)
+    deltai(1)=genpar%delta(1)
+    deltai(2)=genpar%delta(2)
+    deltai(3)=genpar%delta(3)
 
     minx=-genpar%lsinc*0.5
     minz=minx
@@ -174,7 +175,7 @@ contains
     maxy=maxx
 
     do i=1,3
-       call mksinc(sinc(:,i),genpar%lsinc,data%dcoord(i)*deltai(i))
+       call mksinc(sinc(:,i),genpar%lsinc,data%dcoord(i)/deltai(i))
     end do
     
     if (genpar%rec_type.eq.0) then
@@ -183,7 +184,7 @@ contains
           do j=minx,maxx
              do i=minz,maxz
                 data%trace(it,1)=data%trace(it,1)+ &
-                &   vel**2*u(i+data%icoord(1),j+data%icoord(2),k+data%icoord(3))*&
+                &   v2*u(i+data%icoord(1),j+data%icoord(2),k+data%icoord(3))*&
                 &   sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)*product(deltai) 
              end do
           end do
@@ -196,7 +197,7 @@ contains
           do j=minx,maxx
              do i=minz,maxz
                 data%trace(it,1)=data%trace(it,1)+ &
-                &   vel**2* &
+                &   v2* &
                 &   (u(i+data%icoord(1),j+data%icoord(2),k+data%icoord(3))-u(-i-data%icoord(1),j+data%icoord(2),k+data%icoord(3)))*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)*product(deltai) 
              end do
           end do
@@ -208,9 +209,9 @@ contains
 
   end subroutine Extraction_1trace_sinc_xyz
 
-  subroutine Extraction_1trace_lint3_xyz(bounds,vel,data,u,genpar,it)
+  subroutine Extraction_1trace_lint3_xyz(bounds,v2,data,u,genpar,it)
     type(FDbounds)    ::                 bounds
-    real              ::                        vel
+    real              ::                        v2
     type(TraceSpace)  ::                            data
     type(GeneralParam)::                                    genpar 
     real              ::                                 u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
@@ -225,12 +226,12 @@ contains
     integer           :: ix(3)
 
     allocate(deltai(3))
-    deltai(1)=1./genpar%delta(1)
-    deltai(2)=1./genpar%delta(2)
-    deltai(3)=1./genpar%delta(3)
+    deltai(1)=genpar%delta(1)
+    deltai(2)=genpar%delta(2)
+    deltai(3)=genpar%delta(3)
     
     do i=1,3
-       f=(data%coord(i)-genpar%omodel(i))*deltai(i)
+       f=(data%coord(i)-genpar%omodel(i))/deltai(i)
        j=f
        ix(i)=1+j
        fx(i)=f-j
@@ -248,7 +249,7 @@ contains
 
     if (genpar%rec_type.eq.0) then
 
-       data%trace(it,1)=data%trace(it,1)+vel**2*(utmp)*product(deltai)
+       data%trace(it,1)=data%trace(it,1)+v2*(utmp)*product(deltai)
 
     else
 
@@ -261,7 +262,7 @@ contains
        &                fx(1)*fx(2)*gx(3)*u(-ix(1)+1,ix(2)+1,ix(3)  )+&
        &                fx(1)*fx(2)*fx(3)*u(-ix(1)+1,ix(2)+1,ix(3)+1)
 
-       data%trace(it,1)=data%trace(it,1)+vel**2*(utmp-utmpm)*product(deltai)
+       data%trace(it,1)=data%trace(it,1)+v2*(utmp-utmpm)*product(deltai)
 
     end if    
 
@@ -269,9 +270,9 @@ contains
 
   end subroutine Extraction_1trace_lint3_xyz
 
-  subroutine Extraction_1trace_lint2_xy(bounds,vel,data,u,genpar,it)
+  subroutine Extraction_1trace_lint2_xy(bounds,v2,data,u,genpar,it)
     type(FDbounds)    ::                 bounds
-    real              ::                        vel
+    real              ::                       v2
     type(TraceSpace)  ::                            data
     type(GeneralParam)::                                    genpar 
     real              ::                                 u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
@@ -286,11 +287,11 @@ contains
     integer           :: ix(2)
 
     allocate(deltai(2))
-    deltai(1)=1./genpar%delta(1)
-    deltai(2)=1./genpar%delta(2)
+    deltai(1)=genpar%delta(1)
+    deltai(2)=genpar%delta(2)
     
     do i=1,2
-       f=(data%coord(i)-genpar%omodel(i))*deltai(i)
+       f=(data%coord(i)-genpar%omodel(i))/deltai(i)
        j=f
        ix(i)=1+j
        fx(i)=f-j
@@ -304,7 +305,7 @@ contains
 
     if (genpar%rec_type.eq.0) then
 
-       data%trace(it,1)=data%trace(it,1)+vel**2*utmp*product(deltai)
+       data%trace(it,1)=data%trace(it,1)+v2*utmp*product(deltai)
 
     else     
          
@@ -313,7 +314,7 @@ contains
        &                fx(1)*gx(2)*u(-ix(1)+1,ix(2)  ,1)+&
        &                fx(1)*fx(2)*u(-ix(1)+1,ix(2)+1,1)
 
-       data%trace(it,1)=data%trace(it,1)+vel**2*(utmp-utmpm)*product(deltai)
+       data%trace(it,1)=data%trace(it,1)+v2*(utmp-utmpm)*product(deltai)
 
     end if    
 
@@ -321,9 +322,9 @@ contains
 
   end subroutine Extraction_1trace_lint2_xy
 
-  subroutine Extraction_1trace_sinc_xy(bounds,vel,data,u,genpar,it)
+  subroutine Extraction_1trace_sinc_xy(bounds,v2,data,u,genpar,it)
     type(FDbounds)    ::               bounds
-    real              ::                      vel
+    real              ::                      v2
     type(TraceSpace)  ::                           data
     type(GeneralParam)::                                  genpar 
     real              ::                               u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
@@ -337,8 +338,8 @@ contains
 
     allocate(sinc(genpar%lsinc,2))
     allocate(deltai(2))
-    deltai(1)=1./genpar%delta(1)
-    deltai(2)=1./genpar%delta(2)
+    deltai(1)=genpar%delta(1)
+    deltai(2)=genpar%delta(2)
 
     minx=-genpar%lsinc*0.5
     minz=minx
@@ -347,14 +348,14 @@ contains
     maxz=maxx
 
     do i=1,2
-       call mksinc(sinc(:,i),genpar%lsinc,data%dcoord(i)*deltai(i))
+       call mksinc(sinc(:,i),genpar%lsinc,data%dcoord(i)/deltai(i))
     end do
     
     if (genpar%rec_type.eq.0) then
        do j=minx,maxx
           do i=minz,maxz
              data%trace(it,1)=data%trace(it,1)+ &
-             &   vel**2* &
+             &   v2* &
              &   u(i+data%icoord(1),j+data%icoord(2),1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*product(deltai) 
           end do
        end do
@@ -362,7 +363,7 @@ contains
        do j=minx,maxx
           do i=minz,maxz
              data%trace(it,1)=data%trace(it,1)+ &
-             &   vel**2* &
+             &   v2* &
              &   (u(i+data%icoord(1),j+data%icoord(2),1)-u(-i-data%icoord(1),j+data%icoord(2),1))*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*product(deltai) 
           end do
        end do
