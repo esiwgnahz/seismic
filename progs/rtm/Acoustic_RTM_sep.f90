@@ -223,7 +223,7 @@ program Acoustic_rtm_sep
         call propagator_acoustic(                        &
         & FD_acoustic_rho_init_coefs,                    &
         & FD_2D_derivatives_acoustic_forward_grid,       &
-        & Injection__sinc,                               &
+        & Injection_sinc,                                &
         & FD_2nd_time_derivative_grid,                   &
         & FDswaptime_pointer,                            &
         & bounds,mod,elev,genpar,                        &

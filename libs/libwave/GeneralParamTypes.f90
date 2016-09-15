@@ -7,6 +7,7 @@ module GeneralParam_types
      logical :: withRho
      logical :: Born
      logical :: WriteFwdWvfld
+     logical :: LSRTM
 
      real    :: dt
 

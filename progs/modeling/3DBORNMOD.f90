@@ -31,13 +31,13 @@ program THREEDBORN
   write(0,*) 'INFO: -- Born Modeling Starting -- '
   write(0,*) 'INFO:'
 
-  genpar%Born=.true.
   mod%veltag='vel'
   mod%rhotag='rho'
   mod%reftag='ref'
   mod%waFtag='wave_fwd'
 
   call read_3D_params(genpar)
+  genpar%Born=.true.
   call readsou(sourcevec,genpar)
 
   call readtraces(datavec,sourcevec,genpar)
@@ -58,9 +58,6 @@ program THREEDBORN
 
   allocate(elev%elev(bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
   elev%elev=0.
-  genpar%tmin=1
-  genpar%tmax=sourcevec(1)%dimt%nt
-  genpar%tstep=1
 
   memory_needed=dble(mod%nxw)*dble(mod%nz)*dble(mod%nyw)*1e-9*4*dble(genpar%ntsnap)
   write(0,*) 'INFO:'

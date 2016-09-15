@@ -25,6 +25,8 @@ contains
 
     call from_param('twoD',genpar%twoD,.false.)
     call from_param('withRho',genpar%withRho,.false.)
+    call from_param('LSRTM',genpar%LSRTM,.false.)
+    call from_param('Born',genpar%Born,.false.)
 
     call from_param('write_forward_wavefield',genpar%WriteFwdWvfld,.false.)
 
@@ -55,6 +57,7 @@ contains
     write(0,*) 'INFO: twoD                   =',genpar%twoD
     write(0,*) 'INFO: withRho                =',genpar%withRho
     write(0,*) 'INFO: write_forward_wavefield=',genpar%WriteFwdWvfld
+    write(0,*) 'INFO: LSRTM                  =',genpar%LSRTM
     write(0,*) 'INFO: ----------------------------'
     write(0,*) 'INFO:'
     write(0,*) 'INFO: -------- Source/Receiver parameters ------'

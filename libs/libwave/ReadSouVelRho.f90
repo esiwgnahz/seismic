@@ -149,7 +149,7 @@ contains
     genpar%dt=source(1)%dimt%dt
     genpar%nt=source(1)%dimt%nt
     
-    if (genpar%Born) then
+    if (genpar%Born.or.genpar%LSRTM) then
        allocate(trace(source(1)%dimt%nt))
        trace=source(1)%trace(:,1)
        source(1)%trace(:,1)=0

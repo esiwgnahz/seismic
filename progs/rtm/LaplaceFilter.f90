@@ -12,10 +12,10 @@ program LaplaceFilter
   !
   call initpar()
   call sep_add_doc_line("NAME")
-  call sep_add_doc_line("    PostFilter.x - Post-process filters in 2D and 3D")
+  call sep_add_doc_line("    LaplaceFilter.x - Post-process filters in 2D and 3D")
   call sep_add_doc_line("")
   call sep_add_doc_line("SYNOPSIS")
-  call sep_add_doc_line("    PostFiler.x filter=[la,lo,sm] < input.H > output.H")
+  call sep_add_doc_line("    LaplaceFilter.x  < input.H > output.H")
   call sep_add_doc_line("")
   call sep_add_doc_line("INPUT PARAMETERS")
   call sep_add_doc_line("    input.H - file")
@@ -23,14 +23,6 @@ program LaplaceFilter
   call sep_add_doc_line("")
   call sep_add_doc_line("    filter - string")
   call sep_add_doc_line("                Laplacian: Divergence of input.")
-  call sep_add_doc_line("                LowCut: Lowcut frequency filter.")
-  call sep_add_doc_line("                Smooth: ( 1 - LowCut ).")
-  call sep_add_doc_line("")
-  call sep_add_doc_line("    rect1, rect2, rect3 - integer")
-  call sep_add_doc_line("                [0]: halfwidth on 1- 2- and 3-axis respectively.")
-  call sep_add_doc_line("                Only relevant for LowCut and Smooth.")
-  call sep_add_doc_line("                Window length = (2*rect+1), Hanning window.")
-  call sep_add_doc_line("")
   call sep_add_doc_line("    n1 - integer")
   call sep_add_doc_line("                # of z grid points (becomes nz in the program) ")
   call sep_add_doc_line("")
@@ -104,18 +96,5 @@ subroutine InitFiles(opt, nx, ny, nz, n4, n5, dx, dy, dz, rect1, rect2, rect3)
 
   if (hetch('n4','i',n4).eq.0) n4=1
   if (hetch('n5','i',n5).eq.0) n5=1
-
-  if (opt.eq.1 .or. opt.eq.2) then
-     if (getch('rect1','i',rect1).eq.0) rect1=0
-     if (rect1 .ge. nz) rect1 = ( nz - 1 ) / 2
-     call putch('rect1','i',rect1)
-     if (getch('rect2','i',rect2).eq.0) rect2=0
-     if (rect2 .ge. nx) rect2 = ( nx - 1 ) / 2
-     call putch('rect2','i',rect2)
-     if (getch('rect3','i',rect3).eq.0) rect3=0
-     if (rect3 .ge. ny) rect3 = ( ny - 1 ) / 2
-     if (ny.eq.1) rect3=0
-     call putch('rect3','i',rect3)
-  end if
 
 end subroutine InitFiles
