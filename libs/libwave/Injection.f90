@@ -33,9 +33,9 @@ contains
        do i=1,size(tracevec)
           if (genpar%withRho) then
              v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)**2* &
-             &   model%rho(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)*product(genpar%delta(1:2))
+             &   model%rho(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)
           else
-             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)**2*product(genpar%delta(1:2))
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)**2
           end if
           call Injection_source_lint3_xz(bounds,v2r,tracevec(i),u,genpar,it,type_inject)
        end do
@@ -44,9 +44,9 @@ contains
        do i=1,size(tracevec)
           if (genpar%withRho) then
              v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2* &
-             &   model%rho(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))*product(genpar%delta(1:3))
+             &   model%rho(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))
           else
-             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2*product(genpar%delta(1:3))
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2
           end if
           call Injection_source_lint3_xyz(bounds,v2r,tracevec(i),u,genpar,it,type_inject) 
        end do    
@@ -127,7 +127,7 @@ contains
     else
        !$OMP PARALLEL DO PRIVATE(i,v2r)
        do i=1,size(tracevec)
-          v2r=1/product(genpar%delta(1:2))
+          v2r=1/product(genpar%delta(1:3))
           call Injection_source_sinc_xyz(bounds,v2r,tracevec(i),u,genpar,it,type_inject) 
        end do
        !$OMP END PARALLEL DO

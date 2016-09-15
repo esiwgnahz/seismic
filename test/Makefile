@@ -10,11 +10,12 @@ wavelet3D.H:
 
 
 3Dvel.H:
-	Spike n1=50 n2=201 n3=201 | Add scale=2800 > 1.H
-	Spike n1=50 n2=201 n3=201 | Add scale=3200 > 2.H
-	Spike n1=50 n2=201 n3=201 | Add scale=3600 > 3.H
+	Spike n1=50 n2=201 n3=21 | Add scale=2800 > 1.H
+	Spike n1=50 n2=201 n3=21 | Add scale=3200 > 2.H
+	Spike n1=50 n2=201 n3=21 | Add scale=3600 > 3.H
 	Cat axis=1 1.H 2.H 3.H > $@
 	echo d1=10 d2=10 d3=10 >> $@
+	echo o1=0. o2=0. o3=-100 >> $@
 	Window3d n3=1 < $@ > 2Dvel.H
 
 3Dref.H: 3Dvel.H
@@ -29,6 +30,42 @@ wavelet3D.H:
 	Cat axis=1 1.H 2.H 3.H > $@
 	echo d1=10 d2=10 d3=10 >> $@
 	Window3d n3=1 < $@ > 2Drho.H
+
+1shot3D.H:
+	Spike n1=1000 n2=4221 >> $@
+	echo d1=0.001 o1=0 >> $@
+	echo d2=10 o2=0. >> $@
+	echo d3=10 o3=0. >> $@
+
+1shotheader3D.H:
+	Spike n1=1 n2=201 n3=21 > 1.H
+	Math file1=1.H exp="0." > 0.H
+	Math file1=1.H exp="1000." > sx.H
+	echo d1=1 d2=10 d3=10 o1=0. o2=0. o3=0. >> 1.H
+	Transp plane=12 reshape=1,3 < 1.H | Tpow tpow=1 > 2.H
+	Math file1=2.H exp="file1-10" | Transp plane=12 reshape=2,3> rx.H
+	Transp plane=13 < 1.H | Tpow tpow=1 > 2a.H
+	Math file1=2a.H exp="file1-110" | Transp plane=13 > ry.H
+	echo n1=1 n2=4221 n3=1 >> rx.H
+	echo n1=1 n2=4221 n3=1 >> ry.H
+	echo n1=1 n2=4221 n3=1 >> sx.H
+	echo n1=1 n2=4221 n3=1 >> 0.H
+	Cat axis=1 sx.H 0.H 0.H rx.H ry.H 0.H > $@
+
+1shot.H:
+	Spike n1=1000 n2=201 n3=1 >> $@
+	echo d1=0.001 o1=0 >> $@
+	echo d2=10 o2=0. >> $@
+	echo d3=10 o3=0. >> $@
+
+1shotheader.H:
+	Spike n1=1 n2=201 > 1.H
+	Math file1=1.H exp="0." > 0.H
+	Math file1=1.H exp="1000." > sx.H
+	echo d1=1 d2=10 o1=0. o2=0. >> 1.H
+	Transp plane=12 < 1.H | Tpow tpow=1 > 2.H
+	Math file1=2.H exp="file1-10" | Transp plane=12 > rx.H
+	Cat axis=1 sx.H 0.H 0.H rx.H 0.H 0.H > $@
 
 traces.H:
 	echo n1=1000 o1=0. d1=0.001 >> $@
@@ -86,6 +123,115 @@ rhodata1%.H: wavelet.H 3Dvel.H 3Drho.H
 Borndata1%.H: wavelet.H 3Dvel.H 3Drho.H 3Dref.H
 	${BMOD} stdin=wavelet.H vel=3Dvel.H wave=wave1.H twoD=1 ${param$*} fmax=60 data=$@ ref=3Dref.H
 
+3DBorndata.H: wavelet.H 3Dvel.H 3Dref.H 1shotheader3D.H 1shot3D.H
+	${BMODSEP} stdin=wavelet.H vel=3Dvel.H wave=wave1.H twoD=0 Born=1 fmax=60 data=$@ ref=3Dref.H traces=1shot3D.H coordfile=1shotheader3D.H fmax=16 aperture_x=2 aperture_y=200 \
+	keygx=4 \
+	keygy=5 \
+	keysx=1 \
+	keysy=2 \
+	keyselev=3 \
+	keygelev=6 \
+	withRho=0 \
+	snapi=1 ntaper=20 num_threads=8 \
+	data=$@ maxsize=8
+
+Borndata.H: wavelet.H 3Dvel.H 3Dref.H 1shotheader.H 1shot.H
+	Window3d n3=1 < 3Dref.H > 2Dref.H
+	Window3d n3=1 < 3Dvel.H > 2Dvel.H
+	${BMODSEP} stdin=wavelet.H vel=2Dvel.H wave=wave1.H twoD=1 Born=1 fmax=60 data=$@ ref=2Dref.H traces=1shot.H coordfile=1shotheader.H fmax=16 aperture_x=2 aperture_y=1 \
+	keygx=4 \
+	keygy=5 \
+	keysx=1 \
+	keysy=2 \
+	keyselev=3 \
+	keygelev=6 \
+	withRho=0 \
+	snapi=1 ntaper=20 num_threads=8 \
+	data=$@ maxsize=1 
+
+3DMIGBorndata.H: 3DBorndata.H wavelet.H 3Dvel.H 3Dref.H 1shotheader.H
+	${LSRTMSEP} stdin=wavelet.H vel=3Dvel.H wave=wave1.H twoD=0 Born=1 fmax=60 data=$@ ref=3Dref.H traces=3DBorndata.H coordfile=1shotheader3D.H fmax=16 aperture_x=2 aperture_y=1 \
+	keygx=4 \
+	keygy=5 \
+	keysx=1 \
+	keysy=2 \
+	keyselev=3 \
+	keygelev=3 \
+	withRho=0 \
+	snapi=1 ntaper=20 num_threads=8 \
+	image=$@ maxsize=1 LSRTM=1 
+
+MIGBorndata.H: Borndata.H wavelet.H 3Dvel.H 3Dref.H 1shotheader.H
+	Window3d n3=1 < 3Dref.H > 2Dref.H
+	Window3d n3=1 < 3Dvel.H > 2Dvel.H
+	${LSRTMSEP} stdin=wavelet.H vel=2Dvel.H wave=wave1.H twoD=1 Born=1 fmax=60 data=$@ ref=2Dref.H traces=Borndata.H coordfile=1shotheader.H fmax=16 aperture_x=2 aperture_y=1 \
+	keygx=4 \
+	keygy=5 \
+	keysx=1 \
+	keysy=2 \
+	keyselev=3 \
+	keygelev=3 \
+	withRho=0 \
+	snapi=1 ntaper=20 num_threads=8 \
+	image=$@ maxsize=1 LSRTM=1 
+
+3DBornrandom.H: wavelet.H 3Dvel.H 3Dref.H 1shotheader.H 1shot.H
+	< 3Dref.H  sfnoise rep=1 > 3Drefnoise.H
+	${BMODSEP} stdin=wavelet.H vel=3Dvel.H wave=wave1.H twoD=0 Born=1 fmax=60 data=$@ ref=3Drefnoise.H traces=1shot.H coordfile=1shotheader.H fmax=16 aperture_x=2 aperture_y=200 \
+	keygx=4 \
+	keygy=5 \
+	keysx=1 \
+	keysy=2 \
+	keyselev=3 \
+	keygelev=3 \
+	withRho=0 \
+	snapi=4 ntaper=20 num_threads=8 \
+	data=$@ maxsize=10 
+
+3DMIGBornrandom.H: 3DBornrandom.H wavelet.H 3Dvel.H 3Dref.H 1shotheader.H
+	sfnoise rep=1 < 3DBornrandom.H > noisedat.H
+	${LSRTMSEP} stdin=wavelet.H vel=3Dvel.H wave=wave1.H twoD=0 Born=1 fmax=60 data=$@ ref=3Dref.H traces=noisedat.H coordfile=1shotheader.H fmax=16 aperture_x=2 aperture_y=200 \
+	keygx=4 \
+	keygy=5 \
+	keysx=1 \
+	keysy=2 \
+	keyselev=3 \
+	keygelev=3 \
+	withRho=0 \
+	snapi=4 ntaper=20 num_threads=8 \
+	image=img.H maxsize=10 LSRTM=1 
+	Window3d n4=1 < img.H > $@
+
+Bornrandom.H: wavelet.H 3Dvel.H 3Dref.H 1shotheader.H 1shot.H
+	Window3d n3=1 < 3Dref.H | Noise rep=1 > 2Drefnoise.H
+	Window3d n3=1 < 3Dvel.H > 2Dvel.H
+	${BMODSEP} stdin=wavelet.H vel=2Dvel.H wave=wave1.H twoD=1 Born=1 fmax=60 data=$@ ref=2Drefnoise.H traces=1shot.H coordfile=1shotheader.H fmax=16 aperture_x=2 aperture_y=1 \
+	keygx=4 \
+	keygy=5 \
+	keysx=1 \
+	keysy=2 \
+	keyselev=3 \
+	keygelev=3 \
+	withRho=0 \
+	snapi=40 ntaper=20 num_threads=8 \
+	data=$@ maxsize=1 
+
+MIGBornrandom.H: Borndata.H wavelet.H 3Dvel.H 3Dref.H 1shotheader.H
+	Window3d n3=1 < 3Dref.H > 2Dref.H
+	Window3d n3=1 < 3Dvel.H > 2Dvel.H
+	Noise rep=1 < Borndata.H > noisedat.H
+	${LSRTMSEP} stdin=wavelet.H vel=2Dvel.H wave=wave1.H twoD=1 Born=1 fmax=60 data=$@ ref=2Dref.H traces=noisedat.H coordfile=1shotheader.H fmax=16 aperture_x=2 aperture_y=1 \
+	keygx=4 \
+	keygy=5 \
+	keysx=1 \
+	keysy=2 \
+	keyselev=3 \
+	keygelev=3 \
+	withRho=0 \
+	snapi=40 ntaper=20 num_threads=8 \
+	image=img.H maxsize=1 LSRTM=1 
+	Window3d n3=1 < img.H > $@
+
 rhodata2%.H: traces.H 3Drho.H
 	${REF} \
 	land=1 \
@@ -100,19 +246,30 @@ rhodata2%.H: traces.H 3Drho.H
 	stdin=wavelet.H > $@
 
 BORNdata2%.H: traces.H 3Drho.H
-	Window3d n3=1 < 3Dref.H > 2Dref.H
-	echo d1=10 d2=10 >> 2Dref.H
 	${BORNREF} \
 	land=1 \
 	Reflectivity=2Dref.H \
 	vel=2Dvel.H \
 	vel_dens_mask=2Dvel.H \
 	traces=traces.H \
-	fmax=60  \
-	snap_coef=0.5 \
+	fmax=16  \
+	snap_coef=0. \
 	task=1 \
 	${param$*} tmpwave1=tmpwave1.H tmpwave2=tmpwave2.H \
 	stdin=wavelet.H Modeling=$@ 
+
+MIGBORNdata2%.H: BORNdata2%.H traces.H 3Drho.H
+	${BORNREF} \
+	land=1 \
+	Reflectivity=2Dref.H \
+	vel=2Dvel.H \
+	vel_dens_mask=2Dvel.H \
+	traces=BORNdata2$*.H \
+	fmax=16  \
+	snap_coef=2.5 dottest=1 \
+	task=1 \
+	${param$*} tmpwave1=tmpwave1.H tmpwave2=tmpwave2.H \
+	stdin=wavelet.H RTM=$@ 
 
 rhodata3%.H:  3Drho.H
 	${BRU} \
