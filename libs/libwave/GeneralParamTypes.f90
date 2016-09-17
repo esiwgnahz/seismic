@@ -8,6 +8,7 @@ module GeneralParam_types
      logical :: Born
      logical :: WriteFwdWvfld
      logical :: LSRTM
+     logical :: CHEAPLSRTM
 
      real    :: dt
 

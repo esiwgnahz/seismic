@@ -65,7 +65,11 @@ program THREEDRTM
      write(0,*) 'INFO: writing wavefield in memory'
      write(0,*) 'INFO:'
      if (genpar%LSRTM) then
-        call LSRTM_to_memory(mod,genpar,dat,bounds,elev,datavec,sourcevec)
+        if (genpar%CHEAPLSRTM) then
+           call CHEAP_LSRTM_to_memory(mod,genpar,dat,bounds,elev,datavec,sourcevec)
+        else
+           call LSRTM_to_memory(mod,genpar,dat,bounds,elev,datavec,sourcevec)
+        end if
      else
         call RTM_to_memory(mod,genpar,dat,bounds,elev,datavec,sourcevec)
      end if
@@ -74,7 +78,11 @@ program THREEDRTM
      write(0,*) 'INFO:'
      call auxinout(mod%waFtag)
      if (genpar%LSRTM) then
-        call LSRTM_to_disk(mod,genpar,dat,bounds,elev,datavec,sourcevec)
+        if (genpar%CHEAPLSRTM) then
+           call CHEAP_LSRTM_to_disk(mod,genpar,dat,bounds,elev,datavec,sourcevec)
+        else
+           call LSRTM_to_disk(mod,genpar,dat,bounds,elev,datavec,sourcevec)
+        end if
      else
         call RTM_to_disk(mod,genpar,dat,bounds,elev,datavec,sourcevec)
      end if

@@ -359,9 +359,14 @@ contains
        end do
     end do
     !$OMP END PARALLEL DO
+ 
+    do j=1,mod%ny
+       call srite('image',tmpim(:,:,j),4*mod%nx*mod%nz)
+    end do
 
-    call srite('image',tmpim,4*mod%nx*mod%nz*mod%ny)
-    call srite('image',tmpil,4*mod%nx*mod%nz*mod%ny)
+    do j=1,mod%ny
+       call srite('image',tmpil(:,:,j),4*mod%nx*mod%nz)
+    end do
 
     deallocate(tmpim,tmpil) 
 
