@@ -85,7 +85,7 @@ contains
 
     integer  :: fetch, hetch, tetch, getch, auxpar
     external :: fetch, hetch, tetch, getch, auxpar
-    integer  :: nout
+    integer  :: nout,i
     
     if (auxpar('n1','i',mod%nz,mod%veltag).eq.0)  & 
     &    call erexit('need n1:nz')
@@ -203,7 +203,9 @@ contains
     if (.not.exist_file(mod%veltag)) then
        call erexit('ERROR: Need velocity file, exit now')
     else
-       call sreed(mod%veltag,tmpbig,4*mod%nz*mod%nx*mod%ny)
+       do i=1,mod%ny
+          call sreed(mod%veltag,tmpbig(:,:,i),4*mod%nz*mod%nx)
+       end do
        call auxclose(mod%veltag)
        call vel_check(tmpbig,genpar)
     end if
