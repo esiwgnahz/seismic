@@ -1,45 +1,43 @@
 ! <in.H Rickdecon debubl=.06 ricker=.06 tresol=.01 shot=shot.H >out.H
 program zyxabc
-implicit none
-real, allocatable, dimension (:,:) :: data
-real, allocatable, dimension (:) :: shot
-! Inputs: d1=dt,debubl,ricker,tresol must have identical units of time (seconds)
-! debubl=.06 =0 means no debubble
-! ricker=.06 =0 means no Ricker compliance
-! tresol=.01 time resolution, =0 for whitening decon
-! Outputs: out.H is deconvolved data
-! Outputs: shot(n) centered at (n+1)/2. Note n=2^^N > n1
-!
-! subroutine rickdecon( shot,n, data,n1,n2, d1,debubl,ricker,tresol)
-!real dt, debubl, ricker, tresol
-integer n1,n2,n3,m1
-integer hetch,putch
-call initpar()
-call doc('/work/seismic/progs/logdecon/Rickerdecon.rst')
+  use sep
+  use omp_lib
+  implicit none
+  real, allocatable, dimension (:,:) :: data
+  real, allocatable, dimension (:,:) :: datain
+  real, allocatable, dimension (:) :: shot
+  ! Inputs: d1=dt,debubl,ricker,tresol must have identical units of time (seconds)
+  ! debubl=.06 =0 means no debubble
+  ! ricker=.06 =0 means no Ricker compliance
+  ! tresol=.01 time resolution, =0 for whitening decon
+  ! Outputs: out.H is deconvolved data
+  ! Outputs: shot(n) centered at (n+1)/2. Note n=2^^N > n1
+  !
+  ! subroutine rickdecon( shot,n, data,n1,n2, d1,debubl,ricker,tresol)
+  !real dt, debubl, ricker, tresol
+  integer n1,n2,n3,m1,i,j
+  integer getch,hetch,putch,num_threads
+  real d1, debubl, ricker, tresol, pink
+
+  call initpar()
+  call doc('/work/seismic/progs/logdecon/Rickerdecon.rst')
   if (0>= hetch('n1','d',n1 )) then
-    call erexit('Trouble reading  n1 from history  ')
+     call erexit('Trouble reading  n1 from history  ')
   end if
   if (0>= hetch('n2','d',n2 )) then
-    n2 = 1
+     n2 = 1
   end if
   if (0>= hetch('n3','d',n3 )) then
-    call erexit('Trouble reading  n3 from history  ')
+     n3 = 1  
   end if
-m1=1
-do while ( m1<n1)
-  m1= 2*m1
-end do
-!m1 = 2*m1
-allocate (data(n1,n2), shot(m1))
-call doit ( n1,n2,n3, data, m1, shot)
-end program zyxabc
-subroutine doit( n1,n2,n3, data, m1, shot)
-integer n1,n2,n3
-integer i1,i2,i3
-real data(n1,n2)
-real d1, debubl, ricker, tresol, pink
-real shot(m1)
-integer getch,hetch,putch
+  m1=1
+  do while ( m1<n1)
+     m1= 2*m1
+  end do
+  !m1 = 2*m1
+
+  call from_param('num_threads',num_threads,omp_get_num_threads())
+
   if (0>= hetch('d1','f',d1 )) then
     call erexit('Trouble reading  d1 from history  ')
   end if
@@ -67,27 +65,35 @@ integer getch,hetch,putch
   if (0.ne.putch('Read  from param: #pink ','f',pink)) then
     call erexit('Trouble writing pink to history')
   end if
-call hclose()
-do i3=1,n3
-  call sreed( 'in', data, 4*n1*n2)
-  call rickdecon( shot,m1, data,n1,n2, d1,debubl,ricker,tresol,pink)
-  call auxputch('n1','i', m1, 'shot')
-  call auxputch('o1','f', -(m1/2+1)*d1, 'shot')
-  ! move the origin to the middle of the trace
-  call auxputch('d1','f', d1, 'shot')
-  call auxputch('n2','i', 1, 'shot')
-  call auxputch('o2','f', 0., 'shot')
-  ! move the origin to the middle of the trace
-  call auxputch('d2','f', .1, 'shot')
-  call auxputch('n3','i', n3, 'shot')
-  call srite('shot', shot, 4*m1)
-  ! shot is 2048 long, data may be shorter.
-  call srite( 'out', data, 4*n1*n2)
-end do
-return
-end
-subroutine rickdecon(shot,m1, data,n1,n2, dt,debubl,ricker,tresol&
-  &,pink)
+
+  call omp_set_num_threads(num_threads)
+  write(0,*) num_threads
+
+  SHOTLOOP:do j=1,n3
+     allocate (datain(n1,n2)) 
+     write(0,*) 'INFO: starting reading panel',j
+     call sreed( 'in', datain, 4*n1*n2)
+     write(0,*) 'INFO: done reading panel',j
+     !$OMP PARALLEL DO PRIVATE(i,shot)
+     TRACELOOP:do i=1,n2
+        !if (mod(i,n2/100).eq.0) write(0,*) 'Rickerdecon processing',i,'/',n2
+        allocate (shot(m1))
+        call rickdecon( shot,m1, datain(:,i),n1,1, d1,debubl,ricker,tresol,pink)
+        deallocate(shot)
+     end do TRACELOOP
+    !$OMP END PARALLEL DO
+     write(0,*) 'INFO: starting writing panel',j
+     do i=1,n2
+        call srite('out',datain(:,i),4*n1)
+     end do
+     write(0,*) 'INFO: done writing panel',j
+     deallocate(datain)
+  end do SHOTLOOP
+
+  call hclose()
+end program zyxabc
+
+subroutine rickdecon(shot,m1, data,n1,n2, dt,debubl,ricker,tresol,pink)
 integer m1, n1,n2,i1,i2
 real shot(m1), data(n1,n2), dt,debubl,ricker,tresol&
   &,pink
