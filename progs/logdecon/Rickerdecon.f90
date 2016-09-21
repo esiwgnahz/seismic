@@ -18,9 +18,10 @@ program zyxabc
   integer n1,n2,n3,m1,i,j
   integer getch,hetch,putch,num_threads
   real d1, debubl, ricker, tresol, pink
+  logical badtrace
 
   call initpar()
-  call doc('/work/seismic/progs/logdecon/Rickerdecon.rst')
+
   if (0>= hetch('n1','d',n1 )) then
      call erexit('Trouble reading  n1 from history  ')
   end if
@@ -74,11 +75,12 @@ program zyxabc
      write(0,*) 'INFO: starting reading panel',j
      call sreed( 'in', datain, 4*n1*n2)
      write(0,*) 'INFO: done reading panel',j
-     !$OMP PARALLEL DO PRIVATE(i,shot)
+     !$OMP PARALLEL DO PRIVATE(i,shot,badtrace)
      TRACELOOP:do i=1,n2
         !if (mod(i,n2/100).eq.0) write(0,*) 'Rickerdecon processing',i,'/',n2
         allocate (shot(m1))
         call rickdecon( shot,m1, datain(:,i),n1,1, d1,debubl,ricker,tresol,pink)
+        if (isnan(maxval(datain(:,i)))) datain(:,i)=0.
         deallocate(shot)
      end do TRACELOOP
     !$OMP END PARALLEL DO
