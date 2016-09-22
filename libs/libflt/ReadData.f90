@@ -1,0 +1,54 @@
+module ReadData_mod
+
+  use sep
+  use DataSpace_types_flt
+  use GenParam_types_flt
+
+  implicit none
+
+contains
+
+  subroutine ReadData_dim(tag,data,genpar)
+    character(len=3)  :: tag
+    type(cube)        ::     data
+    type(GenPar_flt)  ::           genpar
+    integer           :: i
+    character(len=1024) :: label
+
+    allocate(data%n(3),data%o(3),data%d(3))
+
+    data%n=1; data%o=0. ; data%d=0.
+    do i=1,genpar%ndim
+       call sep_get_data_axis_par(tag,i,data%n(i),data%o(i),data%d(i),label)
+    end do
+    
+  end subroutine ReadData_dim
+
+  subroutine ReadData_cube(tag,data)
+    character(len=3)  ::   tag
+    type(cube)        ::       data
+    integer           :: i
+
+    allocate(data%dat(data%n(1),data%n(2),data%n(3)))
+
+    do i=1,data%n(3)
+       call sreed(tag,data%dat(:,:,i),4*data%n(1)*data%n(2))
+    end do
+    
+  end subroutine ReadData_cube
+
+  logical function hdrs_are_consistent(data1,data2)
+    type(cube)        ::               data1,data2
+    integer           :: i
+
+    hdrs_are_consistent=.true.
+
+    do i=1,3
+       if (data1%o(i).ne.data2%o(i)) hdrs_are_consistent=.false.
+       if (data1%d(i).ne.data2%d(i)) hdrs_are_consistent=.false.
+       if (data1%n(i).ne.data2%n(i)) hdrs_are_consistent=.false.
+    end do
+   
+  end function hdrs_are_consistent
+
+end module ReadData_mod

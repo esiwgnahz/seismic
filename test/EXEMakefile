@@ -6,10 +6,7 @@ BORNREF=../../FWI/Progs/GIS/trunk/WI/build/Release/LSRTM/RTM/LSRTM.x
 BRU=/work/FWI/Progs/GIS/trunk/RTM/Acoustic/bin/Acoustic3d.main.x
 
 MODSEP=../bin/LINUX/Acoustic_modeling_sep.x
-BMODSEP=../bin/LINUX/Acoustic_Born_modeling_sep.x
-
-RTMSEP=../bin/LINUX/Acoustic_RTM_sep.x
-RTMSEPOPT=../bin/LINUX/Acoustic_RTM_opt.x
-RTMSEPOPT2=../bin/LINUX/Acoustic_RTM_opt_memory.x
+BMODSEP=../bin/LINUX/3DBORNMOD.x
+LSRTMSEP=../bin/LINUX/3DRTM.x
 
 RTM=../bin/LINUX/Acoustic_RTM.x
