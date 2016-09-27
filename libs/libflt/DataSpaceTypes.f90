@@ -7,7 +7,7 @@ module DataSpace_types_flt
      real,    allocatable, dimension(:) :: o
      integer, allocatable, dimension(:) :: n
 
-     real,    allocatable, dimension(:,:,:) :: dat
+     real,    allocatable, dimension(:) :: dat
   end type cube
 
 contains

@@ -8,10 +8,30 @@ module ReadData_mod
 
 contains
 
+  subroutine InfoData_dim(tag,data,genpar)
+    character(len=*)  ::  tag
+    type(cube)        ::      data
+    type(GenPar_flt)  ::            genpar
+    integer           :: i
+
+    write(0,*) 'INFO:'
+    write(0,*) 'INFO: ------------------------------------'
+    write(0,*) 'INFO:       Dimensions ',tag,' Data        '
+    write(0,*) 'INFO: ------------------------------------'
+    write(0,*) 'INFO:'
+    do i=1,genpar%ndim
+       write(0,*) 'INFO: n(',i,')=',data%n(i)
+       write(0,*) 'INFO: o(',i,')=',data%o(i)
+       write(0,*) 'INFO: d(',i,')=',data%d(i)
+    end do
+    write(0,*) 'INFO:'
+    
+  end subroutine InfoData_dim
+
   subroutine ReadData_dim(tag,data,genpar)
-    character(len=3)  :: tag
-    type(cube)        ::     data
-    type(GenPar_flt)  ::           genpar
+    character(len=*)  ::  tag
+    type(cube)        ::      data
+    type(GenPar_flt)  ::            genpar
     integer           :: i
     character(len=1024) :: label
 
@@ -24,18 +44,42 @@ contains
     
   end subroutine ReadData_dim
 
+  subroutine WriteData_dim(tag,data,genpar)
+    character(len=*)  ::   tag
+    type(cube)        ::       data
+    type(GenPar_flt)  ::            genpar
+    integer           :: i
+    character(len=1024) :: label
+
+    do i=1,genpar%ndim
+       call sep_put_data_axis_par(tag,i,data%n(i),data%o(i),data%d(i),label)
+    end do
+    
+  end subroutine WriteData_dim
+
   subroutine ReadData_cube(tag,data)
-    character(len=3)  ::   tag
+    character(len=*)  ::   tag
     type(cube)        ::       data
     integer           :: i
 
-    allocate(data%dat(data%n(1),data%n(2),data%n(3)))
+    allocate(data%dat(data%n(1)*data%n(2)*data%n(3)))
 
     do i=1,data%n(3)
-       call sreed(tag,data%dat(:,:,i),4*data%n(1)*data%n(2))
+       call sreed(tag,data%dat(1+(i-1)*data%n(1)*data%n(2):i*data%n(1)*data%n(2)),4*data%n(1)*data%n(2))
     end do
     
   end subroutine ReadData_cube
+
+  subroutine WriteData_cube(tag,data)
+    character(len=*)  ::   tag
+    type(cube)        ::       data
+    integer           :: i
+
+    do i=1,data%n(3)
+       call srite(tag,data%dat(1+(i-1)*data%n(1)*data%n(2):i*data%n(1)*data%n(2)),4*data%n(1)*data%n(2))
+    end do
+    
+  end subroutine WriteData_cube
 
   logical function hdrs_are_consistent(data1,data2)
     type(cube)        ::               data1,data2

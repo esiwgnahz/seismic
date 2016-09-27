@@ -10,3 +10,4 @@ BMODSEP=../bin/LINUX/3DBORNMOD.x
 LSRTMSEP=../bin/LINUX/3DRTM.x
 
 RTM=../bin/LINUX/Acoustic_RTM.x
+MATCH=../bin/LINUX/Matching.x

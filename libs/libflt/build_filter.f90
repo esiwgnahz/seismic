@@ -1,9 +1,3 @@
-! Author: Antoine Guitton 06 August 2002
-!
-! Creates the NS filters and rougheners
-! according to the number of patches.
-! Works for 3D NS filters only
-
 module build_filters_mod
   
   use createnhelixmod_smp

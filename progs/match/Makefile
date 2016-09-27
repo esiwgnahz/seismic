@@ -1,7 +1,7 @@
 include ${SEPINC}/SEP.top
 include ../../makefile
 
-default:
+default: ${BINDIR}/Matching.x
  
 aclean: jclean       
 	@-${RM} ${BINDIR}/*.x
