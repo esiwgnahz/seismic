@@ -19,6 +19,9 @@ program zyxabc
   integer getch,hetch,putch,num_threads
   real d1, debubl, ricker, tresol, pink
   logical badtrace
+  double precision :: infinity,test
+
+  infinity=huge(test)
 
   call initpar()
 
@@ -73,17 +76,12 @@ program zyxabc
   SHOTLOOP:do j=1,n3
      allocate (datain(n1,n2)) 
      write(0,*) 'INFO: starting reading panel',j
-     call sreed( 'in', datain, 4*n1*n2)
+     do i=1,n2
+        call sreed( 'in', datain(:,i), 4*n1)
+     end do
      write(0,*) 'INFO: done reading panel',j
-     !$OMP PARALLEL DO PRIVATE(i,shot,badtrace)
-     TRACELOOP:do i=1,n2
-        !if (mod(i,n2/100).eq.0) write(0,*) 'Rickerdecon processing',i,'/',n2
-        allocate (shot(m1))
-        call rickdecon( shot,m1, datain(:,i),n1,1, d1,debubl,ricker,tresol,pink)
-        if (isnan(maxval(datain(:,i)))) datain(:,i)=0.
-        deallocate(shot)
-     end do TRACELOOP
-    !$OMP END PARALLEL DO
+     allocate (shot(m1))
+     call rickdecon( shot,m1, datain,n1,n2, d1,debubl,ricker,tresol,pink)
      write(0,*) 'INFO: starting writing panel',j
      do i=1,n2
         call srite('out',datain(:,i),4*n1)
