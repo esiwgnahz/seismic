@@ -36,6 +36,10 @@ program THREEDBORN
   mod%reftag='ref'
   mod%waFtag='wave_fwd'
 
+  if (.not.exist_file(mod%veltag)) call erexit('ERROR: need velocity file')
+  if (.not.exist_file(mod%reftag)) call erexit('ERROR: need reflectivity file')
+  if (.not.exist_file('data')) call erexit('ERROR: need dat file for output')
+
   call read_3D_params(genpar)
   genpar%Born=.true.
   call readsou(sourcevec,genpar)

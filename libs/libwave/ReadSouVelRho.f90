@@ -61,6 +61,7 @@ contains
     write(0,*) 'INFO:------------------------'
     write(0,*) 'INFO: Starting reading traces'
 
+    if (.not.exist_file('traces')) call erexit('ERROR: need traces file')
     call from_aux('traces','n1',n1)
     call from_aux('traces','d1',d1)
     call from_aux('traces','o1',o1)
@@ -100,6 +101,7 @@ contains
     call from_param('keyselev',index_selev)
     call from_param('keygelev',index_gelev)
 
+    if (.not.exist_file('coordfile')) call erexit('ERROR: need coordfile')
     call from_aux('coordfile','n1',nkeys)
     call from_aux('coordfile','n2',ntraces)
 

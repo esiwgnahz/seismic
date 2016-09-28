@@ -35,6 +35,7 @@ program THREEDRTM
   mod%rhotag='rho'
   mod%waFtag='wave_fwd'
   genpar%Born=.false.
+  if (.not.exist_file(mod%veltag)) call erexit('ERROR: need vel file')
 
   call read_3D_params(genpar)
   call readsou(sourcevec,genpar)
