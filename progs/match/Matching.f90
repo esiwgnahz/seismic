@@ -40,6 +40,13 @@ program Matching
   par%fmodtag='fmod'
   par%filttag='filt'
   par%filtpchtag='filtpch'
+
+  if (.not.exist_file(par%obstag)) call erexit('ERROR: need obs file')
+  if (.not.exist_file(par%modtag)) call erexit('ERROR: need mod file')
+  if (.not.exist_file(par%fmodtag)) call erexit('ERROR: need fmod file')
+  if (.not.exist_file(par%filttag)) call erexit('ERROR: need filt file')
+  if (.not.exist_file(par%filtpchtag)) call erexit('ERROR: need filtpch file')
+
   par%ndim=sep_dimension(par%obstag)
 
   if(par%ndim.ne.3) call erexit('ERROR: only working on 3D cubes, exit now')
