@@ -8,7 +8,7 @@ module ncnhconest
   type( nfilter), private :: aa 
   integer, private :: nhmax 
   integer,   private                             :: np
-  !$OMP THREADPRIVATE(x,aa,np,nhmax)
+
   contains
   subroutine ncnhconest_init ( x_in,aa_in,nhmax_in )
     real ,   dimension(:),target                :: x_in 
@@ -34,6 +34,8 @@ module ncnhconest
     integer                        :: ia, ix, iy, ip, nx
     integer, dimension(:), pointer :: lag
     nx=size(x)
+
+    !$OMP PARALLEL DO PRIVATE(iy,ip,lag,ia,ix)
     do iy = 1, size( y)
        if (associated(aa%mis)) then
           if ( aa%mis( iy)) then
@@ -42,6 +44,7 @@ module ncnhconest
        end if
        ip = aa%pch( iy)
        lag => aa%hlx( ip)%lag
+
        do ia = 1, size( lag)
           ix = iy - lag( ia)
           if ((ix<1).or.(ix>nx)) then
@@ -54,6 +57,8 @@ module ncnhconest
           end if
        end do
     end do
+    !$OMP END PARALLEL DO
+
   end subroutine ncnhconest_lop2
   subroutine ncnhconest_close()
     if (associated(x)) nullify(x)

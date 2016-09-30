@@ -35,6 +35,7 @@ contains
     integer           :: i
     character(len=1024) :: label
 
+    label=" "
     allocate(data%n(3),data%o(3),data%d(3))
 
     data%n=1; data%o=0. ; data%d=0.
@@ -50,7 +51,7 @@ contains
     type(GenPar_flt)  ::            genpar
     integer           :: i
     character(len=1024) :: label
-
+    label=" "
     do i=1,genpar%ndim
        call sep_put_data_axis_par(tag,i,data%n(i),data%o(i),data%d(i),label)
     end do

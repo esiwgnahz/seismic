@@ -8,6 +8,9 @@ module GenParam_types_flt
      character(len=4)  :: fmodtag
      character(len=4)  :: filttag
      character(len=7)  :: filtpchtag
+     character(len=6)  :: wghtag
+
+     integer, dimension(3) :: nsp ! Number of spikes in all dimensions for impulse responses
 
      integer :: ndim     ! Dimensions problem
 
@@ -20,6 +23,9 @@ module GenParam_types_flt
                          ! Final number is 3xnlaplac for 3D and 2xnlaplac in 2D
 
      logical :: prec     ! Whether or not to use preconditioning 
+     logical :: hyperbolic ! Whether or not to use hyperbolic norm solver
+
+     integer :: nthreads
   end type Genpar_flt
 
 end module GenParam_types_flt

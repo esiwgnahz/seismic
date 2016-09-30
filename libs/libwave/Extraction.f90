@@ -33,12 +33,12 @@ contains
        if (genpar%rec_type.eq.0) then
           do i=1,size(data)
              data(i)%trace(it,1)=data(i)%trace(it,1)+model%vel(data(i)%icoord(1),data(i)%icoord(2),1)**2*&
-             &                   u(data(i)%icoord(1),data(i)%icoord(2),1)*product(deltai(1:2))
+             &                   u(data(i)%icoord(1),data(i)%icoord(2),1)
           end do
        else
           do i=1,size(data)
              data(i)%trace(it,1)=data(i)%trace(it,1)+model%vel(data(i)%icoord(1),data(i)%icoord(2),1)**2*&
-             &                   (u(data(i)%icoord(1),data(i)%icoord(2),1)-u(-data(i)%icoord(1),data(i)%icoord(2),1))*product(deltai(1:2))
+             &                   (u(data(i)%icoord(1),data(i)%icoord(2),1)-u(-data(i)%icoord(1),data(i)%icoord(2),1))
           end do
        end if
     else
@@ -46,14 +46,14 @@ contains
           !$OMP PARALLEL DO PRIVATE(i)
           do i=1,size(data)
              data(i)%trace(it,1)=data(i)%trace(it,1)+model%vel(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))**2*&
-             &                   u(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))*product(deltai)  
+             &                   u(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))
           end do
           !$OMP END PARALLEL DO    
        else
           !$OMP PARALLEL DO PRIVATE(i)
           do i=1,size(data)
              data(i)%trace(it,1)=data(i)%trace(it,1)+model%vel(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))**2*&
-             &                   (u(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))-u(-data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3)))*product(deltai) 
+             &                   (u(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))-u(-data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))) 
           end do
           !$OMP END PARALLEL DO 
        end if
@@ -185,7 +185,7 @@ contains
              do i=minz,maxz
                 data%trace(it,1)=data%trace(it,1)+ &
                 &   v2*u(i+data%icoord(1),j+data%icoord(2),k+data%icoord(3))*&
-                &   sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)*product(deltai) 
+                &   sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)
              end do
           end do
        end do
@@ -198,7 +198,7 @@ contains
              do i=minz,maxz
                 data%trace(it,1)=data%trace(it,1)+ &
                 &   v2* &
-                &   (u(i+data%icoord(1),j+data%icoord(2),k+data%icoord(3))-u(-i-data%icoord(1),j+data%icoord(2),k+data%icoord(3)))*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)*product(deltai) 
+                &   (u(i+data%icoord(1),j+data%icoord(2),k+data%icoord(3))-u(-i-data%icoord(1),j+data%icoord(2),k+data%icoord(3)))*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)
              end do
           end do
        end do
@@ -249,7 +249,7 @@ contains
 
     if (genpar%rec_type.eq.0) then
 
-       data%trace(it,1)=data%trace(it,1)+v2*(utmp)*product(deltai)
+       data%trace(it,1)=data%trace(it,1)+v2*(utmp)
 
     else
 
@@ -262,7 +262,7 @@ contains
        &                fx(1)*fx(2)*gx(3)*u(-ix(1)+1,ix(2)+1,ix(3)  )+&
        &                fx(1)*fx(2)*fx(3)*u(-ix(1)+1,ix(2)+1,ix(3)+1)
 
-       data%trace(it,1)=data%trace(it,1)+v2*(utmp-utmpm)*product(deltai)
+       data%trace(it,1)=data%trace(it,1)+v2*(utmp-utmpm)
 
     end if    
 
@@ -305,7 +305,7 @@ contains
 
     if (genpar%rec_type.eq.0) then
 
-       data%trace(it,1)=data%trace(it,1)+v2*utmp*product(deltai)
+       data%trace(it,1)=data%trace(it,1)+v2*utmp
 
     else     
          
@@ -314,7 +314,7 @@ contains
        &                fx(1)*gx(2)*u(-ix(1)+1,ix(2)  ,1)+&
        &                fx(1)*fx(2)*u(-ix(1)+1,ix(2)+1,1)
 
-       data%trace(it,1)=data%trace(it,1)+v2*(utmp-utmpm)*product(deltai)
+       data%trace(it,1)=data%trace(it,1)+v2*(utmp-utmpm)
 
     end if    
 
@@ -356,7 +356,7 @@ contains
           do i=minz,maxz
              data%trace(it,1)=data%trace(it,1)+ &
              &   v2* &
-             &   u(i+data%icoord(1),j+data%icoord(2),1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*product(deltai) 
+             &   u(i+data%icoord(1),j+data%icoord(2),1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2) 
           end do
        end do
     else
@@ -364,7 +364,7 @@ contains
           do i=minz,maxz
              data%trace(it,1)=data%trace(it,1)+ &
              &   v2* &
-             &   (u(i+data%icoord(1),j+data%icoord(2),1)-u(-i-data%icoord(1),j+data%icoord(2),1))*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*product(deltai) 
+             &   (u(i+data%icoord(1),j+data%icoord(2),1)-u(-i-data%icoord(1),j+data%icoord(2),1))*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)
           end do
        end do
     end if

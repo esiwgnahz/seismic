@@ -3,9 +3,40 @@ module identity_mod
   implicit none 
 
   real, private :: threshd,threshm
+  real, dimension(:), private, pointer :: weightd
   
 contains
   
+  subroutine weightd_init(weight_init)
+    real, dimension(:), target :: weight_init
+    weightd=>weight_init
+  end subroutine weightd_init
+
+  subroutine weightd_close()
+    if (associated(weightd)) nullify(weightd)
+  end subroutine weightd_close
+
+  integer function weightd_lop( adj, add, model, data)
+    logical,intent(in) ::        adj, add
+    real, dimension(:) ::                  model, data
+    integer ::i
+    call adjnull (adj,add,model,data)
+    if (adj) then   
+       !$OMP PARALLEL DO PRIVATE(i)
+       do i=1,size(data)
+          model(i) = model(i) + data(i)*weightd(i)  
+       end do
+       !$OMP END PARALLEL DO
+    else       
+       !$OMP PARALLEL DO PRIVATE(i)
+       do i=1,size(data)
+          data(i)  = data(i) + weightd(i)*model(i) 
+       end do
+       !$OMP END PARALLEL DO
+    end if
+    weightd_lop = 0
+  end function weightd_lop
+
   subroutine identity_init(threshd_init,threshm_init)
     real :: threshd_init
     real :: threshm_init

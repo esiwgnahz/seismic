@@ -175,8 +175,7 @@ contains
              do i=minz,maxz
                 u(i+sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))=&
                 &   u(i+sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))+&
-                &   v2r*sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)*&
-                &   product(deltai)            
+                &   v2r*sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)
              end do
           end do
        end do
@@ -188,13 +187,11 @@ contains
              do i=minz,maxz
                 u(i+sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))=&
                 &   u(i+sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))+&
-                &   v2r*sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)*&
-                &   product(deltai) 
+                &   v2r*sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)
 
                 u(i-sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))=&
                 &   u(i-sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))-&
-                &   v2r*sou%trace(it,1)*sinc(maxz+1-i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)*&
-                &   product(deltai)            
+                &   v2r*sou%trace(it,1)*sinc(maxz+1-i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)
              end do
           end do
        end do
@@ -239,8 +236,7 @@ contains
           do i=minz,maxz            
              u(i+sou%icoord(1),j+sou%icoord(2),1)=&
              &   u(i+sou%icoord(1),j+sou%icoord(2),1)+&
-             &   v2r*sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*&
-             &   deltai(1)*deltai(2)
+             &   v2r*sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)
              
           end do
        end do
@@ -249,12 +245,10 @@ contains
           do i=minz,maxz            
              u(i+sou%icoord(1),j+sou%icoord(2),1)=&
              &   u(i+sou%icoord(1),j+sou%icoord(2),1)+&
-             &   v2r*sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*&
-             &   deltai(1)*deltai(2)          
+             &   v2r*sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)
              u(i-sou%icoord(1),j+sou%icoord(2),1)=&
              &   u(i-sou%icoord(1),j+sou%icoord(2),1)-&
-             &   v2r*sou%trace(it,1)*sinc(maxz+1-i,1)*sinc(maxx+1+j,2)*&
-             &   deltai(1)*deltai(2)
+             &   v2r*sou%trace(it,1)*sinc(maxz+1-i,1)*sinc(maxx+1+j,2)
           end do
        end do
     end if
@@ -293,25 +287,25 @@ contains
        gx(i)=1.-fx(i)
     end do
 
-    u(ix(1)  ,ix(2)  ,ix(3)  )= u(ix(1)  ,ix(2)  ,ix(3)  ) + gx(1)*gx(2)*gx(3)*v2r*sou%trace(it,1)*product(deltai)
-    u(ix(1)  ,ix(2)  ,ix(3)+1)= u(ix(1)  ,ix(2)  ,ix(3)+1) + gx(1)*gx(2)*fx(3)*v2r*sou%trace(it,1)*product(deltai)
-    u(ix(1)  ,ix(2)+1,ix(3)  )= u(ix(1)  ,ix(2)+1,ix(3)  ) + gx(1)*fx(2)*gx(3)*v2r*sou%trace(it,1)*product(deltai)
-    u(ix(1)  ,ix(2)+1,ix(3)+1)= u(ix(1)  ,ix(2)+1,ix(3)+1) + gx(1)*fx(2)*fx(3)*v2r*sou%trace(it,1)*product(deltai)
-    u(ix(1)+1,ix(2)  ,ix(3)  )= u(ix(1)+1,ix(2)  ,ix(3)  ) + fx(1)*gx(2)*gx(3)*v2r*sou%trace(it,1)*product(deltai)
-    u(ix(1)+1,ix(2)  ,ix(3)+1)= u(ix(1)+1,ix(2)  ,ix(3)+1) + fx(1)*gx(2)*fx(3)*v2r*sou%trace(it,1)*product(deltai)
-    u(ix(1)+1,ix(2)+1,ix(3)  )= u(ix(1)+1,ix(2)+1,ix(3)  ) + fx(1)*fx(2)*gx(3)*v2r*sou%trace(it,1)*product(deltai)
-    u(ix(1)+1,ix(2)+1,ix(3)+1)= u(ix(1)+1,ix(2)+1,ix(3)+1) + fx(1)*fx(2)*fx(3)*v2r*sou%trace(it,1)*product(deltai)
+    u(ix(1)  ,ix(2)  ,ix(3)  )= u(ix(1)  ,ix(2)  ,ix(3)  ) + gx(1)*gx(2)*gx(3)*v2r*sou%trace(it,1)
+    u(ix(1)  ,ix(2)  ,ix(3)+1)= u(ix(1)  ,ix(2)  ,ix(3)+1) + gx(1)*gx(2)*fx(3)*v2r*sou%trace(it,1)
+    u(ix(1)  ,ix(2)+1,ix(3)  )= u(ix(1)  ,ix(2)+1,ix(3)  ) + gx(1)*fx(2)*gx(3)*v2r*sou%trace(it,1)
+    u(ix(1)  ,ix(2)+1,ix(3)+1)= u(ix(1)  ,ix(2)+1,ix(3)+1) + gx(1)*fx(2)*fx(3)*v2r*sou%trace(it,1)
+    u(ix(1)+1,ix(2)  ,ix(3)  )= u(ix(1)+1,ix(2)  ,ix(3)  ) + fx(1)*gx(2)*gx(3)*v2r*sou%trace(it,1)
+    u(ix(1)+1,ix(2)  ,ix(3)+1)= u(ix(1)+1,ix(2)  ,ix(3)+1) + fx(1)*gx(2)*fx(3)*v2r*sou%trace(it,1)
+    u(ix(1)+1,ix(2)+1,ix(3)  )= u(ix(1)+1,ix(2)+1,ix(3)  ) + fx(1)*fx(2)*gx(3)*v2r*sou%trace(it,1)
+    u(ix(1)+1,ix(2)+1,ix(3)+1)= u(ix(1)+1,ix(2)+1,ix(3)+1) + fx(1)*fx(2)*fx(3)*v2r*sou%trace(it,1)
 
     if (type_inject.eq.0) then
        
-       u(-ix(1)  ,ix(2)  ,ix(3)  )= u(-ix(1)  ,ix(2)  ,ix(3)  ) + gx(1)*gx(2)*gx(3)*v2r*sou%trace(it,1)*product(deltai)
-       u(-ix(1)  ,ix(2)  ,ix(3)+1)= u(-ix(1)  ,ix(2)  ,ix(3)+1) + gx(1)*gx(2)*fx(3)*v2r*sou%trace(it,1)*product(deltai)
-       u(-ix(1)  ,ix(2)+1,ix(3)  )= u(-ix(1)  ,ix(2)+1,ix(3)  ) + gx(1)*fx(2)*gx(3)*v2r*sou%trace(it,1)*product(deltai)
-       u(-ix(1)  ,ix(2)+1,ix(3)+1)= u(-ix(1)  ,ix(2)+1,ix(3)+1) + gx(1)*fx(2)*fx(3)*v2r*sou%trace(it,1)*product(deltai)
-       u(-ix(1)+1,ix(2)  ,ix(3)  )= u(-ix(1)+1,ix(2)  ,ix(3)  ) + fx(1)*gx(2)*gx(3)*v2r*sou%trace(it,1)*product(deltai)
-       u(-ix(1)+1,ix(2)  ,ix(3)+1)= u(-ix(1)+1,ix(2)  ,ix(3)+1) + fx(1)*gx(2)*fx(3)*v2r*sou%trace(it,1)*product(deltai)
-       u(-ix(1)+1,ix(2)+1,ix(3)  )= u(-ix(1)+1,ix(2)+1,ix(3)  ) + fx(1)*fx(2)*gx(3)*v2r*sou%trace(it,1)*product(deltai)
-       u(-ix(1)+1,ix(2)+1,ix(3)+1)= u(-ix(1)+1,ix(2)+1,ix(3)+1) + fx(1)*fx(2)*fx(3)*v2r*sou%trace(it,1)*product(deltai)
+       u(-ix(1)  ,ix(2)  ,ix(3)  )= u(-ix(1)  ,ix(2)  ,ix(3)  ) + gx(1)*gx(2)*gx(3)*v2r*sou%trace(it,1)
+       u(-ix(1)  ,ix(2)  ,ix(3)+1)= u(-ix(1)  ,ix(2)  ,ix(3)+1) + gx(1)*gx(2)*fx(3)*v2r*sou%trace(it,1)
+       u(-ix(1)  ,ix(2)+1,ix(3)  )= u(-ix(1)  ,ix(2)+1,ix(3)  ) + gx(1)*fx(2)*gx(3)*v2r*sou%trace(it,1)
+       u(-ix(1)  ,ix(2)+1,ix(3)+1)= u(-ix(1)  ,ix(2)+1,ix(3)+1) + gx(1)*fx(2)*fx(3)*v2r*sou%trace(it,1)
+       u(-ix(1)+1,ix(2)  ,ix(3)  )= u(-ix(1)+1,ix(2)  ,ix(3)  ) + fx(1)*gx(2)*gx(3)*v2r*sou%trace(it,1)
+       u(-ix(1)+1,ix(2)  ,ix(3)+1)= u(-ix(1)+1,ix(2)  ,ix(3)+1) + fx(1)*gx(2)*fx(3)*v2r*sou%trace(it,1)
+       u(-ix(1)+1,ix(2)+1,ix(3)  )= u(-ix(1)+1,ix(2)+1,ix(3)  ) + fx(1)*fx(2)*gx(3)*v2r*sou%trace(it,1)
+       u(-ix(1)+1,ix(2)+1,ix(3)+1)= u(-ix(1)+1,ix(2)+1,ix(3)+1) + fx(1)*fx(2)*fx(3)*v2r*sou%trace(it,1)
        
     end if
 
@@ -348,17 +342,17 @@ contains
        gx(i)=1.-fx(i)
     end do
 
-    u(ix(1)  ,ix(2)  ,1)= u(ix(1)  ,ix(2)  ,1) + gx(1)*gx(2)*v2r*sou%trace(it,1)*product(deltai)
-    u(ix(1)  ,ix(2)+1,1)= u(ix(1)  ,ix(2)+1,1) + gx(1)*fx(2)*v2r*sou%trace(it,1)*product(deltai)
-    u(ix(1)+1,ix(2)  ,1)= u(ix(1)+1,ix(2)  ,1) + fx(1)*gx(2)*v2r*sou%trace(it,1)*product(deltai)
-    u(ix(1)+1,ix(2)+1,1)= u(ix(1)+1,ix(2)+1,1) + fx(1)*fx(2)*v2r*sou%trace(it,1)*product(deltai)
+    u(ix(1)  ,ix(2)  ,1)= u(ix(1)  ,ix(2)  ,1) + gx(1)*gx(2)*v2r*sou%trace(it,1)
+    u(ix(1)  ,ix(2)+1,1)= u(ix(1)  ,ix(2)+1,1) + gx(1)*fx(2)*v2r*sou%trace(it,1)
+    u(ix(1)+1,ix(2)  ,1)= u(ix(1)+1,ix(2)  ,1) + fx(1)*gx(2)*v2r*sou%trace(it,1)
+    u(ix(1)+1,ix(2)+1,1)= u(ix(1)+1,ix(2)+1,1) + fx(1)*fx(2)*v2r*sou%trace(it,1)
 
     if (type_inject.eq.0) then
        
-       u(-ix(1)  ,ix(2)  ,1)= u(-ix(1)  ,ix(2)  ,1) + gx(1)*gx(2)*v2r*sou%trace(it,1)*product(deltai)
-       u(-ix(1)  ,ix(2)+1,1)= u(-ix(1)  ,ix(2)+1,1) + gx(1)*fx(2)*v2r*sou%trace(it,1)*product(deltai)
-       u(-ix(1)+1,ix(2)  ,1)= u(-ix(1)+1,ix(2)  ,1) + fx(1)*gx(2)*v2r*sou%trace(it,1)*product(deltai)
-       u(-ix(1)+1,ix(2)+1,1)= u(-ix(1)+1,ix(2)+1,1) + fx(1)*fx(2)*v2r*sou%trace(it,1)*product(deltai)
+       u(-ix(1)  ,ix(2)  ,1)= u(-ix(1)  ,ix(2)  ,1) + gx(1)*gx(2)*v2r*sou%trace(it,1)
+       u(-ix(1)  ,ix(2)+1,1)= u(-ix(1)  ,ix(2)+1,1) + gx(1)*fx(2)*v2r*sou%trace(it,1)
+       u(-ix(1)+1,ix(2)  ,1)= u(-ix(1)+1,ix(2)  ,1) + fx(1)*gx(2)*v2r*sou%trace(it,1)
+       u(-ix(1)+1,ix(2)+1,1)= u(-ix(1)+1,ix(2)+1,1) + fx(1)*fx(2)*v2r*sou%trace(it,1)
        
     end if
 
@@ -390,10 +384,10 @@ contains
     end if
 
     if (type_inject.eq.0) then
-       u( iz,ix,iy)=u( iz,ix,iy)+model%vel(iz,ix,iy)**2*sou%trace(it,1)*deltai  
+       u( iz,ix,iy)=u( iz,ix,iy)+model%vel(iz,ix,iy)**2*sou%trace(it,1)
     else
-       u( iz,ix,iy)=u( iz,ix,iy)+model%vel(iz,ix,iy)**2*sou%trace(it,1)*deltai      
-       u(-iz,ix,iy)=u(-iz,ix,iy)-model%vel(iz,ix,iy)**2*sou%trace(it,1)*deltai
+       u( iz,ix,iy)=u( iz,ix,iy)+model%vel(iz,ix,iy)**2*sou%trace(it,1)    
+       u(-iz,ix,iy)=u(-iz,ix,iy)-model%vel(iz,ix,iy)**2*sou%trace(it,1)
     end if
 
   end subroutine Injection_source_simple_xyz
@@ -422,10 +416,10 @@ contains
     end if
 
     if (type_inject.eq.0) then
-       u( iz,ix,iy)=u( iz,ix,iy)+model%rho(iz,ix,iy)*model%vel(iz,ix,iy)**2*sou%trace(it,1)*deltai  
+       u( iz,ix,iy)=u( iz,ix,iy)+model%rho(iz,ix,iy)*model%vel(iz,ix,iy)**2*sou%trace(it,1) 
     else
-       u( iz,ix,iy)=u( iz,ix,iy)+model%rho(iz,ix,iy)*model%vel(iz,ix,iy)**2*sou%trace(it,1)*deltai      
-       u(-iz,ix,iy)=u(-iz,ix,iy)-model%rho(iz,ix,iy)*model%vel(iz,ix,iy)**2*sou%trace(it,1)*deltai
+       u( iz,ix,iy)=u( iz,ix,iy)+model%rho(iz,ix,iy)*model%vel(iz,ix,iy)**2*sou%trace(it,1)     
+       u(-iz,ix,iy)=u(-iz,ix,iy)-model%rho(iz,ix,iy)*model%vel(iz,ix,iy)**2*sou%trace(it,1)
     end if
 
   end subroutine Injection_source_rho_simple_xyz

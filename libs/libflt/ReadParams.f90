@@ -13,6 +13,7 @@ contains
     allocate(nsmatch%npatch(param%ndim))
     allocate(nsmatch%nfilt(param%ndim))
     call from_param('npatch',nsmatch%npatch,(/1,1,1/))
+    call from_param('nsp',param%nsp,nsmatch%npatch)
     call from_param('nfilt',nsmatch%nfilt,(/1,1,1/))
     call from_param('niter',param%niter,product(nsmatch%nfilt))
 
@@ -20,6 +21,10 @@ contains
     call from_param('thresh_m',param%thresh_m,1.)
     call from_param('n_laplac',param%nlaplac,5)
     call from_param('prec',param%prec,.false.)
+    call from_param('hyperbolic',param%hyperbolic,.false.)
     
+    call from_param('num_threads',param%nthreads,4)
+    call omp_set_num_threads(param%nthreads)
+
   end subroutine readparams
 end module ReadParams_mod

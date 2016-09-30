@@ -1,7 +1,7 @@
 ADIR=../../
 
 UF90INCLUDES= -I/${MKLROOT}/include/intel64/lp64/ -qopenmp
-UF90LIBS= -L/u/st/by/aguitton/bins/fftw/lib/ -qopenmp  -lbei -lsepfft -lsep2df90 -lsep3df90 -lsep3d -lsepf90 -lsep -lsupersetf90 -lsuperset   -L/${MKLROOT}/lib/intel64 -qopenmp -lmkl_intel_lp64 -lmkl_lapack95_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm -ldl -lAwave -lAflt -lAinv -lsepgeef90
+UF90LIBS= -L/u/st/by/aguitton/bins/fftw/lib/ -qopenmp  -lbei -lsepfft -lsep2df90 -lsep3df90 -lsep3d -lsepf90 -lsep -lsupersetf90 -lsuperset  -lfftw3f  -L/${MKLROOT}/lib/intel64 -qopenmp -lmkl_intel_lp64 -lmkl_lapack95_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm -ldl -lAdec -lAfut -lAwave -lAflt -lsepgeef90 -lAinv
 UF77LIBS:= ${UF77LIBS} -qopenmp -lbei
 
 LIBDIR  = ${ADIR}/lib/$(MTYPE)
@@ -26,11 +26,11 @@ clean:
 #	(cd libs/libdec; make aclean)
 	(cd libs/libinv; make aclean)
 	(cd libs/libflt; make aclean)
-	(cd libs/libwave; make aclean)
+#	(cd libs/libwave; make aclean)
 #	(cd progs/logdecon; make aclean)
 #	(cd progs/futterman; make aclean)
-	(cd progs/modeling; make aclean)
-	(cd progs/rtm; make aclean)
+#	(cd progs/modeling; make aclean)
+#	(cd progs/rtm; make aclean)
 	(cd progs/match; make aclean)
 
 
@@ -42,8 +42,8 @@ all:
 	(cd libs/libwave; make)
 	(cd libs/libflt; make)
 #	(cd progs/logdecon; make)
-#	(cd progs/futterman; make)
-#	(cd progs/modeling; make)
-#	(cd progs/rtm; make)
 	(cd progs/match; make)
+#	(cd progs/futterman; make)
+	(cd progs/modeling; make)
+	(cd progs/rtm; make)
 

@@ -27,6 +27,7 @@ program Matching
 
   implicit none
 
+  type(cube)   :: wght! Data space weight
   type(cube)   :: obs ! Observed data to be matched
   type(cube)   :: mod ! Modeled data
   type(cube)   :: fmod! Modeled data times filter
@@ -35,6 +36,7 @@ program Matching
   type(NSfilter)   :: rough
   call sep_init(SOURCE)
 
+  par%wghtag='weight'
   par%obstag='obs'
   par%modtag='mod'
   par%fmodtag='fmod'
@@ -52,6 +54,11 @@ program Matching
   call ReadData_cube(par%modtag,mod)
   call from_param('thresh_d',par%thresh_d,maxval(abs(obs%dat))/100)
 
+  if (exist_file('weight')) then
+     call ReadData_dim(par%wghtag,wght,par)
+     if (.not.hdrs_are_consistent(obs,wght)) call erexit('ERROR: obs and mod do not have same dimensions, exit now')
+     call ReadData_cube(par%wghtag,wght)
+  end if
 
   allocate(fmod%d(size(mod%d)),fmod%n(size(mod%n)),fmod%o(size(mod%o)))
   fmod%d=mod%d; fmod%n=mod%n; fmod%o=mod%o
@@ -68,9 +75,17 @@ program Matching
   call create_lap_3d(rough,par%nlaplac)
 
   if (par%prec) then
-     call ComputeAdaptiveFilterPrec_op(rough,nmatch,par,obs,mod,fmod)
+     if (exist_file('weight')) then
+        call ComputeAdaptiveFilterPrec_op(rough,nmatch,par,obs,mod,fmod,wght)
+     else
+        call ComputeAdaptiveFilterPrec_op(rough,nmatch,par,obs,mod,fmod)
+     end if
   else
-     call ComputeAdaptiveFilter_op(rough,nmatch,par,obs,mod,fmod)
+     if (exist_file('weight')) then
+        call ComputeAdaptiveFilter_op(rough,nmatch,par,obs,mod,fmod,wght)
+     else
+        call ComputeAdaptiveFilter_op(rough,nmatch,par,obs,mod,fmod)
+     end if
   end if
 
   call WriteData_dim(par%fmodtag,fmod,par)

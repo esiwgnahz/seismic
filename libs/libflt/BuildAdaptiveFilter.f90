@@ -104,7 +104,7 @@ contains
     do ipatch=1,product(nsmatch%npatch)
        nsmatch%nmatch%hlx(ipatch)%lag=tmp%lag
     end do
-        
+
     nsmatch%ncoef=size(tmp%lag)
 
     deallocate(nh)
