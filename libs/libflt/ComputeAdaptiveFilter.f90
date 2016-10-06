@@ -34,7 +34,7 @@ contains
     type(NSfilter)   :: rough  ! Regularization
     type(cube)       :: illum  ! Modeled illumination
     
-    real, dimension(:), allocatable :: filter_coefs,filter_coefsout
+    real, dimension(:), allocatable :: filter_coefs
 
     integer :: i, j, stat
     double precision :: memory_needed
@@ -45,7 +45,6 @@ contains
   
     write(0,*) 'INFO: Done with initialization'
     allocate(filter_coefs(filter%ncoef*size(filter%nmatch%hlx)))
-    allocate(filter_coefsout(filter%ncoef*size(filter%nmatch%hlx)))
     write(0,*) 'INFO: Done with filter allocation'
 
     if (present(wght).and.param%hyperbolic) then
@@ -122,53 +121,84 @@ contains
 
        call cgstep_close()
     end if
-    !! Copy coefficients into NS filter type
-    do i=1,size(filter%nmatch%hlx)
-       filter%nmatch%hlx(i)%flt(1:filter%ncoef)=filter_coefs(1+(i-1)*filter%ncoef:i*filter%ncoef)
-    end do
-    
-!    do i=1,size(filter%nmatch%hlx)
-!       write(0,*) i,filter%nmatch%hlx(i)%flt(15),filter%nmatch%hlx(i)%lag(15)
-!    end do
+
+    call ComputeIllumImpulse(filter,param,obs,mod,fmod,filter_coefs)
+
     deallocate(filter_coefs)
-    deallocate(filter_coefsout)
-
-    deallocate(obs%dat)
-    allocate(fmod%dat(fmod%n(1)*fmod%n(2)*fmod%n(3)))
-    
-    call ncnhelicon_init(filter%nmatch)
-    stat=ncnhelicon_lop(.false.,.false.,mod%dat,fmod%dat)
-    
-    allocate(illum%dat(size(mod%dat)))
-    allocate(illum%d(size(mod%d)),illum%n(size(mod%n)),illum%o(size(mod%o)))
-    illum%d=mod%d; illum%n=mod%n; illum%o=mod%o
-    illum%dat=0.
-
-    call PutSpikesInData(mod,param)
-    stat=ncnhelicon_lop(.false.,.false.,mod%dat,illum%dat)
-!    illum%dat=mod%dat
-    call WriteData_dim('impulse',illum,param)
-    call WriteData_cube('impulse',illum)
-
-    ! Illumination
-    do i=1,size(filter%nmatch%hlx)
-       do j=1,size(filter%nmatch%hlx(i)%lag)
-          if (filter%nmatch%hlx(i)%lag(j).ne.0) filter%nmatch%hlx(i)%flt(j)=0
-       end do
-    end do
-
-    illum%dat=0.
-    call ncnhelicon_init(filter%nmatch)
-    mod%dat=1.
-    stat=ncnhelicon_lop(.false.,.false.,mod%dat,illum%dat)
-    
-    call WriteData_dim('illum',illum,param)
-    call WriteData_cube('illum',illum)
-
-    call cube_deallocate(illum)
-    call NSfilter_write_to_file(param%filttag,param%filtpchtag,filter,mod)
 
   end subroutine ComputeAdaptiveFilter_op
+
+  subroutine ComputeAdaptiveFilterSparse_op(filter,param,obs,mod,fmod,wght)
+    optional         :: wght
+    type(cube)       :: wght
+    type(cube)       :: obs    ! Observed data to be matched
+    type(cube)       :: mod    ! Modeled data
+    type(cube)       :: fmod   ! Modeled data
+    type(GenPar_flt) :: param  ! Parameter file
+    type(NSfilter)   :: filter ! Filters 
+    type(cube)       :: illum  ! Modeled illumination
+    
+    real, dimension(:), allocatable :: filter_coefs
+
+    integer :: i, j, stat
+    double precision :: memory_needed
+    real, dimension(:), allocatable :: weightm
+
+    write(0,*) 'INFO: NS Filter estimation with sparseness constraints'
+    call ncnhconest_init(mod%dat,filter%nmatch,filter%ncoef)
+  
+    write(0,*) 'INFO: Done with initialization'
+    allocate(filter_coefs(filter%ncoef*size(filter%nmatch%hlx)))
+    write(0,*) 'INFO: Done with filter allocation'
+
+    if (present(wght).and.param%hyperbolic) then
+       wght%dat=wght%dat/param%thresh_d
+    endif
+
+    if (param%hyperbolic) call identity_init(param%thresh_d,param%thresh_m)
+    if (present(wght))    call weightd_init(wght%dat)
+
+    filter_coefs=0.
+
+    memory_needed=(dble(size(filter_coefs)*5)+ &  ! Model (in,out,solver)
+    &              dble(size(obs%dat)*2)     + &  ! Data  (mod,obs)
+    &              dble((size(obs%dat)+size(filter_coefs))*5))*1e-9*4 ! Data+Model (solver)
+    write(0,*) 'INFO:'
+    write(0,*) 'INFO: Memory needed for inversion =',memory_needed,'Gb'
+
+    if (present(wght)) then
+       write(0,*) 'INFO: Starting inversion with hyperbolic conjugate direction solver with weight'
+       call hycdsolver_reg(m=filter_coefs,          &
+       &                   d=obs%dat,               &
+       &                   Fop=ncnhconest_lop,      &
+       &                   Aop=identity_lop,         &
+       &                   Wop=weightd_lop,         &
+       &                   Wmop=identitym_lop,      &
+       &                   stepper=hycdstep2,       &
+       &                   nAop=size(filter_coefs), &
+       &                   niter=param%niter,       &
+       &                   eps=param%eps,           &
+       &                   verb=.true.)
+    else
+       write(0,*) 'INFO: Starting inversion with hyperbolic conjugate direction solver'
+       call hycdsolver_reg(m=filter_coefs,          &
+       &                   d=obs%dat,               &
+       &                   Fop=ncnhconest_lop,      &
+       &                   Aop=identity_lop,         &
+       &                   Wop=identityd_lop,       &
+       &                   Wmop=identitym_lop,      &
+       &                   stepper=hycdstep2,       &
+       &                   nAop=size(filter_coefs), &
+       &                   niter=param%niter,       &
+       &                   eps=param%eps,           &
+       &                   verb=.true.)
+    end if   
+
+    call ComputeIllumImpulse(filter,param,obs,mod,fmod,filter_coefs)
+
+    deallocate(filter_coefs)
+
+  end subroutine ComputeAdaptiveFilterSparse_op
 
   subroutine ComputeAdaptiveFilterPrec_op(rough,filter,param,obs,mod,fmod,wght)
     optional         :: wght
@@ -181,7 +211,7 @@ contains
     type(NSfilter)   :: rough  ! Regularization
     type(cube)       :: illum  ! Modeled illumination
     
-    real, dimension(:), allocatable :: filter_coefs,filter_coefsout
+    real, dimension(:), allocatable :: filter_coefs
 
     integer :: i, j, stat
     double precision :: memory_needed
@@ -190,7 +220,6 @@ contains
     call ncnhconest_init(mod%dat,filter%nmatch,filter%ncoef)  
 
     allocate(filter_coefs(filter%ncoef*size(filter%nmatch%hlx)))
-    allocate(filter_coefsout(filter%ncoef*size(filter%nmatch%hlx)))
  
     call npolydiv_init(size(filter_coefs),rough%nmatch)
     
@@ -270,13 +299,27 @@ contains
     end if
        
 
+    call ComputeIllumImpulse(filter,param,obs,mod,fmod,filter_coefs)
+
+    deallocate(filter_coefs)
+
+  end subroutine ComputeAdaptiveFilterPrec_op
+
+  subroutine ComputeIllumImpulse(filter,param,obs,mod,fmod,filter_coefs)
+    type(cube)       :: obs    ! Observed data to be matched
+    type(cube)       :: mod    ! Modeled data
+    type(cube)       :: fmod   ! Modeled data
+    type(GenPar_flt) :: param  ! Parameter file
+    type(NSfilter)   :: filter ! Filters 
+    type(cube)       :: illum  ! Modeled illumination
+    real, dimension(:) :: filter_coefs
+    
+    integer :: i,j,stat
+
     !! Copy coefficients into NS filter type
     do i=1,size(filter%nmatch%hlx)
        filter%nmatch%hlx(i)%flt(1:filter%ncoef)=filter_coefs(1+(i-1)*filter%ncoef:i*filter%ncoef)
     end do
-
-    deallocate(filter_coefs)
-    deallocate(filter_coefsout)
 
     deallocate(obs%dat)
     allocate(fmod%dat(fmod%n(1)*fmod%n(2)*fmod%n(3)))
@@ -312,8 +355,8 @@ contains
 
     call cube_deallocate(illum)
     call NSfilter_write_to_file(param%filttag,param%filtpchtag,filter,mod)
-    
-  end subroutine ComputeAdaptiveFilterPrec_op
+
+  end subroutine ComputeIllumImpulse
 
   subroutine PutSpikesInData(dat,param)
     type(cube)       ::      dat

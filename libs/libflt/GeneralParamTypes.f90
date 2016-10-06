@@ -24,6 +24,7 @@ module GenParam_types_flt
 
      logical :: prec     ! Whether or not to use preconditioning 
      logical :: hyperbolic ! Whether or not to use hyperbolic norm solver
+     logical :: sparse
 
      integer :: nthreads
   end type Genpar_flt

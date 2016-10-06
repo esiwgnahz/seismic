@@ -76,23 +76,51 @@ program Matching
   call pch_init(obs,par,nmatch)
   call create_nsmatch_filter(obs,par,nmatch)
 
-  allocate(rough%npatch(3))
-  rough%npatch=nmatch%npatch
-  rough%ncoef=nmatch%ncoef
-  call create_lap_3d(rough,par%nlaplac)
+  write(0,*) 'INFO:-------------------------------'
+  write(0,*) 'INFO:      Inversion parameters     '
+  write(0,*) 'INFO:-------------------------------'
 
-  if (par%prec) then
-     if (exist_file('weight')) then
-        call ComputeAdaptiveFilterPrec_op(rough,nmatch,par,obs,mod,fmod,wght)
+  if (par%hyperbolic) then
+     write(0,*) 'INFO:'
+     write(0,*) 'INFO:   thresh_d=',par%thresh_d
+     write(0,*) 'INFO: maxval dat=',maxval(abs(obs%dat))
+     write(0,*) 'INFO:   thresh_m=',par%thresh_m
+     write(0,*) 'INFO:'
+     write(0,*) 'INFO:-------------------------------'
+     write(0,*) 'INFO:'
+  end if
+  write(0,*) 'INFO:'
+  write(0,*) 'INFO:   epsilon=',par%eps
+  write(0,*) 'INFO:   niter  =',par%niter
+  write(0,*) 'INFO:'
+  write(0,*) 'INFO:-------------------------------'
+
+
+  if (par%sparse) then
+      if (exist_file('weight')) then
+        call ComputeAdaptiveFilterSparse_op(nmatch,par,obs,mod,fmod,wght)
      else
-        call ComputeAdaptiveFilterPrec_op(rough,nmatch,par,obs,mod,fmod)
+        call ComputeAdaptiveFilterSparse_op(nmatch,par,obs,mod,fmod)
      end if
   else
-     if (exist_file('weight')) then
-        call ComputeAdaptiveFilter_op(rough,nmatch,par,obs,mod,fmod,wght)
+     allocate(rough%npatch(3))
+     rough%npatch=nmatch%npatch
+     rough%ncoef=nmatch%ncoef
+     call create_lap_3d(rough,par%nlaplac)
+     if (par%prec) then
+        if (exist_file('weight')) then
+           call ComputeAdaptiveFilterPrec_op(rough,nmatch,par,obs,mod,fmod,wght)
+        else
+           call ComputeAdaptiveFilterPrec_op(rough,nmatch,par,obs,mod,fmod)
+        end if
      else
-        call ComputeAdaptiveFilter_op(rough,nmatch,par,obs,mod,fmod)
+        if (exist_file('weight')) then
+           call ComputeAdaptiveFilter_op(rough,nmatch,par,obs,mod,fmod,wght)
+        else
+           call ComputeAdaptiveFilter_op(rough,nmatch,par,obs,mod,fmod)
+        end if
      end if
+     call NSfilter_deallocate(rough)
   end if
 
   call WriteData_dim(par%fmodtag,fmod,par)
@@ -102,7 +130,6 @@ program Matching
   call cube_deallocate(mod)
   call cube_deallocate(fmod)
 
-  call NSfilter_deallocate(rough)
   call NSfilter_deallocate(nmatch)
 
 end program Matching
