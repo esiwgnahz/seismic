@@ -2,16 +2,15 @@ module ReadData_mod
 
   use sep
   use DataSpace_types_flt
-  use GenParam_types_flt
 
   implicit none
 
 contains
 
-  subroutine InfoData_dim(tag,data,genpar)
+  subroutine InfoData_dim(tag,data,ndim)
     character(len=*)  ::  tag
     type(cube)        ::      data
-    type(GenPar_flt)  ::            genpar
+    integer           ::           ndim
     integer           :: i
 
     write(0,*) 'INFO:'
@@ -19,7 +18,7 @@ contains
     write(0,*) 'INFO:       Dimensions ',tag,' Data        '
     write(0,*) 'INFO: ------------------------------------'
     write(0,*) 'INFO:'
-    do i=1,genpar%ndim
+    do i=1,ndim
        write(0,*) 'INFO: n(',i,')=',data%n(i)
        write(0,*) 'INFO: o(',i,')=',data%o(i)
        write(0,*) 'INFO: d(',i,')=',data%d(i)
@@ -28,10 +27,10 @@ contains
     
   end subroutine InfoData_dim
 
-  subroutine ReadData_dim(tag,data,genpar)
+  subroutine ReadData_dim(tag,data,ndim)
     character(len=*)  ::  tag
     type(cube)        ::      data
-    type(GenPar_flt)  ::            genpar
+    integer           ::           ndim
     integer           :: i
     character(len=1024) :: label
 
@@ -39,20 +38,20 @@ contains
     allocate(data%n(3),data%o(3),data%d(3))
 
     data%n=1; data%o=0. ; data%d=0.
-    do i=1,genpar%ndim
+    do i=1,ndim
        call sep_get_data_axis_par(tag,i,data%n(i),data%o(i),data%d(i),label)
     end do
     
   end subroutine ReadData_dim
 
-  subroutine WriteData_dim(tag,data,genpar)
+  subroutine WriteData_dim(tag,data,ndim)
     character(len=*)  ::   tag
     type(cube)        ::       data
-    type(GenPar_flt)  ::            genpar
+    integer           ::            ndim
     integer           :: i
     character(len=1024) :: label
     label=" "
-    do i=1,genpar%ndim
+    do i=1,ndim
        call sep_put_data_axis_par(tag,i,data%n(i),data%o(i),data%d(i),label)
     end do
     

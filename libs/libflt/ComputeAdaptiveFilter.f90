@@ -332,10 +332,12 @@ contains
     illum%d=mod%d; illum%n=mod%n; illum%o=mod%o
     illum%dat=0.
 
+    call NSfilter_write_to_file(param%filttag,param%filtpchtag,filter,mod)
+
     call PutSpikesInData(mod,param)
     stat=ncnhelicon_lop(.false.,.false.,mod%dat,illum%dat)
 !    illum%dat=mod%dat
-    call WriteData_dim('impulse',illum,param)
+    call WriteData_dim('impulse',illum,param%ndim)
     call WriteData_cube('impulse',illum)
 
     ! Illumination
@@ -350,11 +352,10 @@ contains
     mod%dat=1.
     stat=ncnhelicon_lop(.false.,.false.,mod%dat,illum%dat)
     
-    call WriteData_dim('illum',illum,param)
+    call WriteData_dim('illum',illum,param%ndim)
     call WriteData_cube('illum',illum)
 
     call cube_deallocate(illum)
-    call NSfilter_write_to_file(param%filttag,param%filtpchtag,filter,mod)
 
   end subroutine ComputeIllumImpulse
 

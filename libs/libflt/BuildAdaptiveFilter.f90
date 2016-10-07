@@ -12,22 +12,21 @@ module BuildAdaptiveFilter_mod
 contains
 
   !! Calculate non-overlapping patch-size given a certain number of patches
-  subroutine psize_init(dat,param,nsmatch)
+  subroutine psize_init(dat,ndim,nsmatch)
     type(cube)      ::  dat
-    type(GenPar_flt) ::     param
+    integer         ::      ndim
     type(NSfilter)  ::            nsmatch
     integer                            :: i
-    allocate(nsmatch%psize(param%ndim))
-    do i=1,param%ndim
+    allocate(nsmatch%psize(ndim))
+    do i=1,ndim
        nsmatch%psize(i)=1+(dat%n(i)-1)/nsmatch%npatch(i)
     end do
   end subroutine psize_init
 
   !! Divides data-space between rectangular patches
-  subroutine pch_init(dat,param,nsmatch)
+  subroutine pch_init(dat,nsmatch)
     type(cube)      ::dat
-    type(GenPar_flt) ::   param
-    type(NSfilter)  ::          nsmatch
+    type(NSfilter)  ::    nsmatch
 
     integer, dimension(:), pointer     :: ii
     integer :: i,j
@@ -85,9 +84,9 @@ contains
     
   end subroutine create_match_filter
 
-  subroutine create_nsmatch_filter(dat,param,nsmatch)
+  subroutine create_nsmatch_filter(dat,ndim,nsmatch)
     type(cube)      ::             dat
-    type(GenPar_flt) ::                param
+    integer         ::                 ndim
     type(NSfilter)  ::                       nsmatch
 
     type(filter)    ::tmp
@@ -99,7 +98,7 @@ contains
     nh=product(nsmatch%nfilt)                       !! Set them all constant
     
     call nallocate(nsmatch%nmatch,nh,nsmatch%pch)   
-    call create_match_filter(nsmatch%nfilt,tmp,param%ndim,dat%n)
+    call create_match_filter(nsmatch%nfilt,tmp,ndim,dat%n)
     
     do ipatch=1,product(nsmatch%npatch)
        nsmatch%nmatch%hlx(ipatch)%lag=tmp%lag

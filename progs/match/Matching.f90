@@ -53,16 +53,16 @@ program Matching
 
   if(par%ndim.ne.3) call erexit('ERROR: only working on 3D cubes, exit now')
 
-  call ReadData_dim(par%obstag,obs,par)
-  call ReadData_dim(par%modtag,mod,par)
-  call InfoData_dim(par%obstag,obs,par)
+  call ReadData_dim(par%obstag,obs,par%ndim)
+  call ReadData_dim(par%modtag,mod,par%ndim)
+  call InfoData_dim(par%obstag,obs,par%ndim)
   if (.not.hdrs_are_consistent(obs,mod)) call erexit('ERROR: obs and mod do not have same dimensions, exit now')
   call ReadData_cube(par%obstag,obs)
   call ReadData_cube(par%modtag,mod)
   call from_param('thresh_d',par%thresh_d,maxval(abs(obs%dat))/100)
 
   if (exist_file('weight')) then
-     call ReadData_dim(par%wghtag,wght,par)
+     call ReadData_dim(par%wghtag,wght,par%ndim)
      if (.not.hdrs_are_consistent(obs,wght)) call erexit('ERROR: obs and mod do not have same dimensions, exit now')
      call ReadData_cube(par%wghtag,wght)
   end if
@@ -72,9 +72,9 @@ program Matching
 
   call readparams(par,nmatch)
 
-  call psize_init(obs,par,nmatch)
-  call pch_init(obs,par,nmatch)
-  call create_nsmatch_filter(obs,par,nmatch)
+  call psize_init(obs,par%ndim,nmatch)
+  call pch_init(obs,nmatch)
+  call create_nsmatch_filter(obs,par%ndim,nmatch)
 
   write(0,*) 'INFO:-------------------------------'
   write(0,*) 'INFO:      Inversion parameters     '
@@ -123,7 +123,7 @@ program Matching
      call NSfilter_deallocate(rough)
   end if
 
-  call WriteData_dim(par%fmodtag,fmod,par)
+  call WriteData_dim(par%fmodtag,fmod,par%ndim)
   call WriteData_cube(par%fmodtag,fmod)
 
   call cube_deallocate(obs)

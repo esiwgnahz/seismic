@@ -63,23 +63,32 @@ contains
 
   end subroutine NSfilter_write_to_file
 
-  subroutine NSfilter_read_from_file(tag,tagpch,flt,data)
+  subroutine NSfilter_read_param_from_file(tag,flt,ndim)
     type(NSfilter)             ::              flt
-    character(len=*)           ::   tag       
-    character(len=*)           ::       tagpch
-    type(cube)                 ::                  data
-    integer :: i
+    character(len=*)           ::          tag       
+    integer :: i,ndim
     character(len=1024) :: label
 
     label=''
 
+    allocate(flt%npatch(ndim))
+    allocate(flt%nfilt(ndim))
+
     call from_aux(tag,'nfilt',flt%nfilt)
-    call from_aux(tag,'npath',flt%npatch)
-    call from_aux(tag,'ncoef',flt%ncoef)
-    call from_aux(tag,'psize',flt%psize)
+    call from_aux(tag,'npatch',flt%npatch)
     call from_aux(tag,'ncoef',flt%ncoef)
 
+  end subroutine NSfilter_read_param_from_file
+
+  subroutine NSfilter_read_from_file(tag,tagpch,flt,data)
+    type(NSfilter)             ::               flt
+    character(len=*)           ::    tag    
+    character(len=*)           ::        tagpch  
+    type(cube)                 ::                   data
+    integer :: i
+
     call from_aux(tag,'lag',flt%nmatch%hlx(1)%lag)
+    call from_aux(tag,'psize',flt%psize)
 
     do i=1,product(flt%npatch)
        call sreed(tag,flt%nmatch%hlx(i)%flt,4*flt%ncoef)
