@@ -24,7 +24,8 @@ module ncnhconest
     logical,intent(in) :: adj,add 
     real,dimension(:)  :: a,y 
     call adjnull (adj,add,a,y )
-    call ncnhconest_lop2(adj,a,y )
+    call ncnhconest_lop3(adj,a,y )
+!    call ncnhconest_lop2(adj,a,y )
     stat=0
   end function 
   subroutine ncnhconest_lop2(adj,a,y)
@@ -60,6 +61,39 @@ module ncnhconest
     !$OMP END PARALLEL DO
 
   end subroutine ncnhconest_lop2
+  subroutine ncnhconest_lop3(adj,a,y)
+    logical,intent(in) :: adj 
+    real, dimension ( nhmax, np)  :: a 
+    real, dimension (:)  :: y 
+    integer                        :: ia, ix, iy, ip, nx
+    integer, dimension(:), pointer :: lag
+    nx=size(x)
+
+    !$OMP PARALLEL DO PRIVATE(iy,ip,lag,ia,ix)
+    do iy = 1, size( y)
+       if (associated(aa%mis)) then
+          if ( aa%mis( iy)) then
+             cycle
+          end if
+       end if
+       ip = aa%pch( iy)
+       lag => aa%hlx( ip)%lag
+
+       do ia = 1, size( lag)
+          ix = iy - lag( ia)
+          if ((ix<1).or.(ix>nx)) then
+             cycle
+          end if
+          if ( adj) then
+             a( ia, ip) =    a( ia, ip) +  y( ix) * x( iy)
+          else
+             y( ix) =         y( ix) +  a( ia, ip) * x( iy)
+          end if
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+  end subroutine ncnhconest_lop3
   subroutine ncnhconest_close()
     if (associated(x)) nullify(x)
   end subroutine ncnhconest_close

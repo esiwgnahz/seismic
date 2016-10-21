@@ -32,6 +32,7 @@ clean:
 #	(cd progs/modeling; make aclean)
 #	(cd progs/rtm; make aclean)
 	(cd progs/match; make aclean)
+	(cd progs/procs; make aclean)
 
 
 all: 
@@ -46,4 +47,5 @@ all:
 #	(cd progs/futterman; make)
 	(cd progs/modeling; make)
 	(cd progs/rtm; make)
+	(cd progs/procs; make)
 
