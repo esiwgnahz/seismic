@@ -22,16 +22,24 @@ program Change
      call sep_get_data_axis_par("in",i,n(i),o(i),d(i),label)
   end do
   
-  allocate(in(n(1),product(n(2:))),ou(n(1),product(n(2:))))
+  allocate(in(n(1),n(2)),ou(n(1),n(2)))
   call from_param('value',value,0.)
-  call sep_read(in)
 
-  where(in.le.value) 
+  do j=1,n(3)
+
+     in=0.
      ou=0.
-  elsewhere
-     ou=1.
-  end where
 
-  call sep_write(ou)
+     call sep_read(in)
+     
+     where(in.le.value) 
+        ou=0.
+     elsewhere
+        ou=1.
+     end where
+     
+     call sep_write(ou)
         
+  end do
+
 end program Change
