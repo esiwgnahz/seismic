@@ -3,6 +3,7 @@ module Filter_types
   use sep
   use helix
   use nhelix
+  use ReadData_mod
   use DataSpace_types_flt
 
   implicit none
@@ -80,12 +81,12 @@ contains
 
   end subroutine NSfilter_read_param_from_file
 
-  subroutine NSfilter_read_from_file(tag,tagpch,flt,data)
+  subroutine NSfilter_read_from_file(tag,tagpch,flt,data,ndim)
     type(NSfilter)             ::               flt
     character(len=*)           ::    tag    
     character(len=*)           ::        tagpch  
-    type(cube)                 ::                   data
-    integer :: i
+    type(cube)                 ::                   data,fltpch
+    integer :: i,ndim
 
     call from_aux(tag,'lag',flt%nmatch%hlx(1)%lag)
     call from_aux(tag,'psize',flt%psize)
@@ -94,9 +95,14 @@ contains
        call sreed(tag,flt%nmatch%hlx(i)%flt,4*flt%ncoef)
     end do
     
+    call ReadData_dim(tagpch,fltpch,ndim)
+    if (.not.hdrs_are_consistent(fltpch,data)) call erexit('ERROR: patches and input file have different sizes, exit now')
+
     do i=1,data%n(3)
        call sreed(tagpch,flt%pch(1+(i-1)*data%n(1)*data%n(2):i*data%n(1)*data%n(2)),4*data%n(1)*data%n(2))
     end do
+
+    call cube_deallocate(fltpch)
 
   end subroutine NSfilter_read_from_file
 

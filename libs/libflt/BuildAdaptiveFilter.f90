@@ -1,5 +1,6 @@
 module BuildAdaptiveFilter_mod
   
+  use ncnbound  
   use cartesian
   use lapfac3_mod
   use lapfac_mod
@@ -108,7 +109,8 @@ contains
 
     deallocate(nh)
     call deallocatehelix(tmp)
-    
+    call ncnboundn(1,dat%n,nsmatch%nfilt,nsmatch)
+
   end subroutine create_nsmatch_filter
 
   subroutine create_lap_3d(rough,nlaplac)

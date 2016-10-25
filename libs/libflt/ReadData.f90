@@ -44,6 +44,18 @@ contains
     
   end subroutine ReadData_dim
 
+  subroutine CopyCube1ToCube2(data1,data2)
+    type(cube) :: data1,data2
+    
+    if (.not.allocated(data2%n))   allocate(data2%n(3),data2%o(3),data2%d(3))    
+    if (.not.allocated(data2%dat)) allocate(data2%dat(data1%n(1)*data1%n(2)*data1%n(3)))
+    data2%n=data1%n
+    data2%o=data1%o
+    data2%d=data1%d
+    data2%dat=data1%dat
+
+  end subroutine CopyCube1ToCube2
+
   subroutine WriteData_dim(tag,data,ndim)
     character(len=*)  ::   tag
     type(cube)        ::       data

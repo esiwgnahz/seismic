@@ -6,7 +6,7 @@ module solver_smp_mod2
   implicit none
   logical, parameter, private  :: T = .true., F = .false.
   contains
-  subroutine solver_smp( m,d, Fop, stepper, niter   ,             Wop&
+  subroutine solver_smp2( m,d, Fop, stepper, niter   ,             Wop&
     &,Jop,m0,err,resd,mmov,rmov,verb)
     optional :: Wop,Jop,m0,err,resd,mmov,rmov,verb
     interface  
@@ -40,6 +40,8 @@ module solver_smp_mod2
     real, dimension(:), pointer                :: rm, gm, tm
     integer                                    :: iter, stat
     logical                                    :: forget
+
+    write(0,*) 'starting solver'
     rd => rr(1:size(d))
     gd => gg(1:size(d))
     td => tt(1:size(d))
@@ -62,22 +64,27 @@ module solver_smp_mod2
     forget = T
 !-------------------------- begin iterations ------------
     do iter = 1,niter  
+       write(0,*) 'here solver'
       if (present(Wop)) then
         call chain0(Wop,Fop,T,F,g,rd,td)
       else
         stat =          Fop(T,F,g,rd   )   !g  = (WF)'Rd
       end if 
+       write(0,*) 'here solver 1'
       if (present(Jop)) then
         tm=g
         stat  = Jop(F,F,tm, g  )
       end if
 !g  =   J  g
+       write(0,*) 'here solver 2'
       if (present(Wop)) then
         call chain0(Wop,Fop,F,F,g,gd,td)
       else
         stat =          Fop(F,F,g,gd   )   !Gd = (WF) g
       end if 
-      stat = stepper(forget, m,g, rr,gg)                  
+       write(0,*) 'here solver3'
+      stat = stepper(forget, m,g, rr,gg)   
+       write(0,*) 'here solver4'               
       !m+=dm; R+=dR
       if (stat .eq.1) then
         exit ! got stuck descending

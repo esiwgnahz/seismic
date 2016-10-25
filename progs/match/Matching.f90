@@ -16,6 +16,7 @@
 
 program Matching
 
+  use ncnmisinput
   use Filter_types
   use GenParam_types_flt
   use DataSpace_types_flt
@@ -34,6 +35,8 @@ program Matching
   type(GenPar_flt) :: par
   type(NSfilter)   :: nmatch
   type(NSfilter)   :: rough
+  real, dimension(:), allocatable:: mask
+  integer :: i
   call sep_init(SOURCE)
 
   par%wghtag='weight'
@@ -61,12 +64,6 @@ program Matching
   call ReadData_cube(par%modtag,mod)
   call from_param('thresh_d',par%thresh_d,maxval(abs(obs%dat))/100)
 
-  if (exist_file('weight')) then
-     call ReadData_dim(par%wghtag,wght,par%ndim)
-     if (.not.hdrs_are_consistent(obs,wght)) call erexit('ERROR: obs and mod do not have same dimensions, exit now')
-     call ReadData_cube(par%wghtag,wght)
-  end if
-
   allocate(fmod%d(size(mod%d)),fmod%n(size(mod%n)),fmod%o(size(mod%o)))
   fmod%d=mod%d; fmod%n=mod%n; fmod%o=mod%o
 
@@ -74,7 +71,44 @@ program Matching
 
   call psize_init(obs,par%ndim,nmatch)
   call pch_init(obs,nmatch)
+  write(0,*) 'INFO:'
+  write(0,*) 'INFO: 1/2-Create non-stationary non-causal matching filters'
   call create_nsmatch_filter(obs,par%ndim,nmatch)
+  write(0,*) 'INFO: 2/2-Done with creation of non-stationary non-causal matching filters'
+  write(0,*) 'INFO:'
+
+  allocate(mask(size(obs%dat))); mask=0.
+  if (exist_file('weight')) then
+     call ReadData_dim(par%wghtag,wght,par%ndim)
+     if (.not.hdrs_are_consistent(obs,wght)) call erexit('ERROR: obs and mod do not have same dimensions, exit now')
+     call ReadData_cube(par%wghtag,wght)
+  else
+     call CopyCube1ToCube2(obs,wght)
+     wght%dat=1.
+  end if
+
+  where(wght%dat.eq.0.) 
+     mask=1.
+  end where
+
+
+  ! Find missing input from helical boundaries and missing data
+  write(0,*) 'INFO:'
+  write(0,*) 'INFO: Find missing data mask from weight matching filters'
+  call find_ncmask(mask,nmatch)
+  write(0,*) 'INFO: Done finding missing data mask from weight matching filters'
+  mask=1
+  where(nmatch%nmatch%mis)
+     mask=0
+  endwhere
+
+  wght%dat=wght%dat*mask
+
+  do i=1,obs%n(3)
+     call srite('maskout',mask(1+(i-1)*obs%n(1)*obs%n(2):i*obs%n(1)*obs%n(2)),4*obs%n(1)*obs%n(2))
+  end do
+
+  deallocate(mask)
 
   write(0,*) 'INFO:-------------------------------'
   write(0,*) 'INFO:      Inversion parameters     '
@@ -95,30 +129,17 @@ program Matching
   write(0,*) 'INFO:'
   write(0,*) 'INFO:-------------------------------'
 
-
   if (par%sparse) then
-      if (exist_file('weight')) then
         call ComputeAdaptiveFilterSparse_op(nmatch,par,obs,mod,fmod,wght)
-     else
-        call ComputeAdaptiveFilterSparse_op(nmatch,par,obs,mod,fmod)
-     end if
   else
      allocate(rough%npatch(3))
      rough%npatch=nmatch%npatch
      rough%ncoef=nmatch%ncoef
      call create_lap_3d(rough,par%nlaplac)
      if (par%prec) then
-        if (exist_file('weight')) then
-           call ComputeAdaptiveFilterPrec_op(rough,nmatch,par,obs,mod,fmod,wght)
-        else
-           call ComputeAdaptiveFilterPrec_op(rough,nmatch,par,obs,mod,fmod)
-        end if
+        call ComputeAdaptiveFilterPrec_op(rough,nmatch,par,obs,mod,fmod,wght)        
      else
-        if (exist_file('weight')) then
-           call ComputeAdaptiveFilter_op(rough,nmatch,par,obs,mod,fmod,wght)
-        else
-           call ComputeAdaptiveFilter_op(rough,nmatch,par,obs,mod,fmod)
-        end if
+        call ComputeAdaptiveFilter_op(rough,nmatch,par,obs,mod,fmod,wght)       
      end if
      call NSfilter_deallocate(rough)
   end if
@@ -129,6 +150,7 @@ program Matching
   call cube_deallocate(obs)
   call cube_deallocate(mod)
   call cube_deallocate(fmod)
+  call cube_deallocate(wght)
 
   call NSfilter_deallocate(nmatch)
 

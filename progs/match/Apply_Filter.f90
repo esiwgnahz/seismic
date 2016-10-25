@@ -42,7 +42,7 @@ program Apply_Filter
   call psize_init(input,ndim,nmatch)
   call pch_init(input,nmatch)
   call create_nsmatch_filter(input,ndim,nmatch)
-  call NSfilter_read_from_file(filttag,filtpchtag,nmatch,input)
+  call NSfilter_read_from_file(filttag,filtpchtag,nmatch,input,ndim)
   
   write(0,*) 'INFO: Applying filter'
   call ncnhelicon_init(nmatch%nmatch)
