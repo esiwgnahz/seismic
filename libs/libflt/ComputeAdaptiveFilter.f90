@@ -35,7 +35,7 @@ contains
     type(NSfilter)   :: filter ! Filters 
     type(NSfilter)   :: rough  ! Regularization
     type(cube)       :: illum  ! Modeled illumination
-    
+
     real, dimension(:), allocatable :: filter_coefs
 
     integer :: i, j, stat
@@ -44,7 +44,7 @@ contains
     write(0,*) 'INFO: NS Filter estimation with regularization'
     call nhelicon_mod_init(rough%nmatch)
     call ncnhconest_init(mod%dat,filter%nmatch,filter%ncoef)
-  
+
     write(0,*) 'INFO: Done with initialization'
     allocate(filter_coefs(filter%ncoef*size(filter%nmatch%hlx)))
     write(0,*) 'INFO: Done with filter allocation'
@@ -69,6 +69,7 @@ contains
        if (present(wght)) then
           if (param%eps.eq.0) then
              write(0,*) 'INFO: Starting inversion with hyperbolic conjugate direction solver with weight, eps=0'
+             write(0,*) 'INFO:'
              call hycdsolver_smp(m=filter_coefs,          &
              &                   d=obs%dat,               &
              &                   Fop=ncnhconest_lop,      &
@@ -78,6 +79,7 @@ contains
              &                   verb=.true.)
           else
              write(0,*) 'INFO: Starting inversion with hyperbolic conjugate direction solver with weight'
+             write(0,*) 'INFO:'
              call hycdsolver_reg(m=filter_coefs,          &
              &                   d=obs%dat,               &
              &                   Fop=ncnhconest_lop,      &
@@ -89,11 +91,12 @@ contains
              &                   niter=param%niter,       &
              &                   eps=param%eps,           &
              &                   verb=.true.)
-          end if         
+          end if
           call weightd_close()
        else
           if (param%eps.eq.0) then
              write(0,*) 'INFO: Starting inversion with hyperbolic conjugate direction solver, eps=0'
+             write(0,*) 'INFO:'
              call hycdsolver_smp(m=filter_coefs,          &
              &                   d=obs%dat,               &
              &                   Fop=ncnhconest_lop,      &
@@ -103,6 +106,7 @@ contains
              &                   verb=.true.)
           else
              write(0,*) 'INFO: Starting inversion with hyperbolic conjugate direction solver'
+             write(0,*) 'INFO:'
              call hycdsolver_reg(m=filter_coefs,          &
              &                   d=obs%dat,               &
              &                   Fop=ncnhconest_lop,      &
@@ -120,6 +124,7 @@ contains
        if (present(wght)) then
           if (param%eps.eq.0) then
              write(0,*) 'INFO: Starting inversion with conjugate direction solver with weight, eps=0'
+             write(0,*) 'INFO:'
              call solver_smp(m=filter_coefs,          &
              &               d=obs%dat,               &
              &               Fop=ncnhconest_lop,      &
@@ -129,6 +134,7 @@ contains
              &               verb=.true.)
           else
              write(0,*) 'INFO: Starting inversion with conjugate direction solver with weight'
+             write(0,*) 'INFO:'
              call solver_reg(m=filter_coefs,          &
              &               d=obs%dat,               &
              &               Fop=ncnhconest_lop,      &
@@ -144,6 +150,7 @@ contains
        else
           if (param%eps.eq.0) then
              write(0,*) 'INFO: Starting inversion with conjugate direction solver, eps=0'
+             write(0,*) 'INFO:'
              call solver_smp(m=filter_coefs,          &
              &               d=obs%dat,               &
              &               Fop=ncnhconest_lop,      &
@@ -152,6 +159,7 @@ contains
              &               verb=.true.)
           else
              write(0,*) 'INFO: Starting inversion with conjugate direction solver'
+             write(0,*) 'INFO:'
              call solver_reg(m=filter_coefs,          &
              &               d=obs%dat,               &
              &               Fop=ncnhconest_lop,      &
@@ -214,6 +222,7 @@ contains
     if (present(wght)) then
        if (param%eps.eq.0) then
           write(0,*) 'INFO: Starting inversion with hyperbolic conjugate direction solver with weight, eps=0'
+          write(0,*) 'INFO:'
           call hycdsolver_smp(m=filter_coefs,          &
           &               d=obs%dat,               &
           &               Fop=ncnhconest_lop,      &
@@ -223,6 +232,7 @@ contains
           &               verb=.true.)
        else
           write(0,*) 'INFO: Starting inversion with hyperbolic conjugate direction solver with weight'
+          write(0,*) 'INFO:'
           call hycdsolver_reg(m=filter_coefs,          &
           &                   d=obs%dat,               &
           &                   Fop=ncnhconest_lop,      &
@@ -238,6 +248,7 @@ contains
     else
        if (param%eps.eq.0) then
           write(0,*) 'INFO: Starting inversion with hyperbolic conjugate direction solver, eps=0'
+          write(0,*) 'INFO:'
           call hycdsolver_smp(m=filter_coefs,          &
           &               d=obs%dat,               &
           &               Fop=ncnhconest_lop,      &
@@ -247,6 +258,7 @@ contains
           &               verb=.true.)
        else
           write(0,*) 'INFO: Starting inversion with hyperbolic conjugate direction solver'
+          write(0,*) 'INFO:'
           call hycdsolver_reg(m=filter_coefs,          &
           &                   d=obs%dat,               &
           &                   Fop=ncnhconest_lop,      &
@@ -310,6 +322,7 @@ contains
     if (param%hyperbolic) then
        if (present(wght)) then
           write(0,*) 'INFO: Starting inversion with hyperbolic conjugate direction solver with weight'
+          write(0,*) 'INFO:'
           call hycdsolver_prc(m=filter_coefs,          &
           &                   d=obs%dat,               &
           &                   Fop=ncnhconest_lop,      &
@@ -324,6 +337,7 @@ contains
           call weightd_close()
        else
           write(0,*) 'INFO: Starting inversion with hyperbolic conjugate direction solver'
+          write(0,*) 'INFO:'
           call hycdsolver_prc(m=filter_coefs,          &
           &                   d=obs%dat,               &
           &                   Fop=ncnhconest_lop,      &
@@ -339,6 +353,7 @@ contains
     else
        if (present(wght)) then
           write(0,*) 'INFO: Starting inversion with conjugate direction solver with weight'
+          write(0,*) 'INFO:'
           call solver_prc(m=filter_coefs,          &
           &               d=obs%dat,               &
           &               Fop=ncnhconest_lop,      &
@@ -352,6 +367,7 @@ contains
           call weightd_close()
        else
           write(0,*) 'INFO: Starting inversion with conjugate direction solver'
+          write(0,*) 'INFO:'
           call solver_prc(m=filter_coefs,          &
           &               d=obs%dat,               &
           &               Fop=ncnhconest_lop,      &

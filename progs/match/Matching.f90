@@ -91,12 +91,11 @@ program Matching
      mask=1.
   end where
 
-
   ! Find missing input from helical boundaries and missing data
-  write(0,*) 'INFO:'
   write(0,*) 'INFO: Find missing data mask from weight matching filters'
   call find_ncmask(mask,nmatch)
   write(0,*) 'INFO: Done finding missing data mask from weight matching filters'
+  write(0,*) 'INFO:'
   mask=1
   where(nmatch%nmatch%mis)
      mask=0
@@ -105,7 +104,7 @@ program Matching
   wght%dat=wght%dat*mask
 
   do i=1,obs%n(3)
-     call srite('maskout',mask(1+(i-1)*obs%n(1)*obs%n(2):i*obs%n(1)*obs%n(2)),4*obs%n(1)*obs%n(2))
+     call srite('maskout',wght%dat(1+(i-1)*obs%n(1)*obs%n(2):i*obs%n(1)*obs%n(2)),4*obs%n(1)*obs%n(2))
   end do
 
   deallocate(mask)
@@ -144,6 +143,8 @@ program Matching
      call NSfilter_deallocate(rough)
   end if
 
+  write(0,*) 'INFO: Done with filter estimation, writing to disk'
+
   call WriteData_dim(par%fmodtag,fmod,par%ndim)
   call WriteData_cube(par%fmodtag,fmod)
 
@@ -153,5 +154,7 @@ program Matching
   call cube_deallocate(wght)
 
   call NSfilter_deallocate(nmatch)
+
+  write(0,*) 'INFO: Succesful completion of Matching.x, exit now'
 
 end program Matching
