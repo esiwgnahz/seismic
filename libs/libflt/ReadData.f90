@@ -107,4 +107,16 @@ contains
    
   end function hdrs_are_consistent
 
+  logical function ns_are_consistent(ndim,data1,data2)
+    type(cube)        ::                  data1,data2
+    integer           :: i,ndim
+
+    ns_are_consistent=.true.
+
+    do i=1,ndim
+       if (data1%n(i).ne.data2%n(i)) ns_are_consistent=.false.
+    end do
+   
+  end function ns_are_consistent
+
 end module ReadData_mod
