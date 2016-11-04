@@ -28,8 +28,10 @@ program Update_cg_vectors
   call sreed('alfabeta',alfa,8)
   call sreed('alfabeta',beta,8)
 
+  write(0,*) 'INFO: updating file1=',beta,'*file1+',alfa,'*file2'
   dat1%dat=beta*dat1%dat+alfa*dat2%dat
 
   call WriteData_cube('file1',dat1)
-  
+  call WriteData_dim('file1',dat1,ndim)
+
 end program Update_cg_vectors

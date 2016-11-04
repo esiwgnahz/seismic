@@ -22,8 +22,11 @@ program Ddot_gg_rr_ss_OC
   if (.not.ns_are_consistent(ndim,gg,ss)) call erexit('ERROR: dimensions gg and ss are not the same, exist now')
 
   call ReadData_cube('gg',gg)
+  call auxclose('gg')
   call ReadData_cube('rr',rr)
+  call auxclose('rr')
   call ReadData_cube('ss',ss)
+  call auxclose('ss')
 
   call from_param('add',add,.false.)
   call from_param('iter',iter)
@@ -32,8 +35,6 @@ program Ddot_gg_rr_ss_OC
   write(0,*) 'INFO: iter=',iter
 
   if(.not.exist_file('dot_product')) call erexit('ERROR: need dot_product file to save value')
-
-  if(.not.exist_file('of')) call erexit('ERROR: need of file to save objective function value')
 
   if (add) then
      call sreed('dot_product',gdg,8)
@@ -56,9 +57,9 @@ program Ddot_gg_rr_ss_OC
 
   gdg=gdg+dot_product(gg%dat,gg%dat)
   sds=sds+dot_product(ss%dat,ss%dat)
-  gdr=gdr+dot_product(gg%dat,rr%dat)
+  gdr=gdr-dot_product(gg%dat,rr%dat)
   gds=gds+dot_product(gg%dat,ss%dat)
-  sdr=sdr+dot_product(ss%dat,rr%dat)
+  sdr=sdr-dot_product(ss%dat,rr%dat)
   rdr=rdr+dot_product(rr%dat,rr%dat)
 
   call srite('dot_product',gdg,8)
@@ -68,6 +69,7 @@ program Ddot_gg_rr_ss_OC
   call srite('dot_product',sdr,8)
   call srite('dot_product',rdr,8)
   
-  call srite('of',sngl(rdr),4)
+  call to_history('n1',6,'dot_product')
+  call to_history('esize',8,'dot_product')
 
 end program Ddot_gg_rr_ss_OC
