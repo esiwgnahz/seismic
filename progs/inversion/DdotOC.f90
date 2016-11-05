@@ -8,8 +8,8 @@ program Ddot_OC
   implicit none
 
   type(cube)       :: dat1,dat2
-  double precision :: ddots
-  real             :: ddotd
+  double precision :: ddotd
+  real             :: ddots
   logical          :: add, double_precision
   integer :: ndim,esize
 
