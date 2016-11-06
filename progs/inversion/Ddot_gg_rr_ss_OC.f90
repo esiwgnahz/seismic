@@ -42,7 +42,6 @@ program Ddot_gg_rr_ss_OC
      call sreed('dot_product',gdr,8)
      call sreed('dot_product',gds,8)
      call sreed('dot_product',sdr,8)
-     call sreed('dot_product',rdr,8)
      call auxclose('dot_product')
   else
      gdg=0.d0
@@ -55,21 +54,19 @@ program Ddot_gg_rr_ss_OC
      call to_history('esize',8,'dot_product')
   end if
 
-  gdg=gdg+dot_product(gg%dat,gg%dat)
-  sds=sds+dot_product(ss%dat,ss%dat)
-  gdr=gdr-dot_product(gg%dat,rr%dat)
-  gds=gds+dot_product(gg%dat,ss%dat)
-  sdr=sdr-dot_product(ss%dat,rr%dat)
-  rdr=rdr+dot_product(rr%dat,rr%dat)
+  gdg=gdg+sum(dprod(gg%dat,gg%dat))
+  sds=sds+sum(dprod(ss%dat,ss%dat))
+  gdr=gdr-sum(dprod(gg%dat,rr%dat))
+  gds=gds+sum(dprod(gg%dat,ss%dat))
+  sdr=sdr-sum(dprod(ss%dat,rr%dat))
 
   call srite('dot_product',gdg,8)
   call srite('dot_product',sds,8)
   call srite('dot_product',gdr,8)
   call srite('dot_product',gds,8)
   call srite('dot_product',sdr,8)
-  call srite('dot_product',rdr,8)
   
-  call to_history('n1',6,'dot_product')
+  call to_history('n1',5,'dot_product')
   call to_history('esize',8,'dot_product')
 
 end program Ddot_gg_rr_ss_OC

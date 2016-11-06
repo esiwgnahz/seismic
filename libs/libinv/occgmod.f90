@@ -7,7 +7,7 @@ contains
   double precision function dot_product(dat1,dat2)
     real, dimension(:) :: dat1,dat2
 
-    dot_product=dot_product+sum(dprod(dat1,dat2))
+    dot_product=sum(dprod(dat1,dat2))
 
   end function dot_product
 
@@ -18,7 +18,7 @@ contains
 
     if (iter.eq.1) then
        beta = 0.d0 
-       alfa = - gdr/gdg
+       alfa = gdr/gdg
     else
        determ = gdg * sds * max (1.d0 - (gds/gdg)*(gds/sds), 1.d-12)
        alfa = ( sds * gdr - gds * sdr ) / determ
