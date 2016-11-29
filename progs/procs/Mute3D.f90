@@ -15,6 +15,7 @@ program Mute3D
   real :: vmute,tmute,t0,dt,ot,t
   real :: sx,gx,sy,gy,h
   integer :: i,nt,it
+  logical :: verb
 
   call sep_init()
 
@@ -30,16 +31,20 @@ program Mute3D
 
   call from_param('tmute',tmute,0.)
   call from_param('vmute',vmute,0.)
+  call from_param('verb',verb,.true.)
   call from_param('num_threads',genpar%nthreads,4)
   
   call omp_set_num_threads(genpar%nthreads)
 
-  write(0,*) 'INFO: Simple mute of 3D shot gathers'
-  write(0,*) 'INFO: Vmute=',vmute
-  write(0,*) 'INFO: Tmute=',tmute
-  write(0,*) 'INFO: Nthreads=',genpar%nthreads
-
-  write(0,*) 'INFO: Number of traces',size(datavec)
+  if (verb) then
+     write(0,*) 'INFO:'
+     write(0,*) 'INFO: Simple mute of 3D shot gathers'
+     write(0,*) 'INFO:'
+     write(0,*) 'INFO: Vmute=',vmute
+     write(0,*) 'INFO: Tmute=',tmute
+     write(0,*) 'INFO: Nthreads=',genpar%nthreads     
+     write(0,*) 'INFO: Number of traces',size(datavec)
+  end if
 
   !$OMP PARALLEL DO PRIVATE(i,h,t,it)
   do i=1,size(datavec)
