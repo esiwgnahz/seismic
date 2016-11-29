@@ -2,6 +2,7 @@ program Mute3D
 
   use sep
   
+  use Readsouvelrho_mod
   use GeneralParam_types
   use DataSpace_types
 
@@ -18,8 +19,8 @@ program Mute3D
   call sep_init()
 
   allocate(sourcevec(1))
-  call from_history('n1',sourcevec(1)%dimt%nt)
-  call from_history('d1',sourcevec(1)%dimt%dt)
+  call from_aux('traces','n1',sourcevec(1)%dimt%nt)
+  call from_aux('traces','d1',sourcevec(1)%dimt%dt)
   call readtraces(datavec,sourcevec,genpar)
   call readcoords(datavec,sourcevec,genpar)
 
@@ -54,10 +55,10 @@ program Mute3D
      call srite('out',datavec(i)%trace(:,1),4*nt)
   end do
   call to_history('n1',nt,'out')
-  call to_history('n2',size(outvec),'out')
+  call to_history('n2',size(datavec),'out')
   call to_history('d1',dt,'out')
   call to_history('d2',1.,'out')
-  call to_history('o1',0.,'out')
+  call to_history('o1',ot,'out')
   call to_history('o2',0.,'out')
 
   do i=1,size(datavec)
