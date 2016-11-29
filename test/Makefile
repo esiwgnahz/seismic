@@ -2,7 +2,7 @@ include ${SEPINC}/SEP.top
 
 include EXEMakefile
 include VOLVEMakefile
-include MATCHMakefile
+#include MATCHMakefile
 
 wavelet.H:
 	Wavelet wavelet=ricker2 fund=25 tdelay=0.13 n1=1000 d1=0.001 > $@
