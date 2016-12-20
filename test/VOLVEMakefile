@@ -143,6 +143,12 @@ img/FASTnewtestthreads_RTM_disk_%.H: dat/shot1000.H volvewavelet.H volvevp.H
 
 
 compute_data:
+	for number in `seq 5 10 2875`; do\
+		echo computing shot $$number; \
+		make dat/shot$$number.H; \
+	done
+
+compute_data2:
 	for number in `seq 10 10 2880`; do\
 		echo computing shot $$number; \
 		make dat/shot$$number.H; \
