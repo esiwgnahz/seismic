@@ -1,6 +1,7 @@
 program TWODAFWI
 
   use sep
+  use omp_lib
   use ReadParam_mod
   use DataSpace_types
   use Readsouvelrho_mod
@@ -32,6 +33,7 @@ program TWODAFWI
   type(WaveSpace), target                      :: wfld_fwd
 
   real, dimension(:,:,:), allocatable :: illu,grad
+  real, dimension(:,:,:,:), allocatable :: illuthread,gradthread
 
   integer :: i,j,k,n1,begi,endi
   integer :: ntsnap,ntotaltraces
@@ -76,18 +78,19 @@ program TWODAFWI
 
   genpar%verbose=.false.
   genpar%optim=.false.
+  memory_needed=0.
 
-  do i=1,size(shotgath)
-     memory_needed=memory_needed+dble(modgath(i)%nxw)*dble(modgath(i)%nz)*dble(modgath(i)%nyw)*1e-9*4*dble(genpargath(i)%ntsnap)
-     write(0,*) 'INFO:'
-     write(0,*) 'INFO: Total Memory needed to keep wavefields in memory for all shots=',memory_needed,'Gb'
-     write(0,*) 'INFO:'
-  end do
+  genpar%nthreads=min(genpar%nthreads,size(shotgath))
+  call omp_set_num_threads(genpar%nthreads)
+  
+  ! image and illumination for each thread
+  allocate(gradthread(mod%nz,mod%nx,mod%ny,genpar%nthreads)); gradthread=0
+  allocate(illuthread(mod%nz,mod%nx,mod%ny,genpar%nthreads)); illuthread=0
 
   !$OMP PARALLEL DO PRIVATE(i,k,j,dmodgath,begi,endi,wfld_fwd)
   do i=1,size(shotgath)
 
-     !write(0,*) 'INFO: Processing shot',i,'/',size(shotgath)
+     write(0,*) 'INFO: Processing shot',i,'/',size(shotgath),'thread',omp_get_thread_num ()
 
      call copy_window_vel_gath(mod,modgath(i),genpar,genpargath(i),boundsgath(i),i)
      genpargath(i)%ntsnap=int(genpargath(i)%nt/genpargath(i)%snapi)
@@ -104,20 +107,20 @@ program TWODAFWI
         dmodgath(j)%trace=0.
      end do
 
+     ! Forward: modeling
      call AMOD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i), &
-     &                   dmodgath,sourcegath(i),wfld_fwd)   
+     &                   dmodgath,sourcegath(i),wfld_fwd) 
+     ! Backward: imaging
      call AGRAD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),&
      &                    dmodgath,sourcegath(i),wfld_fwd)
 
-     !$OMP CRITICAL
-     call mod_copy_image(modgath(i),grad,illu)
-     !$OMP END CRITICAL
-     
+     ! Copy to final image space 
+     call mod_copy_image(modgath(i),gradthread(:,:,:,omp_get_thread_num()+1),illuthread(:,:,:,omp_get_thread_num()+1))     
      deallocate(modgath(i)%imagesmall)
      deallocate(modgath(i)%illumsmall)
 
      call deallocateModelSpace_elev(elevgath(i))
-     begi=endi+1
+     begi=shotgath(i)%begi
      endi=begi+shotgath(i)%ntraces-1
      k=0
      do j=begi,endi
@@ -144,6 +147,11 @@ program TWODAFWI
   call to_history('o1',0.,'data')
   call to_history('o2',0.,'data')
 
+  ! Add all images for each thread to final image
+  do i=1,genpar%nthreads
+     grad=grad+gradthread(:,:,:,i)
+     illu=illu+illuthread(:,:,:,i)
+  end do
   call srite('grad',grad,4*mod%nx*mod%ny*mod%nz)
   call srite('illu',illu,4*mod%nx*mod%ny*mod%nz)
 
@@ -165,7 +173,7 @@ program TWODAFWI
      call deallocateTraceSpace(sourcegath(i))
   end do
   call deallocateTraceSpace(source(1))
-  deallocate(mod%vel)
+  deallocate(mod%vel,grad,illu,gradthread,illuthread)
 
 !  call deallocateModelSpace(mod)
 !
