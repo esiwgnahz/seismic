@@ -1,0 +1,7 @@
+ifndef QUICK
+./to_disk_to_memory_AMOD.o:             
+./2DAFWI.o:        ./to_disk_to_memory_AMOD.o ./to_disk_to_memory_AGRAD.o 
+./to_disk_to_memory_AGRAD.o:             
+endif  
+../..//bin/LINUX/2DAFWI.x: ./to_disk_to_memory_AMOD.o ./to_disk_to_memory_AGRAD.o ${OBJDIR}/2DAFWI.o ${SRCDIR}/2DAFWI.f90
+	 ${F90_LN}
