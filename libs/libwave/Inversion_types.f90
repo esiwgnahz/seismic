@@ -20,7 +20,9 @@ module Inversion_types
      
      double precision, allocatable:: vpinit(:)
      real,             allocatable:: vpmask(:)
-     real,             allocatable:: datmask(:,:)
+
+     integer :: n1
+     integer :: ntotaltraces
 
   end type InversionParam
 

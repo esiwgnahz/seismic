@@ -26,19 +26,19 @@ contains
     call from_param('v1',mutepar%v1,10000.)
     call from_param('t0',mutepar%t0,0.)
     call from_param('t1',mutepar%t1,40.)
-    call from_param('tramp',mutepar%tramp,1.5)
+    call from_param('tramp',mutepar%tramp,0.5)
 
-    write(0,*) 'INFO -------------------------'
-    write(0,*) 'INFO  Data muting parameters  '
-    write(0,*) 'INFO -------------------------'
+    write(0,*) 'INFO:-------------------------'
+    write(0,*) 'INFO: Data muting parameters  '
+    write(0,*) 'INFO:-------------------------'
     write(0,*) 'INFO'
-    write(0,*) 'INFO   V0    = ',mutepar%v0
-    write(0,*) 'INFO   V1    = ',mutepar%v1
-    write(0,*) 'INFO   t0    = ',mutepar%t0
-    write(0,*) 'INFO   t1    = ',mutepar%t1
-    write(0,*) 'INFO   tramp = ',mutepar%tramp
+    write(0,*) 'INFO:  V0    = ',mutepar%v0
+    write(0,*) 'INFO:  V1    = ',mutepar%v1
+    write(0,*) 'INFO:  t0    = ',mutepar%t0
+    write(0,*) 'INFO:  t1    = ',mutepar%t1
+    write(0,*) 'INFO:  tramp = ',mutepar%tramp
     write(0,*) 'INFO'
-    write(0,*) 'INFO -------------------------'
+    write(0,*) 'INFO:-------------------------'
 
   end subroutine Init_MuteParam
 
@@ -108,14 +108,14 @@ contains
 
   subroutine compute_first_mute(mutepar,dt,t0,hx,hy,mute)
     type(MuteParam)    ::       mutepar
-    real, dimension(:) ::                       mute
-    real               ::                 dt,t0,hx,hy
+    real, dimension(:) ::                           mute
+    real               ::               dt,t0,hx,hy
 
     integer            :: i,it,nt,nramp,beg,end
     real               :: t_init,tmute, pi=3.1415926535
 
     nt=size(mute)
-    mute=1
+    mute=0
 
     nramp=mutepar%tramp/dt+1.5
     t_init=mutepar%t0

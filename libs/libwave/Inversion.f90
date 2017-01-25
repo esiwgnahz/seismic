@@ -2,6 +2,7 @@ module Inversion_mod
 
   use sep
   use Inversion_types
+  use DataSpace_types
   
   implicit none
   
@@ -23,10 +24,12 @@ contains
   subroutine l_bfgs(invparam,fctgdt,x)
     
     interface
-       function fctgdt(g,f) result (stat)
+       function fctgdt(g,f,res) result (stat)
+         use DataSpace_types 
          integer                ::  stat
          real, dimension(:)     ::  g
          double precision       ::  f
+         type(TraceSpace), dimension(:) :: res
        end function fctgdt
     end interface
 
@@ -43,7 +46,9 @@ contains
     double precision, dimension(:), allocatable :: xdsave
     double precision, dimension(:), allocatable :: wd
     double precision, dimension(:), allocatable :: diagd
-
+ 
+    type(TraceSpace), dimension(:), allocatable :: resigath
+   
     real             :: f,f0,g0
     double precision :: fd
 
@@ -51,7 +56,7 @@ contains
     double precision     :: EPS,XTOL
 
     logical              :: cont,found
-    integer              :: iter,info
+    integer              :: i,iter,info
     integer              :: stat2,iflag,myinfo
 
     DOUBLE PRECISION GTOL,STPMIN,STPMAX,XMIN,XMAX
@@ -80,6 +85,12 @@ contains
     XMIN=dble(invparam%vpmin)
     XMAX=dble(invparam%vpmax)
 
+    allocate(resigath(invparam%ntotaltraces))
+    do i=1,invparam%ntotaltraces
+       allocate(resigath(i)%trace(invparam%n1,1))
+       resigath(i)%trace=0.
+    end do
+
     iter=0
     iflag=0
     myinfo=0
@@ -94,12 +105,12 @@ contains
 
     do while (cont.and.(.not.found))
 
-       stat2=fctgdt(g=g,f=fd)
+       stat2=fctgdt(g=g,f=fd,res=resigath)
 
-       if (invparam%iter.eq.0) then
+       if (iter.eq.0) then
           g0=maxval(x)/(100*maxval(abs(g)))
           f0=maxval(x)**2/abs(fd)
-          if(exist_file('function')) call srite('function',sngl(fd),4)
+          if(exist_file('function')) call srite('function',sngl(f0*fd),4)
        end if
 
        g=g0*g*invparam%vpmask
@@ -129,6 +140,11 @@ contains
           if(exist_file('model'))    call srite('model',sngl(xdsave),4*NDIM)
           if(exist_file('function')) call srite('function',sngl(fd),4)
           if(exist_file('gradient')) call srite('gradient',-g,4*NDIM)
+          if (exist_file('residual')) then
+             do i=1,invparam%ntotaltraces
+                call srite('residual',resigath(i)%trace(:,1),4*invparam%n1)
+             end do           
+          end if
        end if
 
        if(iflag.le.0) then
@@ -143,7 +159,7 @@ contains
              if (info.eq.6) write(0,*) 'INFO:       ROUNDING ERRORS'
           end if
        end if
-       invparam%iter=invparam%iter+1
+       iter=iter+1
        if(invparam%iter.ge.invparam%neval) then
           write(0,*) 'INFO: iter reached neval - Iterations will stop'
           cont=.false.
@@ -156,6 +172,11 @@ contains
        x=sngl(xsave)
     end if
     deallocate(xd,xsave,xdsave,g,wd,gd,diagd)
+
+    do i=1,invparam%ntotaltraces
+       call deallocateTraceSpace(resigath(i))
+    end do
+    deallocate(resigath)
 
   end subroutine l_bfgs
   

@@ -16,6 +16,7 @@ module compute_function_gradient
 
   implicit none
 
+  type(InversionParam),pointer,private :: invparam
   type(MuteParam),    pointer, private :: mutepar
   type(GeneralParam), pointer, private :: genpar
   type(ModelSpace),   pointer, private :: mod
@@ -29,11 +30,17 @@ module compute_function_gradient
 
 contains
 
-  subroutine compute_fct_gft_dmute_init(mutepar_in)
+  subroutine compute_fct_gdt_dmute_init(mutepar_in)
     type(MuteParam), target  ::         mutepar_in
 
     mutepar=>mutepar_in
-  end subroutine compute_fct_gft_dmute_init
+  end subroutine compute_fct_gdt_dmute_init
+  
+  subroutine compute_fct_gdt_inv_init(inv_init)
+    type(InversionParam),target ::    inv_init
+    
+    invparam=>inv_init
+  end subroutine compute_fct_gdt_inv_init
 
   subroutine compute_fct_gdt_init(mod_in,modgath_in,genpar_in,genpargath_in,shotgath_in,sourcegath_in,bounds_in,boundsgath_in)
 
@@ -60,6 +67,7 @@ contains
 
   subroutine compute_fct_gdt_nullify()
     if(associated(mutepar))    nullify(mutepar)
+    if(associated(invparam))    nullify(invparam)
     if(associated(genpar))     nullify(genpar)
     if(associated(modgath))    nullify(modgath)
     if(associated(mod)) nullify(mod)
@@ -70,15 +78,15 @@ contains
     if(associated(genpargath)) nullify(genpargath)
   end subroutine compute_fct_gdt_nullify
 
-  function compute_fct_gdt(grad,f) result(stat)
+  function compute_fct_gdt(grad,f,resigath) result(stat)
     
     real, dimension(:) ::  grad
     double precision   ::       f
-    integer            ::                 stat
+    type(TraceSpace), dimension(:) :: resigath
+    integer            ::                          stat
     
     type(DataSpace)    :: dat
 
-    type(TraceSpace),  dimension(:), allocatable :: resigath
     type(TraceSpace),  dimension(:), allocatable :: dmodgath
     type(ModelSpace_elevation), dimension(:), allocatable :: elevgath
     type(WaveSpace), target                      :: wfld_fwd
@@ -96,17 +104,12 @@ contains
     call from_aux('traces','n2',ntotaltraces)
 
     allocate(elevgath(size(shotgath)))  ! Each shot has an elevation file
-    allocate(resigath(ntotaltraces))
 
     n1=genpar%nt
     d1=genpar%dt
     genpar%ntsnap=int(genpar%nt/genpar%snapi)
     genpar%dt2=(genpar%dt*genpar%snapi)**2
 
-    do i=1,ntotaltraces
-       allocate(resigath(i)%trace(n1,1))
-       resigath(i)%trace=0.
-    end do
     endi=0
     begi=0
 
@@ -146,14 +149,16 @@ contains
        ! Forward: modeling
        call AMOD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,sourcegath,wfld_fwd,i) 
 
+       begi=shotgath(i)%begi
        ! Compute residual and of
        do j=1,size(shotgath(i)%gathtrace)
           ! rd=W(L(m)-d)
           dmodgath(j)%trace=mutepar%maskgath(i)%gathtrace(j)%trace*(shotgath(i)%gathtrace(j)%trace-dmodgath(j)%trace)
-!          dmodgath(j)%trace=(shotgath(i)%gathtrace(j)%trace-dmodgath(j)%trace)
           ! f=rd'rd
           fthread(omp_get_thread_num ()+1)=fthread(omp_get_thread_num ()+1)+sum(dprod(dmodgath(j)%trace,dmodgath(j)%trace))
           ! rd=W'W(L(m)-d)
+          resigath(begi+j)%trace=dmodgath(j)%trace
+          ! Compute adjoint source
           dmodgath(j)%trace=mutepar%maskgath(i)%gathtrace(j)%trace*dmodgath(j)%trace
        end do
 
@@ -165,13 +170,8 @@ contains
        deallocate(modgath(i)%imagesmall)
        deallocate(modgath(i)%illumsmall)
        !
-       call deallocateModelSpace_elev(elevgath(i))
-       begi=shotgath(i)%begi
-       endi=begi+shotgath(i)%ntraces-1
-       k=0
-       do j=begi,endi
-          k=k+1
-          resigath(j)%trace=dmodgath(k)%trace
+       call deallocateModelSpace_elev(elevgath(i))       
+       do k=1,shotgath(i)%ntraces
           call deallocateTraceSpace(dmodgath(k))
        end do
        deallocate(modgath(i)%vel)
@@ -180,19 +180,19 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-!    write(0,*) 'INFO: Done with Processing'
-!    write(0,*) 'INFO:'
-
-    do i=1,ntotaltraces
-       call srite('data',resigath(i)%trace(:,1),4*n1)
-    end do
-
-    call to_history('n1',n1,'data')
-    call to_history('n2',ntotaltraces,'data')
-    call to_history('d1',d1,'data')
-    call to_history('d2',1.,'data')
-    call to_history('o1',0.,'data')
-    call to_history('o2',0.,'data')
+!    do j=1,size(mutepar%maskgath)
+!       do i=1,mutepar%maskgath(j)%ntraces
+!          call srite('mute',mutepar%maskgath(j)%gathtrace(i)%trace,4*n1)
+!       end do
+!    end do
+!        
+!
+!    call to_history('n1',n1,'mute')
+!    call to_history('n2',ntotaltraces,'mute')
+!    call to_history('d1',d1,'mute')
+!    call to_history('d2',1.,'mute')
+!    call to_history('o1',0.,'mute')
+!    call to_history('o2',0.,'mute')
 
     allocate(illu(mod%nz*mod%nx*mod%ny)); illu=0.
     ! Add all images for each thread to final image
@@ -219,13 +219,7 @@ contains
 
     grad=grad/illu
 
-    call srite('grad',grad,4*mod%nx*mod%ny*mod%nz)
     deallocate(gradthread,illu,illuthread,fthread)
-
-    do i=1,ntotaltraces
-       call deallocateTraceSpace(resigath(i))
-    end do
-    deallocate(resigath)
     deallocate(elevgath)
 
     stat=0
