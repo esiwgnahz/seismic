@@ -9,6 +9,8 @@ program TWODAFWI
   use ExtractPadModel_mod
 
   use Mute_gather
+  use Bandpass_mod
+  use Smoothing_mod
   use Inversion_types
   use ModelSpace_types
   use GeneralParam_types
@@ -21,7 +23,6 @@ program TWODAFWI
   type(ModelSpace)   :: mod
   type(FDbounds)     :: bounds
   type(ModelSpace_elevation) :: elev
-  type(MuteParam)    :: mutepar
 
   type(ModelSpace),  dimension(:), allocatable :: modgath
   type(GatherSpace), dimension(:), allocatable :: shotgath
@@ -31,6 +32,9 @@ program TWODAFWI
   type(GeneralParam),dimension(:), allocatable :: genpargath
 
   type(InversionParam)                         :: invparam
+  type(BandPassParam)                          :: bpparam
+  type(MuteParam)                              :: mutepar
+  type(SmoothingParam)                         :: smoothpar
 
   real, dimension(:),              allocatable :: grad
   integer :: i,ntotaltraces,stat
@@ -59,15 +63,18 @@ program TWODAFWI
   call read_vel(mod,genpar)
 
   call compute_fct_gdt_init(mod,modgath,genpar,genpargath,shotgath,sourcegath,bounds,boundsgath)
-  if (genpar%task.eq.'INV') then
 
+  if (genpar%task.eq.'INV') then
+     call Init_BandPassParam(bpparam)
+     call BandpassSouTraces(bpparam,shotgath,sourcegath)
+     call Init_SmoothingParam(smoothpar,mod,bpparam)
      call read_inv_params(invparam)
      invparam%ntotaltraces=ntotaltraces
      invparam%n1=genpar%nt
      call Init_Inversion_Array(mod,invparam)
      call Init_MuteParam(mutepar)
      call MuteParam_compute_mask(mutepar,shotgath,sourcegath)
-     call compute_fct_gdt_dmute_init(mutepar)
+     call compute_fct_gdt_dmute_smooth_inv_init(mutepar,smoothpar,invparam)
      call l_bfgs(invparam,compute_fct_gdt,mod%vel)
      call MuteParam_deallocate(mutepar)
      call srite('inv',mod%vel,4*mod%nz*mod%nx*mod%ny)

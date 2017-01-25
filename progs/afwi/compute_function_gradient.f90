@@ -8,6 +8,7 @@ module compute_function_gradient
   use ExtractPadModel_mod
 
   use Mute_gather
+  use Smoothing_mod
   use ModelSpace_types
   use GeneralParam_types
 
@@ -17,6 +18,7 @@ module compute_function_gradient
   implicit none
 
   type(InversionParam),pointer,private :: invparam
+  type(SmoothingParam),pointer,private :: smoothpar
   type(MuteParam),    pointer, private :: mutepar
   type(GeneralParam), pointer, private :: genpar
   type(ModelSpace),   pointer, private :: mod
@@ -30,17 +32,15 @@ module compute_function_gradient
 
 contains
 
-  subroutine compute_fct_gdt_dmute_init(mutepar_in)
-    type(MuteParam), target  ::         mutepar_in
+  subroutine compute_fct_gdt_dmute_smooth_inv_init(mutepar_in,smooth_in,inv_init)
+    type(MuteParam),      target ::                mutepar_in
+    type(SmoothingParam), target ::                           smooth_in
+    type(InversionParam), target ::                                     inv_init
 
     mutepar=>mutepar_in
-  end subroutine compute_fct_gdt_dmute_init
-  
-  subroutine compute_fct_gdt_inv_init(inv_init)
-    type(InversionParam),target ::    inv_init
-    
+    smoothpar=>smooth_in
     invparam=>inv_init
-  end subroutine compute_fct_gdt_inv_init
+  end subroutine compute_fct_gdt_dmute_smooth_inv_init
 
   subroutine compute_fct_gdt_init(mod_in,modgath_in,genpar_in,genpargath_in,shotgath_in,sourcegath_in,bounds_in,boundsgath_in)
 
@@ -66,11 +66,12 @@ contains
   end subroutine compute_fct_gdt_init
 
   subroutine compute_fct_gdt_nullify()
+    if(associated(smoothpar))  nullify(smoothpar)
     if(associated(mutepar))    nullify(mutepar)
-    if(associated(invparam))    nullify(invparam)
+    if(associated(invparam))   nullify(invparam)
     if(associated(genpar))     nullify(genpar)
     if(associated(modgath))    nullify(modgath)
-    if(associated(mod)) nullify(mod)
+    if(associated(mod))        nullify(mod)
     if(associated(bounds))     nullify(bounds)
     if(associated(shotgath))   nullify(shotgath)
     if(associated(sourcegath)) nullify(sourcegath)
@@ -156,9 +157,9 @@ contains
           dmodgath(j)%trace=mutepar%maskgath(i)%gathtrace(j)%trace*(shotgath(i)%gathtrace(j)%trace-dmodgath(j)%trace)
           ! f=rd'rd
           fthread(omp_get_thread_num ()+1)=fthread(omp_get_thread_num ()+1)+sum(dprod(dmodgath(j)%trace,dmodgath(j)%trace))
-          ! rd=W'W(L(m)-d)
+          ! Save residual
           resigath(begi+j)%trace=dmodgath(j)%trace
-          ! Compute adjoint source
+          ! Compute adjoint source rd=W'W(L(m)-d)
           dmodgath(j)%trace=mutepar%maskgath(i)%gathtrace(j)%trace*dmodgath(j)%trace
        end do
 
@@ -166,10 +167,11 @@ contains
        call AGRAD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,wfld_fwd)
 
        ! Copy to final image space 
-       call mod_copy_image(modgath(i),gradthread(:,:,:,omp_get_thread_num()+1),illuthread(:,:,:,omp_get_thread_num()+1))     
+       call mod_copy_image(modgath(i),gradthread(:,:,:,omp_get_thread_num()+1),illuthread(:,:,:,omp_get_thread_num()+1))
+
+       ! Deallocate arrays
        deallocate(modgath(i)%imagesmall)
        deallocate(modgath(i)%illumsmall)
-       !
        call deallocateModelSpace_elev(elevgath(i))       
        do k=1,shotgath(i)%ntraces
           call deallocateTraceSpace(dmodgath(k))
@@ -218,6 +220,9 @@ contains
     illu=(illu+maxval(illu)/10000)/sqrt(sum(dprod(illu,illu))/size(illu))
 
     grad=grad/illu
+    grad=grad*invparam%vpmask
+    call triangle2(smoothpar,grad)
+    grad=grad*invparam%vpmask
 
     deallocate(gradthread,illu,illuthread,fthread)
     deallocate(elevgath)

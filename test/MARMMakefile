@@ -1,0 +1,115 @@
+MARMVEL=/u/st/by/aguitton/data/Marmousi/marmvel.H
+
+MARMSfmin=2
+MARMSfund=10.
+MARMStdelay=0.3
+MARMSnt_delay=50
+
+MARMSntc=3071
+MARMSdtc=0.0013
+
+MARMSnt=2150
+MARMSdt=0.002
+MARMSot=0.0
+
+MARMSnhx=320
+MARMSdhx=25
+MARMSohx=-8000
+
+MARMSdz=25
+MARMSnz=121
+
+MARMSstype=1
+
+MARMSosx_1=0
+MARMSnsx_1=46
+MARMSdsx_1=200
+#MARMSosx_1=2000
+#MARMSnsx_1=1
+#MARMSdsx_1=200
+
+MARMSpad=10
+# Create source function
+MARMsource.H:
+	Wavelet wavelet=ricker2 n1=${MARMSnt} d1=${MARMSdt} fund=${MARMSfund} tdelay=${MARMStdelay} > $@ 
+
+# Add a velocity layer on top of the marmousi dataset
+MARMvelpint.H:
+	Interp d1out=${MARMSdz} d2out=${MARMSdhx} type=0 < ${MARMVEL} > 1int.H
+	Pad beg1=${MARMSpad} extend=1 < 1int.H > junk.H  
+	< junk.H Window n1=${MARMSnz} > $@
+	echo o1=0. d2=${MARMSdhx} >> $@
+
+MARMvelpsmooth.H:MARMvelpint.H
+	Window3d n1=${MARMSpad} < MARMvelpint.H > top.H
+	Window3d f1=${MARMSpad} < MARMvelpint.H > bot.H
+	Smooth rect1=5 rect2=5  < bot.H > bot1.H
+	Cat axis=1 top.H bot1.H > $@
+	echo o1=0. d2=25 >> $@
+
+# Create the mask
+MARMvpmask.H: 
+	Interp d1out=${MARMSdz} d2out=${MARMSdhx} type=0 < ${MARMVEL} > 1int.H
+	Math file1=1int.H exp="1" > bot.H
+	Pad beg1=${MARMSpad} < bot.H | Window3d n1=${MARMSnz} > $@
+	echo o1=0. d2=${MARMSdhx} >> $@
+
+MARMheader.H:
+	${HEAD} header=$@ \
+	nhx=${MARMSnhx} \
+	dhx=${MARMSdhx} \
+	ohx=${MARMSohx} \
+	osx=${MARMSosx_1} \
+	nsx=${MARMSnsx_1} \
+	dsx=${MARMSdsx_1} > /dev/null
+
+MARMtraces.H:MARMheader.H MARMsource.H MARMvelpint.H
+	time ${AFWI} stdin=MARMsource.H vel=MARMvelpint.H twoD=1 \
+	fmax=20 \
+	coordfile=MARMheader.H \
+	fmax=16 aperture_x=16 aperture_y=1 \
+	keygx=2 \
+	keygy=3 \
+	keysx=1 \
+	keysy=4 \
+	keyselev=3 \
+	keygelev=3 \
+	withRho=0 \
+	rec_type=0 \
+	shot_type=0 \
+	snapi=$* ntaper=20 num_threads=8 \
+	data=$@ maxsize=1 > /dev/null
+
+MARMinv.H: MARMtraces.H MARMheader.H MARMsource.H MARMvpmask.H MARMvelpsmooth.H
+	< MARMtraces.H Add scale=0.0001 > MARMtracesw.H
+	Add scale=0.0001 MARMsource.H > MARMsources.H
+	time ${AFWI} stdin=MARMsources.H vel=MARMvelpsmooth.H twoD=1 \
+	fmax=20 \
+	Task='INV' \
+	traces=MARMtracesw.H \
+	vpmask=MARMvpmask.H \
+	coordfile=MARMheader.H \
+	fmax=16 aperture_x=10000 aperture_y=1 \
+	keygx=2 \
+	keygy=3 \
+	keysx=1 \
+	keysy=4 \
+	keyselev=3 \
+	keygelev=3 \
+	withRho=0 \
+	rec_type=0 \
+	shot_type=0 \
+	vpmax=4500. \
+	gradient=grad$@ \
+	residual=res$@ \
+	model=mod$@ \
+	function=fct$@ \
+	freeze_soft=1 \
+	fhi=10 \
+	t0=0.5 \
+	v0=1500. \
+	percx=0.5 \
+	percz=0.5 \
+	neval=20 niter=10 \
+	snapi=4 ntaper=20 num_threads=8 \
+	inv=$@  maxsize=1 > /dev/null

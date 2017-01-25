@@ -100,8 +100,22 @@ contains
     write(0,*) 'INFO:   vpmin=',invparam%vpmin
     write(0,*) 'INFO:   vpmax=',invparam%vpmax
     write(0,*) 'INFO:'
-    write(0,*) 'INFO:   bound      =',invparam%const_type
-    write(0,*) 'INFO:   freeze_soft=',invparam%freeze_soft
+    if (invparam%const_type.eq.1) then
+       write(0,*) 'INFO:   bound = 1: Model constrained at each fct/gdt eval'
+    else if (invparam%const_type.eq.2) then
+       write(0,*) 'INFO:   bound = 2: Model constrained at each iteration'
+    end if 
+    if (invparam%freeze_soft) then
+       write(0,*) 'INFO:   freeze_soft = .true. : Velocity not strictly preserved in mask area'
+       write(0,*) 'INFO:                          x=max(xmin,x)'
+       write(0,*) 'INFO:                          x=min(xmax,x)'
+       write(0,*) 'INFO:'
+    else 
+       write(0,*) 'INFO:   freeze_soft = .false.: Velocity strictly preservd in mask area'
+       write(0,*) 'INFO:                          x=max(xmin,x), x=min(xmax,x)'
+       write(0,*) 'INFO:                          x=xinit where mask=0 and mask=2'
+       write(0,*) 'INFO:'
+    end if
     write(0,*) 'INFO:   eps        =',invparam%eps
     write(0,*) 'INFO:'
     write(0,*) 'INFO: ----------------------------'

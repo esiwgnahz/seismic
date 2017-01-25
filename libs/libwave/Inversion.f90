@@ -49,8 +49,8 @@ contains
  
     type(TraceSpace), dimension(:), allocatable :: resigath
    
-    real             :: f,f0,g0
-    double precision :: fd
+    real             :: f,g0
+    double precision :: fd,f0
 
     integer,dimension(2) :: iprint
     double precision     :: EPS,XTOL
@@ -109,11 +109,11 @@ contains
 
        if (iter.eq.0) then
           g0=maxval(x)/(100*maxval(abs(g)))
-          f0=maxval(x)**2/abs(fd)
+          f0=dble(maxval(x)**2)/abs(fd)
           if(exist_file('function')) call srite('function',sngl(f0*fd),4)
        end if
 
-       g=g0*g*invparam%vpmask
+       g=g0*g 
        fd=f0*fd
 
        xd=dble(x)

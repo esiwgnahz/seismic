@@ -231,10 +231,10 @@ contains
 
     nreadtraces=0
     nshots=size(shotgath)
+    write(0,*) 'INFO:-------------------------------------------'
     do i=1,nshots
 
        ntraces=shotgath(i)%ntraces
-       write(0,*) 'INFO:-------------------------------------------'
        write(0,*) 'INFO: Starting reading',ntraces,'traces for shot',i
 
        do j=1,ntraces
@@ -246,6 +246,7 @@ contains
           shotgath(i)%gathtrace(j)%dimt%dt=d1     
        end do
     end do
+    write(0,*) 'INFO:-------------------------------------------'
 
     write(0,*) 'INFO: Read a total of ',nreadtraces
     if(nreadtraces.ne.nfiletraces) call erexit('ERROR: number of read traces is different from n2 in traces')
@@ -312,6 +313,7 @@ contains
        allocate(sougath(i)%trace(nt,1))
        sougath(i)%trace=sou(1)%trace
        sougath(i)%dimt%nt=sou(1)%dimt%nt
+       sougath(i)%dimt%dt=sou(1)%dimt%dt
     end do
   end subroutine copysou2sougath
 
