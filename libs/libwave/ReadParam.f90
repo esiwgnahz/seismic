@@ -1,6 +1,7 @@
 module ReadParam_mod
 
   use sep
+  use Inversion_types
   use GeneralParam_types
 
   implicit none
@@ -27,6 +28,9 @@ contains
     call from_param('withRho',genpar%withRho,.false.)
     call from_param('LSRTM',genpar%LSRTM,.false.)
     call from_param('Born',genpar%Born,.false.)
+    call from_param('verb',genpar%verbose,.true.)
+    call from_param('Optim',genpar%optim,.true.)
+    call from_param('Task',genpar%task,'MOD')
 
     if (genpar%LSRTM) call from_param('CHEAPLSRTM',genpar%CHEAPLSRTM,.false.)
        
@@ -46,6 +50,7 @@ contains
 
     write(0,*) 'INFO: -------- Parameters ---------'
     write(0,*) 'INFO:'
+    write(0,*) 'INFO: task  =',genpar%task
     write(0,*) 'INFO: fmax  =',genpar%fmax,'Hz'
     write(0,*) 'INFO: ntaper=',genpar%ntaper,'points'
     write(0,*) 'INFO: snapi =',genpar%snapi,'time slices'
@@ -71,8 +76,36 @@ contains
     write(0,*) 'INFO:'
     write(0,*) 'INFO: ------------------------------------------'
 
-    call omp_set_num_threads(genpar%nthreads)
-
   end subroutine read_3D_params
+
+  subroutine read_inv_params(invparam)
+    type(InversionParam) ::  invparam
+
+    invparam%iter=0
+    call from_param('niter',invparam%niter,10)
+    call from_param('neval',invparam%neval,10)
+    call from_param('vpmin',invparam%vpmin,1500.)
+    call from_param('vpmax',invparam%vpmax,4500.)
+    
+    call from_param('freeze_soft',invparam%freeze_soft,.true.)
+    call from_param('bound',invparam%const_type,2)
+    call from_param('eps',invparam%eps,0.0)
+
+    write(0,*) 'INFO: ----------------------------'
+    write(0,*) 'INFO:   Inversion Parameters      '
+    write(0,*) 'INFO: ----------------------------'
+    write(0,*) 'INFO:'
+    write(0,*) 'INFO:   niter=',invparam%niter
+    write(0,*) 'INFO:   neval=',invparam%neval
+    write(0,*) 'INFO:   vpmin=',invparam%vpmin
+    write(0,*) 'INFO:   vpmax=',invparam%vpmax
+    write(0,*) 'INFO:'
+    write(0,*) 'INFO:   bound      =',invparam%const_type
+    write(0,*) 'INFO:   freeze_soft=',invparam%freeze_soft
+    write(0,*) 'INFO:   eps        =',invparam%eps
+    write(0,*) 'INFO:'
+    write(0,*) 'INFO: ----------------------------'
+
+  end subroutine read_inv_params
 
 end module ReadParam_mod

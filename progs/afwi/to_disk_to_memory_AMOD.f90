@@ -19,7 +19,7 @@ module to_disk_to_memory_AMOD_mod
 
 contains
 
-  subroutine AMOD_to_memory(model,genpar,dat,bounds,elev,datavec,sourcevec,wfld_fwd)
+  subroutine AMOD_to_memory(model,genpar,dat,bounds,elev,datavec,sourcevec,wfld_fwd,ishot)
 
     type(GeneralParam) :: genpar
     type(ModelSpace)   :: model
@@ -28,15 +28,21 @@ contains
     type(ModelSpace_elevation) :: elev
 
     type(TraceSpace), dimension(:) :: datavec
-    type(TraceSpace), dimension(1) :: sourcevec
+    type(TraceSpace), dimension(:) :: sourcevec
+    type(TraceSpace), dimension(:), allocatable :: source
     type(WaveSpace), target        :: wfld_fwd
 
     integer :: i,j,k,ishot
     integer :: ntsnap
 
     genpar%tmin=1
-    genpar%tmax=sourcevec(1)%dimt%nt
+    genpar%tmax=sourcevec(ishot)%dimt%nt
     genpar%tstep=1
+
+    allocate(source(1))
+    allocate(source(1)%trace(sourcevec(ishot)%dimt%nt,1))
+    source(1)%trace=0.
+    source(1)=sourcevec(ishot)
 
     allocate(wfld_fwd%wave(model%nz,model%nxw,model%nyw,genpar%ntsnap,1))
     wfld_fwd%wave=0.
@@ -50,7 +56,7 @@ contains
        & FD_2nd_time_derivative_grid_noomp,               &
        & FDswaptime_pointer,                              &
        & bounds,model,elev,genpar,                        &
-       & sou=sourcevec,wfld=wfld_fwd,datavec=datavec,     &
+       & sou=source,wfld=wfld_fwd,datavec=datavec,     &
        & ExtractData=Extraction_array_sinc_noomp,ExtractWave=Extraction_wavefield)
     else
        call propagator_acoustic(                          &
@@ -60,29 +66,13 @@ contains
        & FD_2nd_time_derivative_grid_noomp,               &
        & FDswaptime_pointer,                              &
        & bounds,model,elev,genpar,                        &
-       & sou=sourcevec,wfld=wfld_fwd,datavec=datavec,     &
+       & sou=source,wfld=wfld_fwd,datavec=datavec,     &
        & ExtractData=Extraction_array_sinc_noomp,ExtractWave=Extraction_wavefield)
     end if
     if (genpar%verbose) write(0,*) 'INFO: Done with forward modeling'
-
-!    if (ishot.eq.5) then
-!       do i=1,genpar%ntsnap
-!          call srite('wfld',wfld_fwd%wave(1:model%nz,1:model%nxw,1:model%nyw,i,1),4*model%nz*model%nxw*model%nyw)
-!       end do
-!       do j=1,size(datavec)
-!           call srite('shotout',datavec(j)%trace(:,1),4*sourcevec(1)%dimt%nt)
-!        end do
-!        
-!       
-!       call to_history('n1',sourcevec(1)%dimt%nt,'shotout')
-!       call to_history('n2',size(datavec),'shotout')
-!       call to_history('n1',model%nz,'wfld')
-!       call to_history('n2',model%nxw,'wfld')
-!       call to_history('n3',model%nyw,'wfld')
-!       call to_history('n4',genpar%ntsnap,'wfld')
-!    end if
 !
-!    deallocate(wfld_fwd%wave)
+    deallocate(source(1)%trace)
+    deallocate(source)
 
   end subroutine AMOD_to_memory
 

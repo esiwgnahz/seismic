@@ -94,7 +94,7 @@ program Acoustic_rtm_opt_memory
 
   call readtraces(datavec,sourcevec,genpar)
   call readcoords(datavec,sourcevec,genpar)
-  call extract_coord_source_receiver_patch(datavec,sourcevec,mod,genpar)
+  call extract_coord_source_receiver_patch(datavec,sourcevec(1),mod,genpar)
   call read_window_vel(mod,genpar,bounds)
 
   genpar%ntsnap=int(genpar%nt/genpar%snapi)

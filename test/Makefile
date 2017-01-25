@@ -2,10 +2,14 @@ include ${SEPINC}/SEP.top
 
 include EXEMakefile
 include VOLVEMakefile
+include MARMMakefile
 #include MATCHMakefile
 
 wavelet.H:
 	Wavelet wavelet=ricker2 fund=25 tdelay=0.13 n1=1000 d1=0.001 > $@
+
+waveletlong.H:
+	Wavelet wavelet=ricker2 fund=25 tdelay=0.13 n1=5000 d1=0.001 > $@
 
 wavelet3D.H:
 	Wavelet wavelet=ricker2 fund=25 tdelay=0.13 n1=1000 d1=0.0009 > $@
@@ -53,6 +57,38 @@ wavelet3D.H:
 	echo n1=1 n2=4221 n3=1 >> sx.H
 	echo n1=1 n2=4221 n3=1 >> 0.H
 	Cat axis=1 sx.H 0.H 0.H rx.H ry.H 0.H > $@
+
+5shots.H:
+	Spike n1=5000 n2=2700 n3=1 >> $@
+	echo d1=0.001 o1=0 >> $@
+	echo d2=10 o2=0. >> $@
+	echo d3=10 o3=0. >> $@
+
+5shotsheader.H:
+	Spike n1=1 n2=400 > 1.H
+	Math file1=1.H exp="0." > 0.H
+	echo d1=1 d2=10 o1=0. o2=0. >> 1.H
+	Transp plane=12 < 1.H | Tpow tpow=1 > 2.H
+	Math file1=2.H exp="file1-10" | Transp plane=12 > rx.H
+	Math file1=1.H exp="1000." > sx0.H
+	Math file1=1.H exp="1120." > sx1.H
+	Math file1=1.H exp="1210." > sx2.H
+	Math file1=1.H exp="1350." > sx3.H
+	Math file1=1.H exp="1467." > sx4.H
+	Cat axis=1 sx0.H 0.H 0.H rx.H 0.H 0.H > junk0.H
+	Cat axis=1 sx1.H 0.H 0.H rx.H 0.H 0.H > junk1.H
+	Cat axis=1 sx2.H 0.H 0.H rx.H 0.H 0.H > junk2.H
+	Cat axis=1 sx3.H 0.H 0.H rx.H 0.H 0.H > junk3.H
+	Cat axis=1 sx4.H 0.H 0.H rx.H 0.H 0.H > junk4.H
+	Cat axis=2 junk0.H junk1.H junk2.H junk3.H junk4.H > junk5.H
+	Spike n1=1 n2=700 > 1.H
+	Math file1=1.H exp="0." > 0.H
+	echo d1=1 d2=10 o1=0. o2=0. >> 1.H
+	Transp plane=12 < 1.H | Tpow tpow=1 > 2.H
+	Math file1=2.H exp="file1-10" | Transp plane=12 > rx.H
+	Math file1=1.H exp="1800." > sx0.H
+	Cat axis=1 sx0.H 0.H 0.H rx.H 0.H 0.H > junk6.H
+	Cat axis=2 junk6.H junk5.H > $@
 
 1shot.H:
 	Spike n1=1000 n2=201 n3=1 >> $@
@@ -286,5 +322,23 @@ rhodata3%.H:  3Drho.H
 	${param$*} \
 	Seismogram=junk1.H
 	Transp plane=12 < junk1.H > $@
+
+testgeo%.H: 5shotsheader.H 5shots.H waveletlong.H 2Dvel.H
+	time ${AFWI} stdin=waveletlong.H vel=2Dvel.H twoD=1 \
+	fmax=60 \
+	traces=5shots.H \
+	coordfile=5shotsheader.H \
+	fmax=16 aperture_x=2 aperture_y=1 \
+	keygx=4 \
+	keygy=5 \
+	keysx=1 \
+	keysy=2 \
+	keyselev=3 \
+	keygelev=3 \
+	withRho=0 \
+	grad=grad$*.H \
+	illu=illu$*.H \
+	snapi=$* ntaper=20 num_threads=6 \
+	data=$@ maxsize=1 > /dev/null
 
 include ${SEPINC}/SEP.bottom

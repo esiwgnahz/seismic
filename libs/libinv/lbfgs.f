@@ -1,3 +1,44 @@
+      SUBROUTINE FREEZE_X(XMIN,XMAX,MASK,TYPE,X,N,XINIT)
+      
+      DOUBLE PRECISION XMIN,XMAX
+      LOGICAL TYPE
+      INTEGER N
+      DOUBLE PRECISION X(N),XINIT(N)
+      REAL MASK(N)
+      INTEGER I
+      
+      IF (TYPE) THEN
+         
+         DO 30 I=1,N
+            X(I)=max(XMIN,X(I))
+            X(I)=min(XMAX,X(I))
+ 30      CONTINUE
+         
+      ELSE
+         
+         DO 10 I=1,N
+            
+            IF ((MASK(I).ne.0).and.(MASK(I).ne.2)) THEN
+               
+               X(I)=max(XMIN,X(I))
+               X(I)=min(XMAX,X(I))
+               
+            ENDIF
+            
+ 10      CONTINUE
+         
+         DO 20 I=1,N
+            
+            IF (MASK(I).eq.0) X(I)=XINIT(I)
+            IF (MASK(I).eq.2) X(I)=XINIT(I)
+            
+ 20      CONTINUE
+         
+      ENDIF
+      
+      RETURN
+      END
+      
 C     ----------------------------------------------------------------------
 C     This file contains the LBFGS algorithm and supporting routines
 C
@@ -6,12 +47,19 @@ C     LBFGS SUBROUTINE
 C     ****************
 C
       SUBROUTINE LBFGS(N,M,X,F,G,DIAGCO,DIAG,IPRINT,EPS,XTOL,W,IFLAG,
-     *                 MYINFO)
+     *                 MYINFO,XMIN,XMAX,MASK,BOUNDT,TYPE,XINIT)
 C
       INTEGER N,M,IPRINT(2),IFLAG,MYINFO
       DOUBLE PRECISION X(N),G(N),DIAG(N),W(N*(2*M+1)+2*M)
       DOUBLE PRECISION F,EPS,XTOL
       LOGICAL DIAGCO
+      
+      DOUBLE PRECISION XMIN,XMAX
+      LOGICAL TYPE
+      REAL MASK(N)
+      DOUBLE PRECISION XINIT(N)
+      INTEGER BOUNDT
+
 C
 C        LIMITED MEMORY BFGS METHOD FOR LARGE SCALE OPTIMIZATION
 C                          JORGE NOCEDAL
@@ -227,7 +275,7 @@ C
 C 
 C     - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C
-      DOUBLE PRECISION GTOL,ONE,ZERO,GNORM,DDOT,STP1,FTOL,STPMIN,
+      DOUBLE PRECISION GTOL,ONE,ZERO,GNORM,XNORM2,DDOT,STP1,FTOL,STPMIN,
      .                 STPMAX,STP,YS,YY,SQ,YR,BETA,XNORM
       INTEGER MP,LP,ITER,NFUN,POINT,ISPT,IYPT,MAXFEV,INFO,
      .        BOUND,NPT,CP,I,NFEV,INMC,IYCN,ISCN
@@ -278,8 +326,18 @@ C
       DO 50 I=1,N
  50   W(ISPT+I)= -G(I)*DIAG(I)
       GNORM= DSQRT(DDOT(N,G,1,G,1))
-      STP1= ONE/GNORM
-C      STP1= ONE
+C      STP1= ONE/GNORM
+      XNORM2= DSQRT(DDOT(N,X,1,X,1))
+C     WITH PRECONDITIONING, STP1 NEES TO BE SET
+C     AS IT WAS IN LBFGS CODE BY DEFAULT
+      IF (BOUNDT.EQ.0) THEN
+         STP1= ONE/GNORM
+      ELSE
+c         STP1= XNORM2/GNORM/100
+c         STP1= F/2
+         STP1=ONE
+      ENDIF
+c      write(0,*) 'STP1=',STP1
 C
 C     PARAMETERS FOR LINE SEARCH ROUTINE
 C     
@@ -366,7 +424,8 @@ C     ----------------------------------------------------
  170  W(I)=G(I)
  172  CONTINUE
       CALL MCSRCH(N,X,F,G,W(ISPT+POINT*N+1),STP,FTOL,
-     *            XTOL,MAXFEV,INFO,NFEV,DIAG)
+     *            XTOL,MAXFEV,INFO,NFEV,DIAG,XMIN,XMAX,MASK,BOUNDT,
+     *            TYPE,XINIT)
       IF (INFO .EQ. -1) THEN
         IFLAG=1
         RETURN
@@ -374,6 +433,10 @@ C     ----------------------------------------------------
       IF (INFO .NE. 1) GO TO 190
       NFUN= NFUN + NFEV
       MYINFO = INFO
+      IF (BOUNDT.EQ.2) THEN
+         IF (INFO .EQ. 1) CALL FREEZE_X(XMIN,XMAX,MASK,TYPE,X,N,XINIT)
+      ENDIF
+
 c
 C     COMPUTE THE NEW STEP AND GRADIENT CHANGE 
 C     -----------------------------------------
@@ -526,12 +589,20 @@ C     **************************
 C     LINE SEARCH ROUTINE MCSRCH
 C     **************************
 C
-      SUBROUTINE MCSRCH(N,X,F,G,S,STP,FTOL,XTOL,MAXFEV,INFO,NFEV,WA)
+      SUBROUTINE MCSRCH(N,X,F,G,S,STP,FTOL,XTOL,MAXFEV,INFO,NFEV,WA,
+     *                  XMIN,XMAX,MASK,BOUNDT,TYPE,XINIT)
+     
       INTEGER N,MAXFEV,INFO,NFEV
       DOUBLE PRECISION F,STP,FTOL,GTOL,XTOL,STPMIN,STPMAX
       DOUBLE PRECISION X(N),G(N),S(N),WA(N)
+      DOUBLE PRECISION XMIN,XMAX
+      LOGICAL TYPE
+      REAL MASK(N)
+      DOUBLE PRECISION XINIT(N)
+      INTEGER BOUNDT
       COMMON /LB3/MP,LP,GTOL,STPMIN,STPMAX
       SAVE
+
 C
 C                     SUBROUTINE MCSRCH
 C                
@@ -658,7 +729,8 @@ C     **********
       DOUBLE PRECISION DG,DGM,DGINIT,DGTEST,DGX,DGXM,DGY,DGYM,
      *       FINIT,FTEST1,FM,FX,FXM,FY,FYM,P5,P66,STX,STY,
      *       STMIN,STMAX,WIDTH,WIDTH1,XTRAPF,ZERO
-      DATA P5,P66,XTRAPF,ZERO /0.5D0,0.66D0,4.0D0,0.0D0/
+      DATA P5,P66,XTRAPF,ZERO /0.5D0,0.66D0,4.0D1,0.0D0/
+c  old    DATA P5,P66,XTRAPF,ZERO /0.5D0,0.66D0,4.0D0,0.0D0/
       IF(INFO.EQ.-1) GO TO 45
       INFOC = 1
 C
@@ -740,11 +812,18 @@ C        EVALUATE THE FUNCTION AND GRADIENT AT STP
 C        AND COMPUTE THE DIRECTIONAL DERIVATIVE.
 C        We return to main program to obtain F and G.
 C
+         
+c         write(LP,*) 'STP',STP,'STMIN',STMIN,'STMAX',STMAX
+c         write(LP,*) 'MINVAL BEFORE X',minval(X),'WA',minval(WA)
+c         write(LP,*) 'MAXVAL BEFORE X',maxval(X)
          DO 40 J = 1, N
             X(J) = WA(J) + STP*S(J)
    40       CONTINUE
+         IF (BOUNDT.EQ.1) CALL FREEZE_X(XMIN,XMAX,MASK,TYPE,X,N,XINIT)
+c         write(LP,*) 'MINVAL AFTER X',minval(X),'WA',minval(WA)
+c         write(LP,*) 'MAXVAL AFTER X',maxval(X)
          INFO=-1
-         RETURN
+         RETURN 
 C
    45    INFO=0
          NFEV = NFEV + 1
@@ -753,6 +832,7 @@ C
             DG = DG + G(J)*S(J)
    50       CONTINUE
          FTEST1 = FINIT + STP*DGTEST
+c         write(0,*) 'finit,stp,dgtest',finit,stp,dgtest
 C
 C        TEST FOR CONVERGENCE.
 C
@@ -766,17 +846,17 @@ C
          IF (BRACKT .AND. STMAX-STMIN .LE. XTOL*STMAX) INFO = 2
          IF (F .LE. FTEST1 .AND. ABS(DG) .LE. GTOL*(-DGINIT)) INFO = 1
 C         IF (F .LE. FTEST1) INFO = 1
-C         IF (F.LE.FTEST1) then
-C            write(0,*) F,'<',FTEST1,'first condition met'
-C         else
-C            write(0,*) F,'>',FTEST1,'first condition not met'
-C         endif
-C         IF (ABS(DG).LE.GTOL*(-DGINIT)) then
-C            write(0,*) ABS(DG),'<',GTOL*(-DGINIT),'second condition met'
-C         else
-C            write(0,*) ABS(DG),'>',GTOL*(-DGINIT),'sec condtion not met'
-C         end if
-C
+c         IF (F.LE.FTEST1) then
+c            write(0,*) F,'<',FTEST1,'first condition met'
+c         else
+c            write(0,*) F,'>',FTEST1,'first condition not met'
+c         endif
+c         IF (ABS(DG).LE.GTOL*(-DGINIT)) then
+c            write(0,*) ABS(DG),'<',GTOL*(-DGINIT),'second condition met'
+c         else
+c            write(0,*) ABS(DG),'>',GTOL*(-DGINIT),'sec condtion not met'
+c         end if
+c
 C        CHECK FOR TERMINATION.
 C
          IF (INFO .NE. 0) RETURN

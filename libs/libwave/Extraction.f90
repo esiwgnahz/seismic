@@ -91,6 +91,32 @@ contains
   end subroutine Extraction_array_sinc
 
   ! Sinc interpolation
+  subroutine Extraction_array_sinc_noomp(bounds,model,data,u,genpar,it)
+    type(FDbounds)    ::           bounds
+    type(ModelSpace)  ::                  model
+    type(TraceSpace), dimension(:) ::           data
+    type(GeneralParam)::                               genpar 
+    real              ::                             u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    integer           :: i
+    real              :: v
+    
+    if (genpar%twoD) then
+       do i=1,size(data)
+          v=model%vel(data(i)%icoord(1),data(i)%icoord(2),1)**2
+          call Extraction_1trace_sinc_xy(bounds,v,data(i),u,genpar,it)
+       end do
+    else      
+       do i=1,size(data)       
+          v=model%vel(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))
+          call Extraction_1trace_sinc_xyz_noomp(bounds,v,data(i),u,genpar,it)
+       end do       
+    end if
+
+  end subroutine Extraction_array_sinc_noomp
+
+  ! Sinc interpolation
   subroutine Extraction_array_LSRTM_sinc(bounds,model,data,u,genpar,it)
     type(FDbounds)    ::                 bounds
     type(ModelSpace)  ::                        model
@@ -208,6 +234,65 @@ contains
     deallocate(sinc,deltai)
 
   end subroutine Extraction_1trace_sinc_xyz
+
+  subroutine Extraction_1trace_sinc_xyz_noomp(bounds,v2,data,u,genpar,it)
+    type(FDbounds)    ::                bounds
+    real              ::                       v2
+    type(TraceSpace)  ::                           data
+    type(GeneralParam)::                                    genpar 
+    real              ::                                  u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+
+    real, allocatable :: deltai(:)
+    real, allocatable :: sinc(:,:)
+    integer           :: i,j,k
+    integer           :: minx,maxx,miny,maxy,minz,maxz
+
+    allocate(sinc(genpar%lsinc,3))
+    allocate(deltai(3))
+    deltai(1)=genpar%delta(1)
+    deltai(2)=genpar%delta(2)
+    deltai(3)=genpar%delta(3)
+
+    minx=-genpar%lsinc*0.5
+    minz=minx
+    miny=minx
+    
+    maxx=genpar%lsinc*0.5
+    maxz=maxx
+    maxy=maxx
+
+    do i=1,3
+       call mksinc(sinc(:,i),genpar%lsinc,data%dcoord(i)/deltai(i))
+    end do
+    
+    if (genpar%rec_type.eq.0) then
+       do k=miny,maxy
+          do j=minx,maxx
+             do i=minz,maxz
+                data%trace(it,1)=data%trace(it,1)+ &
+                &   v2*u(i+data%icoord(1),j+data%icoord(2),k+data%icoord(3))*&
+                &   sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)
+             end do
+          end do
+       end do
+    
+    else
+       do k=miny,maxy
+          do j=minx,maxx
+             do i=minz,maxz
+                data%trace(it,1)=data%trace(it,1)+ &
+                &   v2* &
+                &   (u(i+data%icoord(1),j+data%icoord(2),k+data%icoord(3))-u(-i-data%icoord(1),j+data%icoord(2),k+data%icoord(3)))*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)
+             end do
+          end do
+       end do
+    end if
+
+    deallocate(sinc,deltai)
+
+  end subroutine Extraction_1trace_sinc_xyz_noomp
 
   subroutine Extraction_1trace_lint3_xyz(bounds,v2,data,u,genpar,it)
     type(FDbounds)    ::                 bounds

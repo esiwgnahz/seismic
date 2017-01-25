@@ -50,6 +50,40 @@ contains
     
   end subroutine FD_2nd_3D_derivatives_scalar_forward
   
+  subroutine FD_2nd_3D_derivatives_scalar_forward_grid_noomp(genpar,bounds,u2,u3,mod)
+    type(GeneralParam)   ::                        genpar
+    type(ModelSpace)     ::                                            mod
+    type(FDbounds)       ::                               bounds
+    real                 :: u2(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    real                 :: u3(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    real                 :: tmpzz, tmpxx, tmpyy
+    integer              :: i,j,k
+
+    do k=bounds%nmin3,bounds%nmax3
+       do j=bounds%nmin2,bounds%nmax2
+          do i=bounds%nmin1,bounds%nmax1
+             tmpzz= coefs%c0z*(u2(i  ,j,k)) +&
+             &      coefs%c1z*(u2(i+1,j,k)+u2(i-1,j,k))+ &
+             &      coefs%c2z*(u2(i+2,j,k)+u2(i-2,j,k))+ &
+             &      coefs%c3z*(u2(i+3,j,k)+u2(i-3,j,k))+ &
+             &      coefs%c4z*(u2(i+4,j,k)+u2(i-4,j,k))
+             tmpxx= coefs%c0x*(u2(i,j  ,k)) +&
+             &      coefs%c1x*(u2(i,j+1,k)+u2(i,j-1,k))+ &
+             &      coefs%c2x*(u2(i,j+2,k)+u2(i,j-2,k))+ &
+             &      coefs%c3x*(u2(i,j+3,k)+u2(i,j-3,k))+ &
+             &      coefs%c4x*(u2(i,j+4,k)+u2(i,j-4,k))
+             tmpyy= coefs%c0y*(u2(i,j,k  )) +&
+             &      coefs%c1y*(u2(i,j,k+1)+u2(i,j,k-1))+ &
+             &      coefs%c2y*(u2(i,j,k+2)+u2(i,j,k-2))+ &
+             &      coefs%c3y*(u2(i,j,k+3)+u2(i,j,k-3))+ &
+             &      coefs%c4y*(u2(i,j,k+4)+u2(i,j,k-4))
+             u3(i,j,k)=mod%vel(i,j,k)**2*(tmpxx+tmpzz+tmpyy)
+          end do
+       end do
+    end do
+    
+  end subroutine FD_2nd_3D_derivatives_scalar_forward_grid_noomp
+  
   subroutine FD_2nd_3D_derivatives_scalar_forward_grid(genpar,bounds,u2,u3,mod)
     type(GeneralParam)   ::                        genpar
     type(ModelSpace)     ::                                            mod
@@ -516,7 +550,7 @@ contains
     real                 :: tmpzz, tmpxx, tmpyy
     integer              :: i,j
 
-    !$OMP PARALLEL DO PRIVATE(j,i,tmpxx,tmpzz)
+    !!!$OMP PARALLEL DO PRIVATE(j,i,tmpxx,tmpzz)
     do j=bounds%nmin2,bounds%nmax2
        do i=bounds%nmin1,bounds%nmax1
           tmpzz= coefs%c0z*(u(i  ,j,1,2)) +&
@@ -532,9 +566,37 @@ contains
           u(i,j,1,3)=mod%vel(i,j,1)**2*(tmpxx+tmpzz)
        end do
     end do
-    !$OMP END PARALLEL DO
+    !!!$OMP END PARALLEL DO
     
   end subroutine FD_2nd_2D_derivatives_scalar_forward
+  
+  subroutine FD_2nd_2D_derivatives_scalar_forward_grid_noomp(genpar,bounds,u2,u3,mod)
+    type(GeneralParam)   ::                       genpar
+    type(ModelSpace)     ::                                       mod
+    type(FDbounds)       ::                              bounds
+    real                 :: u2(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    real                 :: u3(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    type(USpace)         :: grid
+    real                 :: tmpzz, tmpxx, tmpyy
+    integer              :: i,j
+
+    do j=bounds%nmin2,bounds%nmax2
+       do i=bounds%nmin1,bounds%nmax1
+          tmpzz= coefs%c0z*(u2(i  ,j,1)) +&
+          &      coefs%c1z*(u2(i+1,j,1)+u2(i-1,j,1))+ &
+          &      coefs%c2z*(u2(i+2,j,1)+u2(i-2,j,1))+ &
+          &      coefs%c3z*(u2(i+3,j,1)+u2(i-3,j,1))+ &
+          &      coefs%c4z*(u2(i+4,j,1)+u2(i-4,j,1))
+          tmpxx= coefs%c0x*(u2(i,j  ,1)) +&
+          &      coefs%c1x*(u2(i,j+1,1)+u2(i,j-1,1))+ &
+          &      coefs%c2x*(u2(i,j+2,1)+u2(i,j-2,1))+ &
+          &      coefs%c3x*(u2(i,j+3,1)+u2(i,j-3,1))+ &
+          &      coefs%c4x*(u2(i,j+4,1)+u2(i,j-4,1))
+          u3(i,j,1)=mod%vel(i,j,1)**2*(tmpxx+tmpzz)
+       end do
+    end do
+    
+  end subroutine FD_2nd_2D_derivatives_scalar_forward_grid_noomp
   
   subroutine FD_2nd_2D_derivatives_scalar_forward_grid(genpar,bounds,u2,u3,mod)
     type(GeneralParam)   ::                       genpar
@@ -758,6 +820,28 @@ contains
     end do
 
   end subroutine FD_2nd_time_derivative
+  
+  subroutine FD_2nd_time_derivative_grid_noomp(genpar,bounds,grid)
+    type(GeneralParam)   ::         genpar
+    type(FDbounds)       ::                bounds
+    type(USpace)         ::                        grid
+    integer              :: i,j,k
+    real                 :: div11,dt2
+
+    div11=1./11
+    dt2=genpar%dt**2
+
+    do k=bounds%nmin3,bounds%nmax3
+       do j=bounds%nmin2,bounds%nmax2
+          do i=bounds%nmin1,bounds%nmax1
+             grid%u3(i,j,k) = ( 20.*grid%u2(i,j,k) - 6.*grid%u1(i,j,k) - &
+             &                   4.*grid%u0(i,j,k) +    grid%u_1(i,j,k) + &
+             &              12.*dt2*grid%u3(i,j,k) ) * div11
+          end do
+       end do
+    end do
+
+  end subroutine FD_2nd_time_derivative_grid_noomp
   
   subroutine FD_2nd_time_derivative_grid(genpar,bounds,grid)
     type(GeneralParam)   ::         genpar

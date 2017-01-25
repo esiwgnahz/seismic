@@ -267,6 +267,100 @@ contains
 
   end subroutine Imaging_condition_sourceonly_from_memory
 
+  subroutine Imaging_condition_sourceonly_from_memory_noomp(bounds,model,elev,u,genpar,it)
+    type(FDbounds)    ::                                    bounds
+    type(ModelSpace)  ::                                           model
+    type(ModelSpace_elevation) ::                                        elev
+    type(GeneralParam)::                                                        genpar
+    real              ::                                                      u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                                                                           bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    integer :: i,j,k,counter
+    real, dimension (:,:,:), pointer :: bwd
+
+    integer :: ierr,blocksize,index
+    real    :: taper
+    
+    MODULO:if (mod(it,genpar%snapi).eq.0) then
+       
+       model%counter=model%counter+1
+       index=genpar%ntsnap-model%counter+1
+
+       if (genpar%surf_type.ne.0) then
+          do k=1,model%nyw
+             do j=1,model%nxw
+                taper=model%taperx(j)*model%tapery(k)
+                do i=elev%ielev_z(j,k),model%nz
+                   model%imagesmall(i,j,k)= model%imagesmall(i,j,k)+u(i,j,k)*model%wvfld%wave(i,j,k,index,1)*taper
+                   model%illumsmall(i,j,k)= model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper
+                end do
+             end do
+          end do
+       else
+          do k=1,model%nyw
+             do j=1,model%nxw
+                taper=model%taperx(j)*model%tapery(k)
+                do i=1,model%nz
+                   model%imagesmall(i,j,k)= model%imagesmall(i,j,k)+u(i,j,k)*model%wvfld%wave(i,j,k,index,1)*taper
+                   model%illumsmall(i,j,k)= model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper
+                end do
+             end do
+          end do
+       end if                  
+
+    end if MODULO
+
+  end subroutine Imaging_condition_sourceonly_from_memory_noomp
+
+  subroutine Imaging_condition_AFWI_from_memory_noomp(bounds,model,elev,u,genpar,it)
+    type(FDbounds)    ::                              bounds
+    type(ModelSpace)  ::                                     model
+    type(ModelSpace_elevation) ::                                  elev
+    type(GeneralParam)::                                                   genpar
+    real              ::                                                u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                                                                           bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    integer :: i,j,k,counter
+    real, dimension (:,:,:), pointer :: bwd
+
+    integer :: ierr,blocksize,index,indexm1,indexp1
+    real    :: taper,tmp
+    
+    MODULO:if (mod(it,genpar%snapi).eq.0) then
+       
+       model%counter=model%counter+1
+       index=genpar%ntsnap-model%counter+1
+       indexp1=min(index+1,genpar%ntsnap)
+       indexm1=max(index-1,1)
+
+       if (genpar%surf_type.ne.0) then
+          do k=1,model%nyw
+             do j=1,model%nxw
+                taper=model%taperx(j)*model%tapery(k)
+                do i=elev%ielev_z(j,k),model%nz
+                   tmp=(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1))/(genpar%dt2*model%vel(i,j,k)**3)
+                   model%imagesmall(i,j,k)= model%imagesmall(i,j,k)+u(i,j,k)*tmp*taper
+                   model%illumsmall(i,j,k)= model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper
+                end do
+             end do
+          end do
+       else
+          do k=1,model%nyw
+             do j=1,model%nxw
+                taper=model%taperx(j)*model%tapery(k)
+                do i=1,model%nz
+                   tmp=(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1))/(genpar%dt2*model%vel(i,j,k)**3)
+                   model%imagesmall(i,j,k)= model%imagesmall(i,j,k)+u(i,j,k)*tmp*taper
+                   model%illumsmall(i,j,k)= model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper
+                end do
+             end do
+          end do
+       end if                  
+
+    end if MODULO
+
+  end subroutine Imaging_condition_AFWI_from_memory_noomp
+
   subroutine Imaging_condition_LSRTM_sourceonly_from_memory(bounds,model,elev,u,genpar,it)
     type(FDbounds)    ::                                   bounds
     type(ModelSpace)  ::                                          model

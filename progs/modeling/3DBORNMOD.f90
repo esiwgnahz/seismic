@@ -43,10 +43,9 @@ program THREEDBORN
   call read_3D_params(genpar)
   genpar%Born=.true.
   call readsou(sourcevec,genpar)
-
   call readtraces(datavec,sourcevec,genpar)
   call readcoords(datavec,sourcevec,genpar)
-  call extract_coord_source_receiver_patch(datavec,sourcevec,mod,genpar)
+  call extract_coord_source_receiver_patch(datavec,sourcevec(1),mod,genpar)
   call read_window_vel(mod,genpar,bounds)
   call read_window_ref(mod,genpar,bounds)
 

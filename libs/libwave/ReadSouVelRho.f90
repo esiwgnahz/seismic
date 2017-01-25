@@ -118,6 +118,7 @@ contains
        datavec(i)%coord(3)=tracekeys(index_gy)
     end do
 
+    call auxclose('coordfile')
     sourcevec(1)%coord(1)=tracekeys(index_selev)   
     sourcevec(1)%coord(2)=tracekeys(index_sx)    
     sourcevec(1)%coord(3)=tracekeys(index_sy)
@@ -131,8 +132,128 @@ contains
 
     write(0,*) 'INFO: Finished reading traces/source coordinates'
     write(0,*) 'INFO:-------------------------------------------'
+    deallocate(tracekeys)
 
   end subroutine readcoords
+
+  subroutine readgathercoords(shotgath,sourcevec,genpar)
+    type(GatherSpace), dimension(:), allocatable :: shotgath
+    type(TraceSpace), dimension(:), allocatable :: sourcevec
+    type(GeneralParam)             :: genpar
+    integer :: index_gx,   index_gy,index_sx,index_sy
+    integer :: index_selev,index_gelev
+    integer :: nkeys,ntraces,i,j,k,ngathers
+    integer :: begi,endi
+    real,    allocatable, dimension(:)  :: tracekeys
+    integer, allocatable, dimension(:)  :: sindex
+    integer, allocatable, dimension(:)  :: bindex
+    real,    allocatable, dimension(:,:):: coord
+
+    write(0,*) 'INFO:-------------------------------------------'
+    write(0,*) 'INFO: Starting reading traces/source coordinates'
+
+    call from_param('keygx',index_gx)
+    call from_param('keysx',index_sx)
+    call from_param('keygy',index_gy)
+    call from_param('keysy',index_sy)
+    call from_param('keyselev',index_selev)
+    call from_param('keygelev',index_gelev)
+
+    if (.not.exist_file('coordfile')) call erexit('ERROR: need coordfile')
+    call from_aux('coordfile','n1',nkeys)
+    call from_aux('coordfile','n2',ntraces)
+    
+    allocate(coord(nkeys,ntraces))
+    call sreed('coordfile',coord,4*nkeys*ntraces)
+
+    ngathers=number_of_shots(index_sx,index_sy,coord)
+    allocate(shotgath(ngathers))
+    allocate(sourcevec(ngathers))
+    allocate(sindex(ngathers))
+    allocate(bindex(ngathers))
+    call number_of_traces(index_sx,index_sy,ngathers,sindex,bindex,coord)
+
+    do i=1,ngathers
+       shotgath(i)%ntraces=sindex(i)
+       shotgath(i)%begi=bindex(i)
+       allocate(shotgath(i)%gathtrace(sindex(i)))
+    end do
+    
+    allocate(tracekeys(nkeys))
+    begi=0
+    endi=0
+    k=0
+
+    ! Now read the coordinates for each gathers
+    write(0,*) 'ngathers',ngathers,'nkeys',nkeys,'ntraces',ntraces
+    do i=1,ngathers
+       begi=endi+1
+       endi=begi+shotgath(i)%ntraces-1
+       k=0
+       do j=begi,endi
+          tracekeys=0.  
+          tracekeys=coord(:,j)
+          k=k+1
+          shotgath(i)%gathtrace(k)%coord(1)=tracekeys(index_gelev)    
+          shotgath(i)%gathtrace(k)%coord(2)=tracekeys(index_gx)    
+          shotgath(i)%gathtrace(k)%coord(3)=tracekeys(index_gy)
+       end do
+       sourcevec(i)%coord(1)=tracekeys(index_selev)   
+       sourcevec(i)%coord(2)=tracekeys(index_sx)    
+       sourcevec(i)%coord(3)=tracekeys(index_sy)
+
+       write(0,*) 'INFO: Source coordinates for gather',i,'with ',shotgath(i)%ntraces,'traces are'
+       write(0,*) 'INFO: ------------------------------------------------------------------------'
+       write(0,*) 'INFO: x,y,z=',sourcevec(i)%coord(2),sourcevec(i)%coord(3),sourcevec(i)%coord(1)
+       write(0,*) 'INFO: '
+    end do
+
+    write(0,*) 'INFO: Finished reading traces/source coordinates'
+    write(0,*) 'INFO:-------------------------------------------'
+
+    deallocate(tracekeys,sindex,bindex,coord)
+  end subroutine readgathercoords
+
+  subroutine readgathertraces(shotgath,source)
+    type(GatherSpace), dimension(:):: shotgath
+    type(TraceSpace),  dimension(:):: source
+    integer                        :: nshots,ntraces,nfiletraces,nreadtraces,n1,j,i
+    real                           :: d1,o1
+
+    if (.not.exist_file('traces')) call erexit('ERROR: need traces file')
+    call from_aux('traces','n1',n1)
+    call from_aux('traces','d1',d1)
+    call from_aux('traces','o1',o1)
+    call from_aux('traces','n2',nfiletraces)
+    if (n1.ne.source(1)%dimt%nt) then
+       call erexit('ERROR: nt traces and sources are different, exit now')
+    end if
+
+    nreadtraces=0
+    nshots=size(shotgath)
+    do i=1,nshots
+
+       ntraces=shotgath(i)%ntraces
+       write(0,*) 'INFO:-------------------------------------------'
+       write(0,*) 'INFO: Starting reading',ntraces,'traces for shot',i
+
+       do j=1,ntraces
+          nreadtraces=nreadtraces+1
+          allocate(shotgath(i)%gathtrace(j)%trace(n1,1))
+          call sreed('traces',shotgath(i)%gathtrace(j)%trace(:,1),4*n1)
+          shotgath(i)%gathtrace(j)%dimt%nt=n1
+          shotgath(i)%gathtrace(j)%dimt%ot=o1
+          shotgath(i)%gathtrace(j)%dimt%dt=d1     
+       end do
+    end do
+
+    write(0,*) 'INFO: Read a total of ',nreadtraces
+    if(nreadtraces.ne.nfiletraces) call erexit('ERROR: number of read traces is different from n2 in traces')
+
+    write(0,*) 'INFO: Finished reading traces'
+    write(0,*) 'INFO: -----------------------'
+
+  end subroutine readgathertraces
 
   subroutine readsou(source,genpar)
     type(TraceSpace), dimension(:), allocatable ::source
@@ -182,6 +303,17 @@ contains
     end if
 
   end subroutine readsou
+
+  subroutine copysou2sougath(sou,sougath)
+    type(TraceSpace), dimension(:) ::sou,sougath
+    integer :: i,nt
+    nt=sou(1)%dimt%nt
+    do i=1,size(sougath)
+       allocate(sougath(i)%trace(nt,1))
+       sougath(i)%trace=sou(1)%trace
+       sougath(i)%dimt%nt=sou(1)%dimt%nt
+    end do
+  end subroutine copysou2sougath
 
   subroutine readsoucoord(source,mod)    
     type(TraceSpace), dimension(:) :: source
@@ -649,5 +781,69 @@ contains
     end if
 
   end subroutine dim_consistency_check
+
+  integer function number_of_shots(index_sx,index_sy,coord)
+    integer :: i,nkeys,index_sx,index_sy,ntraces
+    real    :: sx,sy,sxtmp,sytmp
+    real, allocatable, dimension(:)   :: tracekeys
+    real,              dimension(:,:) :: coord
+
+    ntraces=size(coord(1,:))
+    nkeys=size(coord(:,1))
+    allocate(tracekeys(nkeys))
+
+    tracekeys=coord(:,1)
+    sx=tracekeys(index_sx)
+    sy=tracekeys(index_sy)
+    number_of_shots=1
+    do i=2,ntraces
+       
+       tracekeys=coord(:,i)
+       sxtmp=tracekeys(index_sx)
+       sytmp=tracekeys(index_sy)
+       if ((sx.ne.sxtmp).or.(sy.ne.sytmp)) then
+          number_of_shots=number_of_shots+1
+          sx=sxtmp
+          sy=sytmp
+       end if
+    end do
+
+    deallocate(tracekeys)
+  end function number_of_shots
+
+  subroutine number_of_traces(index_sx,index_sy,nshots,sindex,bindex,coord)
+    integer :: i,j,nshots,nkeys,index_sx,index_sy,ntraces
+    real    :: sx,sy,sxtmp,sytmp
+    real, allocatable, dimension(:)        :: tracekeys
+    integer,           dimension(nshots)   :: sindex
+    integer,           dimension(nshots)   :: bindex
+    real,              dimension(:,:)      :: coord
+
+    sindex=0
+    ntraces=size(coord(1,:))
+    nkeys=size(coord(:,1))
+    allocate(tracekeys(nkeys))
+
+    tracekeys=coord(:,1)
+    sx=tracekeys(index_sx)
+    sy=tracekeys(index_sy)
+    j=1
+    sindex(j)=sindex(j)+1
+    bindex(j)=1
+    do i=2,ntraces
+       tracekeys=coord(:,i)
+       sxtmp=tracekeys(index_sx)
+       sytmp=tracekeys(index_sy)
+       if ((sx.ne.sxtmp).or.(sy.ne.sytmp)) then
+         j=j+1
+         sx=sxtmp
+         sy=sytmp
+         bindex(j)=i
+       endif
+       sindex(j)=sindex(j)+1
+    end do
+
+    deallocate(tracekeys)
+  end subroutine number_of_traces
 
 end module readsouvelrho_mod

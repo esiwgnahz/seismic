@@ -91,7 +91,7 @@ program Acoustic_rtm_sep
 
   call readtraces(datavec,sourcevec,genpar)
   call readcoords(datavec,sourcevec,genpar)
-  call extract_coord_source_receiver_patch(datavec,sourcevec,mod,genpar)
+  call extract_coord_source_receiver_patch(datavec,sourcevec(1),mod,genpar)
   call read_window_vel(mod,genpar,bounds)
   allocate(datamodvec(size(datavec)))
   do i=1,size(datavec)

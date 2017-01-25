@@ -12,6 +12,7 @@ module DataSpace_types
      real    :: ot
   end type DataSpace
 
+  ! Wavespace type for x,y,z,t,nc (# components)
   type WaveSpace
      real, allocatable :: wave(:,:,:,:,:)
 
@@ -25,6 +26,7 @@ module DataSpace_types
 
   end type WaveSpace
   
+  ! Wavefields needed for FD schemes. Time index given by number
   type USpace
      real, pointer :: utmp(:,:,:)
      real, pointer :: u_1(:,:,:)
@@ -33,7 +35,8 @@ module DataSpace_types
      real, pointer :: u2(:,:,:)
      real, pointer :: u3(:,:,:)
   end type USpace
-  
+
+  ! A collection of traces with their values and coordinates
   type TraceSpace
      type(DataSpace)      :: dimt
      real, allocatable    :: trace(:,:) ! value per component
@@ -41,6 +44,13 @@ module DataSpace_types
      real,    dimension(3):: dcoord     ! delta for extraction 
      integer, dimension(3):: icoord     ! index
   end type TraceSpace
+
+  ! A collection of traces belonging to the same gather
+  type GatherSpace
+     type(TraceSpace), allocatable :: gathtrace(:)
+     integer          :: ntraces
+     integer          :: begi ! Index of first trace in trace file
+  end type GatherSpace
 
 contains
 
@@ -54,8 +64,25 @@ contains
     if (allocated(dat%trace)) deallocate(dat%trace)
   end subroutine deallocateTraceSpace
 
+  subroutine deallocateGatherSpace(gath)
+    type(GatherSpace)  :: gath
+    integer :: nshots,ntraces,i,j
+
+    ntraces=gath%ntraces
+    do j=1,ntraces
+       call deallocateTraceSpace(gath%gathtrace(j))
+    end do
+
+  end subroutine deallocateGatherSpace
+
   subroutine deallocateUSpace(grid)
     type(USpace) :: grid
+    if (associated(grid%u_1)) nullify(grid%u_1)
+    if (associated(grid%u0))  nullify(grid%u0)
+    if (associated(grid%u1))  nullify(grid%u1)
+    if (associated(grid%u2))  nullify(grid%u2)
+    if (associated(grid%u3))  nullify(grid%u3)
+
     if (allocated(grid%u_1)) deallocate(grid%u_1)
     if (allocated(grid%u0))  deallocate(grid%u0)
     if (allocated(grid%u1))  deallocate(grid%u1)
@@ -75,5 +102,14 @@ contains
     allocate( grid%u3(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound))   
 
   end subroutine allocateUSpace
+
+  subroutine zeroUSpace(grid)
+    type(USpace)  ::    grid
+    grid%u_1=0.
+    grid%u0=0.
+    grid%u1=0.
+    grid%u2=0.
+    grid%u3=0.
+  end subroutine zeroUSpace
 
 end module DataSpace_types

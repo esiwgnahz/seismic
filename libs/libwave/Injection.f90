@@ -100,6 +100,49 @@ contains
     
   end subroutine Injection_sinc
 
+  subroutine Injection_sinc_noomp(bounds,model,tracevec,u,genpar,it)
+    
+    type(FDbounds)    ::    bounds
+    type(ModelSpace)  ::           model
+    type(TraceSpace),dimension(:)  ::    tracevec
+    type(GeneralParam)::                            genpar 
+    real              ::                          u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    integer           :: i
+    integer           :: type_inject
+    real              :: v2r
+
+    if (genpar%tmax.eq.1) then
+       type_inject=genpar%rec_type
+    else
+       type_inject=genpar%shot_type
+    end if
+
+    if (genpar%twoD) then
+       do i=1,size(tracevec)
+          if (genpar%withRho) then
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2* &
+             &   model%rho(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))
+          else
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2
+          end if
+          call Injection_source_sinc_xz(bounds,v2r,tracevec(i),u,genpar,it,type_inject)
+       end do
+    else
+       do i=1,size(tracevec)
+          if (genpar%withRho) then
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2* &
+             &   model%rho(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))
+          else
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2
+          end if
+          call Injection_source_sinc_xyz_noomp(bounds,v2r,tracevec(i),u,genpar,it,type_inject) 
+       end do    
+    end if
+    
+  end subroutine Injection_sinc_noomp
+
   subroutine Injection_LSRTM_sinc(bounds,model,tracevec,u,genpar,it)
     
     type(FDbounds)    ::    bounds
@@ -200,6 +243,68 @@ contains
     deallocate(sinc,deltai)
 
   end subroutine Injection_source_sinc_xyz
+
+  subroutine Injection_source_sinc_xyz_noomp(bounds,v2r,sou,u,genpar,it,type_inject)
+    type(FDbounds)    ::               bounds
+    real              ::                      v2r
+    type(TraceSpace)  ::                          sou
+    type(GeneralParam)::                                genpar 
+    real              ::                              u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    integer           :: type_inject
+
+    real, allocatable :: deltai(:)
+    real, allocatable :: sinc(:,:)
+    integer           :: i,j,k
+    integer           :: minx,maxx,miny,maxy,minz,maxz
+
+    allocate(sinc(genpar%lsinc,3))
+    allocate(deltai(3))
+    deltai(1)=genpar%delta(1)
+    deltai(2)=genpar%delta(2)
+    deltai(3)=genpar%delta(3)
+
+    minx=-genpar%lsinc*0.5
+    minz=minx
+    miny=minx
+    
+    maxx=genpar%lsinc*0.5
+    maxz=maxx
+    maxy=maxx
+
+    do i=1,3
+       call mksinc(sinc(:,i),genpar%lsinc,sou%dcoord(i)/deltai(i))
+    end do
+    
+    if (type_inject.eq.0) then
+       do k=miny,maxy
+          do j=minx,maxx
+             do i=minz,maxz
+                u(i+sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))=&
+                &   u(i+sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))+&
+                &   v2r*sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)
+             end do
+          end do
+       end do
+    else
+       do k=miny,maxy
+          do j=minx,maxx
+             do i=minz,maxz
+                u(i+sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))=&
+                &   u(i+sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))+&
+                &   v2r*sou%trace(it,1)*sinc(maxz+1+i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)
+
+                u(i-sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))=&
+                &   u(i-sou%icoord(1),j+sou%icoord(2),k+sou%icoord(3))-&
+                &   v2r*sou%trace(it,1)*sinc(maxz+1-i,1)*sinc(maxx+1+j,2)*sinc(maxy+1+k,2)
+             end do
+          end do
+       end do
+    end if
+    deallocate(sinc,deltai)
+
+  end subroutine Injection_source_sinc_xyz_noomp
 
   subroutine Injection_source_sinc_xz(bounds,v2r,sou,u,genpar,it,type_inject)
     type(FDbounds)    ::              bounds

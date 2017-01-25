@@ -37,4 +37,12 @@ contains
     end do
     
   end subroutine cos_sin_taper
+
+  subroutine compute_taper_close(mod)    
+    type(ModelSpace) ::    mod
+    
+    if(allocated(mod%taperx)) deallocate(mod%taperx)   
+    if(allocated(mod%tapery)) deallocate(mod%tapery)
+  end subroutine compute_taper_close
+
 end module Taper_mod

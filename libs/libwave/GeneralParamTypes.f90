@@ -9,8 +9,11 @@ module GeneralParam_types
      logical :: WriteFwdWvfld
      logical :: LSRTM
      logical :: CHEAPLSRTM
+     logical :: verbose
+     logical :: optim
 
      real    :: dt
+     real    :: dt2
 
      real    :: omodel(3),delta(3)
 
@@ -35,6 +38,7 @@ module GeneralParam_types
      real    :: aperture(2)
      integer :: nthreads
      real    :: max_memory
+     character(len=3) :: task
   end type GeneralParam
 
   type HigdonParam

@@ -19,7 +19,7 @@ module to_disk_to_memory_AGRAD_mod
 
 contains
 
-  subroutine AGRAD_to_memory(model,genpar,dat,bounds,elev,datavec,sourcevec,wfld_fwd)
+  subroutine AGRAD_to_memory(model,genpar,dat,bounds,elev,datavec,wfld_fwd)
 
     type(GeneralParam) :: genpar
     type(ModelSpace)   :: model
@@ -28,14 +28,13 @@ contains
     type(ModelSpace_elevation) :: elev
 
     type(TraceSpace), dimension(:) :: datavec
-    type(TraceSpace), dimension(1) :: sourcevec
     type(WaveSpace), target        :: wfld_fwd
 
-    integer :: i,j,k 
+    integer :: i,j,k,ishot
     integer :: ntsnap
 
     genpar%tmax=1
-    genpar%tmin=sourcevec(1)%dimt%nt
+    genpar%tmin=datavec(1)%dimt%nt
     genpar%tstep=-1
 
     allocate(model%imagesmall(model%nz,model%nxw,model%nyw))
@@ -57,7 +56,7 @@ contains
        & FD_2nd_time_derivative_grid_noomp,               &
        & FDswaptime_pointer,                              &
        & bounds,model,elev,genpar,                        &
-       & sou=datavec,ImagingCondition=Imaging_condition_sourceonly_from_memory_noomp)
+       & sou=datavec,ImagingCondition=Imaging_condition_AFWI_from_memory_noomp)
     else
        call propagator_acoustic(                          &
        & FD_acoustic_init_coefs,                          &
@@ -66,10 +65,11 @@ contains
        & FD_2nd_time_derivative_grid_noomp,               &
        & FDswaptime_pointer,                              &
        & bounds,model,elev,genpar,                        &
-       & sou=datavec,ImagingCondition=Imaging_condition_sourceonly_from_memory_noomp)
+       & sou=datavec,ImagingCondition=Imaging_condition_AFWI_from_memory_noomp)
     end if
     if (genpar%verbose) write(0,*) 'INFO: Done with 2nd forward propagation'
     call deallocateWaveSpace(wfld_fwd)
+    call compute_taper_close(model)
 
   end subroutine AGRAD_to_memory
 
