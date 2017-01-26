@@ -90,15 +90,17 @@ contains
     call from_param('freeze_soft',invparam%freeze_soft,.true.)
     call from_param('bound',invparam%const_type,2)
     call from_param('eps',invparam%eps,0.0)
+    call from_param('illu_pow',invparam%illupow,1.)
 
     write(0,*) 'INFO: ----------------------------'
     write(0,*) 'INFO:   Inversion Parameters      '
     write(0,*) 'INFO: ----------------------------'
     write(0,*) 'INFO:'
-    write(0,*) 'INFO:   niter=',invparam%niter
-    write(0,*) 'INFO:   neval=',invparam%neval
-    write(0,*) 'INFO:   vpmin=',invparam%vpmin
-    write(0,*) 'INFO:   vpmax=',invparam%vpmax
+    write(0,*) 'INFO:   niter   =',invparam%niter
+    write(0,*) 'INFO:   neval   =',invparam%neval
+    write(0,*) 'INFO:   vpmin   =',invparam%vpmin
+    write(0,*) 'INFO:   vpmax   =',invparam%vpmax
+    write(0,*) 'INFO:   illu_pow=',invparam%illupow
     write(0,*) 'INFO:'
     if (invparam%const_type.eq.1) then
        write(0,*) 'INFO:   bound = 1: Model constrained at each fct/gdt eval'

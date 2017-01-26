@@ -55,25 +55,27 @@ contains
     mod%oyw=min(miny,centery-genpar%aperture(2)/2)
     mod%endy=max(maxy,centery+genpar%aperture(2)/2)
     
-    write(0,*) 'INFO:-------------------------------------------------------------------------'
-    write(0,*) 'INFO: Coordinates model according to aperture and source/receiver positions is'
-    write(0,*) 'INFO:-------------------------------------------------------------------------'
-    write(0,*) 'INFO:'
-    write(0,*) 'INFO: endy,oxw ------------------ endy,endx'
-    write(0,*) 'INFO:     |                           |    '
-    write(0,*) 'INFO:     |                           |    '
-    write(0,*) 'INFO:     |                           |    '
-    write(0,*) 'INFO:     |                           |    '
-    write(0,*) 'INFO:     |                           |    '
-    write(0,*) 'INFO:     |                           |    '
-    write(0,*) 'INFO:     |                           |    '
-    write(0,*) 'INFO:     |                           |    ' 
-    write(0,*) 'INFO:  oyw,oxw ------------------- oyw,endx'
-    write(0,*) 'INFO:'
-    write(0,*) 'INFO: oxw =',mod%oxw,'  oyw =',mod%oyw
-    write(0,*) 'INFO: endx=',mod%endx,' endy=',mod%endy
-    write(0,*) 'INFO:'
-    write(0,*) 'INFO:'
+    if (genpar%verbose) then
+       write(0,*) 'INFO:-------------------------------------------------------------------------'
+       write(0,*) 'INFO: Coordinates model according to aperture and source/receiver positions is'
+       write(0,*) 'INFO:-------------------------------------------------------------------------'
+       write(0,*) 'INFO:'
+       write(0,*) 'INFO: endy,oxw ------------------ endy,endx'
+       write(0,*) 'INFO:     |                           |    '
+       write(0,*) 'INFO:     |                           |    '
+       write(0,*) 'INFO:     |                           |    '
+       write(0,*) 'INFO:     |                           |    '
+       write(0,*) 'INFO:     |                           |    '
+       write(0,*) 'INFO:     |                           |    '
+       write(0,*) 'INFO:     |                           |    '
+       write(0,*) 'INFO:     |                           |    ' 
+       write(0,*) 'INFO:  oyw,oxw ------------------- oyw,endx'
+       write(0,*) 'INFO:'
+       write(0,*) 'INFO: oxw =',mod%oxw,'  oyw =',mod%oyw
+       write(0,*) 'INFO: endx=',mod%endx,' endy=',mod%endy
+       write(0,*) 'INFO:'
+       write(0,*) 'INFO:'
+    end if
 
   end subroutine extract_coord_source_receiver_patch
 

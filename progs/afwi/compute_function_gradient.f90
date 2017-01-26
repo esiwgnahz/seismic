@@ -219,7 +219,7 @@ contains
     grad=grad/(n1*ntotaltraces)
     illu=(illu+maxval(illu)/10000)/sqrt(sum(dprod(illu,illu))/size(illu))
 
-    grad=grad/illu
+    grad=grad/(illu**invparam%illupow)
     grad=grad*invparam%vpmask
     call triangle2(smoothpar,grad)
     grad=grad*invparam%vpmask

@@ -17,6 +17,7 @@ module Inversion_types
      real   :: vpmax
 
      real   :: eps        ! regularization parameter
+     real   :: illupow
      
      double precision, allocatable:: vpinit(:)
      real,             allocatable:: vpmask(:)
