@@ -46,13 +46,12 @@ contains
     model%counter=0
    
     call compute_taper(model)
-
     if (genpar%verbose) write(0,*) 'INFO: Starting 2nd forward propagation'
     if (genpar%twoD) then
        call propagator_acoustic(                          &
        & FD_acoustic_init_coefs,                          &
        & FD_2nd_2D_derivatives_scalar_forward_grid_noomp, &
-       & Injection_sinc_noomp,                            &
+       & Injection_simple_noomp,                            &
        & FD_2nd_time_derivative_grid_noomp,               &
        & FDswaptime_pointer,                              &
        & bounds,model,elev,genpar,                        &
@@ -61,7 +60,7 @@ contains
        call propagator_acoustic(                          &
        & FD_acoustic_init_coefs,                          &
        & FD_2nd_3D_derivatives_scalar_forward_grid_noomp, &
-       & Injection_sinc_noomp,                              &
+       & Injection_simple_noomp,                              &
        & FD_2nd_time_derivative_grid_noomp,               &
        & FDswaptime_pointer,                              &
        & bounds,model,elev,genpar,                        &

@@ -10,6 +10,94 @@ module Injection_mod
 
 contains
 
+  subroutine Injection_simple(bounds,model,tracevec,u,genpar,it)
+    
+    type(FDbounds)    ::      bounds
+    type(ModelSpace)  ::             model
+    type(TraceSpace),dimension(:)  ::      tracevec
+    type(GeneralParam)::                              genpar 
+    real              ::                            u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    integer           :: i
+    integer           :: type_inject
+    real              :: v2r
+
+    if (genpar%tmax.eq.1) then
+       type_inject=genpar%rec_type
+    else
+       type_inject=genpar%shot_type
+    end if
+
+    if (genpar%twoD) then
+       do i=1,size(tracevec)
+          if (genpar%withRho) then
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)**2* &
+             &   model%rho(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)
+          else
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)**2
+          end if
+          call Injection_source_simple_xyz(bounds,v2r,tracevec(i),u,genpar,it,type_inject)
+       end do
+    else
+       !$OMP PARALLEL DO PRIVATE(i,v2r)
+       do i=1,size(tracevec)
+          if (genpar%withRho) then
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2* &
+             &   model%rho(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))
+          else
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2
+          end if
+          call Injection_source_simple_xyz(bounds,v2r,tracevec(i),u,genpar,it,type_inject) 
+       end do    
+       !$OMP END PARALLEL DO
+    end if
+    
+  end subroutine Injection_simple
+
+  subroutine Injection_simple_noomp(bounds,model,tracevec,u,genpar,it)
+    
+    type(FDbounds)    ::            bounds
+    type(ModelSpace)  ::                   model
+    type(TraceSpace),dimension(:)  ::            tracevec
+    type(GeneralParam)::                                    genpar 
+    real              ::                                  u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    integer           :: i
+    integer           :: type_inject
+    real              :: v2r
+
+    if (genpar%tmax.eq.1) then
+       type_inject=genpar%rec_type
+    else
+       type_inject=genpar%shot_type
+    end if
+
+    if (genpar%twoD) then
+       do i=1,size(tracevec)
+          if (genpar%withRho) then
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)**2* &
+             &   model%rho(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)
+          else
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)**2
+          end if
+          call Injection_source_simple_xyz(bounds,v2r,tracevec(i),u,genpar,it,type_inject)
+       end do
+    else
+       do i=1,size(tracevec)
+          if (genpar%withRho) then
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2* &
+             &   model%rho(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))
+          else
+             v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2
+          end if
+          call Injection_source_simple_xyz(bounds,v2r,tracevec(i),u,genpar,it,type_inject) 
+       end do    
+    end if
+    
+  end subroutine Injection_simple_noomp
+
   subroutine Injection_lint(bounds,model,tracevec,u,genpar,it)
     
     type(FDbounds)    ::    bounds
@@ -465,9 +553,9 @@ contains
 
   end subroutine Injection_source_lint3_xz
 
-  subroutine Injection_source_simple_xyz(bounds,model,sou,u,genpar,it,type_inject)
+  subroutine Injection_source_simple_xyz(bounds,v2r,sou,u,genpar,it,type_inject)
     type(FDbounds)    ::                 bounds
-    type(ModelSpace)  ::                        model
+    real              ::                        v2r
     type(TraceSpace)  ::                            sou
     type(GeneralParam)::                                  genpar 
     real              ::                                u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
@@ -482,51 +570,17 @@ contains
 
     if(genpar%twoD) then
        iy=1
-       deltai=(genpar%delta(1)*genpar%delta(2))
     else
        iy=sou%icoord(3)
-       deltai=(genpar%delta(1)*genpar%delta(2)*genpar%delta(3))
     end if
 
     if (type_inject.eq.0) then
-       u( iz,ix,iy)=u( iz,ix,iy)+model%vel(iz,ix,iy)**2*sou%trace(it,1)
+       u( iz,ix,iy)=u( iz,ix,iy)+v2r*sou%trace(it,1)
     else
-       u( iz,ix,iy)=u( iz,ix,iy)+model%vel(iz,ix,iy)**2*sou%trace(it,1)    
-       u(-iz,ix,iy)=u(-iz,ix,iy)-model%vel(iz,ix,iy)**2*sou%trace(it,1)
+       u( iz,ix,iy)=u( iz,ix,iy)+v2r*sou%trace(it,1)    
+       u(-iz,ix,iy)=u(-iz,ix,iy)-v2r*sou%trace(it,1)
     end if
 
   end subroutine Injection_source_simple_xyz
-
-  subroutine Injection_source_rho_simple_xyz(bounds,model,sou,u,genpar,it,type_inject)
-    type(FDbounds)    ::                 bounds
-    type(ModelSpace)  ::                        model
-    type(TraceSpace)  ::                              sou
-    type(GeneralParam)::                                    genpar 
-    real              ::                                  u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
-    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
-    integer           :: it
-    real              :: deltai
-    integer           :: i,j,k,iz,ix,iy
-    integer           :: type_inject
-
-    iz=sou%icoord(1)
-    ix=sou%icoord(2)
-
-    if(genpar%twoD) then
-       iy=1
-       deltai=(genpar%delta(1)*genpar%delta(2))
-    else
-       iy=sou%icoord(3)
-       deltai=(genpar%delta(1)*genpar%delta(2)*genpar%delta(3))
-    end if
-
-    if (type_inject.eq.0) then
-       u( iz,ix,iy)=u( iz,ix,iy)+model%rho(iz,ix,iy)*model%vel(iz,ix,iy)**2*sou%trace(it,1) 
-    else
-       u( iz,ix,iy)=u( iz,ix,iy)+model%rho(iz,ix,iy)*model%vel(iz,ix,iy)**2*sou%trace(it,1)     
-       u(-iz,ix,iy)=u(-iz,ix,iy)-model%rho(iz,ix,iy)*model%vel(iz,ix,iy)**2*sou%trace(it,1)
-    end if
-
-  end subroutine Injection_source_rho_simple_xyz
 
 end module Injection_mod

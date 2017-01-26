@@ -65,6 +65,7 @@ contains
     write(0,*) 'INFO: withRho                =',genpar%withRho
     write(0,*) 'INFO: write_forward_wavefield=',genpar%WriteFwdWvfld
     write(0,*) 'INFO: LSRTM                  =',genpar%LSRTM
+    write(0,*) 'INFO: Born                   =',genpar%Born
     if (genpar%LSRTM) write(0,*) 'INFO: CHEAPLSRTM             =',genpar%CHEAPLSRTM
     write(0,*) 'INFO: ----------------------------'
     write(0,*) 'INFO:'
@@ -83,7 +84,7 @@ contains
 
     invparam%iter=0
     call from_param('niter',invparam%niter,10)
-    call from_param('neval',invparam%neval,10)
+    call from_param('neval',invparam%neval,3*invparam%niter)
     call from_param('vpmin',invparam%vpmin,1500.)
     call from_param('vpmax',invparam%vpmax,4500.)
     

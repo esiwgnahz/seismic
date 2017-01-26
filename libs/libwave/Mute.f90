@@ -31,13 +31,13 @@ contains
     write(0,*) 'INFO:-------------------------'
     write(0,*) 'INFO: Data muting parameters  '
     write(0,*) 'INFO:-------------------------'
-    write(0,*) 'INFO'
+    write(0,*) 'INFO:'
     write(0,*) 'INFO:  V0    = ',mutepar%v0
     write(0,*) 'INFO:  V1    = ',mutepar%v1
     write(0,*) 'INFO:  t0    = ',mutepar%t0
     write(0,*) 'INFO:  t1    = ',mutepar%t1
     write(0,*) 'INFO:  tramp = ',mutepar%tramp
-    write(0,*) 'INFO'
+    write(0,*) 'INFO:'
     write(0,*) 'INFO:-------------------------'
 
   end subroutine Init_MuteParam
@@ -80,14 +80,14 @@ contains
           hx=gx-sx
           hy=gy-sy
           
-          call compute_first_mute(mutepar,dt,t0,hx,hy,tmp)
-          call compute_second_mute(mutepar,dt,t0,hx,hy,tmp1)
+          call compute_top_mute(mutepar,dt,t0,hx,hy,tmp)
+          call compute_bottom_mute(mutepar,dt,t0,hx,hy,tmp1)
           mutepar%maskgath(i)%gathtrace(j)%trace(:,1)=tmp*tmp1
-
+          if (exist_file('mute_out')) call srite('mute',mutepar%maskgath(i)%gathtrace(j)%trace,4*nt)
        end do
 
     end do
-
+    
     deallocate(tmp,tmp1)
  
   end subroutine MuteParam_compute_mask
@@ -106,7 +106,7 @@ contains
 
   end subroutine MuteParam_deallocate
 
-  subroutine compute_first_mute(mutepar,dt,t0,hx,hy,mute)
+  subroutine compute_top_mute(mutepar,dt,t0,hx,hy,mute)
     type(MuteParam)    ::       mutepar
     real, dimension(:) ::                           mute
     real               ::               dt,t0,hx,hy
@@ -129,9 +129,9 @@ contains
     end do
     mute(it+1:)=1
     
-  end subroutine compute_first_mute
+  end subroutine compute_top_mute
     
-  subroutine compute_second_mute(mutepar,dt,t0,hx,hy,mute)
+  subroutine compute_bottom_mute(mutepar,dt,t0,hx,hy,mute)
     type(MuteParam)    ::       mutepar
     real, dimension(:) ::                       mute
     real               ::                 dt,t0,hx,hy
@@ -154,7 +154,7 @@ contains
     end do
     mute(it+1+nramp:)=0
     
-  end subroutine compute_second_mute
+  end subroutine compute_bottom_mute
     
     
 end module Mute_gather

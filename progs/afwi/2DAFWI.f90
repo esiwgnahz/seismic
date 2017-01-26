@@ -1,3 +1,5 @@
+! Copyright (c) 2017 Bellevue Geophysics LLC 
+
 program TWODAFWI
 
   use sep
@@ -37,9 +39,10 @@ program TWODAFWI
   type(SmoothingParam)                         :: smoothpar
 
   real, dimension(:),              allocatable :: grad
-  integer :: i,ntotaltraces,stat
+  integer :: i,j,ntotaltraces,stat
   double precision    :: f
   call sep_init()
+
 
   mod%veltag='vel'
   mod%waFtag='wave_fwd'
@@ -158,6 +161,15 @@ subroutine create_header(mod,invparam,genpar,ntotaltraces)
         call to_history('d2',1.,'residual')
         call to_history('o1',0.,'residual')
         call to_history('o2',0.,'residual')
+     end if
+
+     if (exist_file('mute')) then
+        call to_history('n1',genpar%nt,'mute')
+        call to_history('n2',ntotaltraces,'mute')
+        call to_history('d1',genpar%dt,'mute')
+        call to_history('d2',1.,'mute')
+        call to_history('o1',0.,'mute')
+        call to_history('o2',0.,'mute')
      end if
 
 end subroutine create_header

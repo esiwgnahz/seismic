@@ -144,8 +144,8 @@ contains
     call zeroUSpace(grid)
 
     if (genpar%surf_type.ne.0) then
-       allocate(elev%ielev_z(bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
-       allocate(elev%delev_z(bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
+       if (.not.allocated(elev%ielev_z)) allocate(elev%ielev_z(bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
+       if (.not.allocated(elev%delev_z)) allocate(elev%delev_z(bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
     end if
 
     allocate(hig%gx(16, bounds%nmin1:bounds%nmax1, bounds%nmin3:bounds%nmax3))
@@ -265,7 +265,11 @@ contains
 
     deallocate(u)
     call deallocateHigdonParam(hig)
-    call deallocateModelSpace_elev(elev)
+
+    if (genpar%surf_type.ne.0) then
+       if (allocated(elev%ielev_z)) deallocate(elev%ielev_z)
+       if (allocated(elev%delev_z)) deallocate(elev%delev_z)
+    end if
 
   end subroutine propagator_acoustic
 end module Propagator_mod

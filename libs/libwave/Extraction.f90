@@ -62,6 +62,44 @@ contains
 
   end subroutine Extraction_array_simple
 
+  ! Nearest neighbor
+  subroutine Extraction_array_simple_afwi_noomp(bounds,model,data,u,genpar,it)
+    type(FDbounds)    ::             bounds
+    type(ModelSpace)  ::                    model
+    type(TraceSpace), dimension(:) ::             data
+    type(GeneralParam)::                                 genpar 
+    real              ::                               u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    
+    integer           :: i
+    
+    real, allocatable :: deltai(:)
+
+    if (genpar%twoD) then
+       if (genpar%rec_type.eq.0) then
+          do i=1,size(data)
+             data(i)%trace(it,1)=data(i)%trace(it,1)+ u(data(i)%icoord(1),data(i)%icoord(2),1)
+          end do
+       else
+          do i=1,size(data)
+             data(i)%trace(it,1)=data(i)%trace(it,1)+(u(data(i)%icoord(1),data(i)%icoord(2),1)-u(-data(i)%icoord(1),data(i)%icoord(2),1))
+          end do
+       end if
+    else
+       if (genpar%rec_type.eq.0) then
+          do i=1,size(data)
+             data(i)%trace(it,1)=data(i)%trace(it,1)+u(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))
+          end do    
+       else
+          do i=1,size(data)
+             data(i)%trace(it,1)=data(i)%trace(it,1)+(u(data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))-u(-data(i)%icoord(1),data(i)%icoord(2),data(i)%icoord(3))) 
+          end do
+       end if
+    end if
+
+  end subroutine Extraction_array_simple_afwi_noomp
+
   ! Sinc interpolation
   subroutine Extraction_array_sinc(bounds,model,data,u,genpar,it)
     type(FDbounds)    ::           bounds
@@ -115,6 +153,32 @@ contains
     end if
 
   end subroutine Extraction_array_sinc_noomp
+
+  ! Sinc interpolation
+  subroutine Extraction_array_sinc_afwi_noomp(bounds,model,data,u,genpar,it)
+    type(FDbounds)    ::                      bounds
+    type(ModelSpace)  ::                             model
+    type(TraceSpace), dimension(:) ::                      data
+    type(GeneralParam)::                                          genpar 
+    real              ::                                        u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    integer           :: i
+    real              :: v
+    
+    if (genpar%twoD) then
+       do i=1,size(data)
+          v=1.
+          call Extraction_1trace_sinc_xy(bounds,v,data(i),u,genpar,it)
+       end do
+    else      
+       do i=1,size(data)       
+          v=1.
+          call Extraction_1trace_sinc_xyz_noomp(bounds,v,data(i),u,genpar,it)
+       end do       
+    end if
+
+  end subroutine Extraction_array_sinc_afwi_noomp
 
   ! Sinc interpolation
   subroutine Extraction_array_LSRTM_sinc(bounds,model,data,u,genpar,it)

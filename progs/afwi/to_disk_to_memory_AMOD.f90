@@ -57,7 +57,7 @@ contains
        & FDswaptime_pointer,                              &
        & bounds,model,elev,genpar,                        &
        & sou=source,wfld=wfld_fwd,datavec=datavec,     &
-       & ExtractData=Extraction_array_sinc_noomp,ExtractWave=Extraction_wavefield)
+       & ExtractData=Extraction_array_simple_afwi_noomp,ExtractWave=Extraction_wavefield)
     else
        call propagator_acoustic(                          &
        & FD_acoustic_init_coefs,                          &
@@ -67,7 +67,7 @@ contains
        & FDswaptime_pointer,                              &
        & bounds,model,elev,genpar,                        &
        & sou=source,wfld=wfld_fwd,datavec=datavec,     &
-       & ExtractData=Extraction_array_sinc_noomp,ExtractWave=Extraction_wavefield)
+       & ExtractData=Extraction_array_simple_afwi_noomp,ExtractWave=Extraction_wavefield)
     end if
     if (genpar%verbose) write(0,*) 'INFO: Done with forward modeling'
 !

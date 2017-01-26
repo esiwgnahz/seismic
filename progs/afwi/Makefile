@@ -3,6 +3,8 @@ include ../../makefile
 
 default: ${BINDIR}/2DAFWI.x 
 
+${BINDIR}/2DAFWI.x : ../../lib/LINUX/libAinv.a ../../lib/LINUX/libAwave.a 
+
 aclean: jclean       
 	@-${RM} ${BINDIR}/*.x 
 
