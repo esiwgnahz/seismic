@@ -185,7 +185,7 @@ contains
     k=0
 
     ! Now read the coordinates for each gathers
-    write(0,*) 'ngathers',ngathers,'nkeys',nkeys,'ntraces',ntraces
+    write(0,*) 'INFO: ngathers',ngathers,'nkeys',nkeys,'ntraces',ntraces
     do i=1,ngathers
        begi=endi+1
        endi=begi+shotgath(i)%ntraces-1
@@ -202,10 +202,10 @@ contains
        sourcevec(i)%coord(2)=tracekeys(index_sx)    
        sourcevec(i)%coord(3)=tracekeys(index_sy)
 
-       write(0,*) 'INFO: Source coordinates for gather',i,'with ',shotgath(i)%ntraces,'traces are'
-       write(0,*) 'INFO: ------------------------------------------------------------------------'
-       write(0,*) 'INFO: x,y,z=',sourcevec(i)%coord(2),sourcevec(i)%coord(3),sourcevec(i)%coord(1)
-       write(0,*) 'INFO: '
+       if(genpar%verbose) write(0,*) 'INFO: Source coordinates for gather',i,'with ',shotgath(i)%ntraces,'traces are'
+       if(genpar%verbose) write(0,*) 'INFO: ------------------------------------------------------------------------'
+       if(genpar%verbose) write(0,*) 'INFO: x,y,z=',sourcevec(i)%coord(2),sourcevec(i)%coord(3),sourcevec(i)%coord(1)
+       if(genpar%verbose) write(0,*) 'INFO: '
     end do
 
     write(0,*) 'INFO: Finished reading traces/source coordinates'
@@ -235,7 +235,7 @@ contains
     do i=1,nshots
 
        ntraces=shotgath(i)%ntraces
-       write(0,*) 'INFO: Starting reading',ntraces,'traces for shot',i
+       if (modulo(i,10).eq.0) write(0,*) 'INFO: Starting reading',ntraces,'traces for shot',i
 
        do j=1,ntraces
           nreadtraces=nreadtraces+1

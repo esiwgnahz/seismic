@@ -27,6 +27,9 @@ MARMSdsx_1=200
 MARMSosx_2=0
 MARMSnsx_2=184
 MARMSdsx_2=50
+MARMSosx_2=0
+MARMSnsx_2=46
+MARMSdsx_2=200
 #MARMSosx_1=2000
 #MARMSnsx_1=1
 #MARMSdsx_1=200
@@ -170,7 +173,7 @@ MARMinv.H: MARMtraces.H MARMheader.H MARMsource.H MARMvpmask.H MARMvelpsmooth.H
 	snapi=4 ntaper=20 num_threads=8 \
 	inv=$@  maxsize=1 > /dev/null
 
-MARMFWI_Fmax%.H: MARMtracesLAND.H MARMheaderLAND.H MARMsource.H MARMvpmask.H 
+BMARMFWI_Fmax%.H: MARMtracesLAND.H MARMheaderLAND.H MARMsource.H MARMvpmask.H 
 	time ${AFWI} stdin=MARMsource.H vel=MARMvpFmax$*.H twoD=1 \
 	fmax=20 \
 	Task='INV' \
@@ -205,6 +208,6 @@ MARMfwi:
 	for fmax in ${maxfreqlist}; do\
 		echo processing frequency=$$fmax Hz;\
 		Cp MARMvelptmp.H MARMvpFmax$$fmax.H;\
-		make MARMFWI_Fmax$$fmax.H;\
+		make BMARMFWI_Fmax$$fmax.H;\
 		Cp MARMFWI_Fmax$$fmax.H MARMvelptmp.H;\
 	done

@@ -1,7 +1,7 @@
 ADIR=../../
 
 UF90INCLUDES= -I/${MKLROOT}/include/intel64/lp64/ -qopenmp
-UF90LIBS= -L/u/st/by/aguitton/bins/fftw/lib/ -qopenmp  -lbei -lsepfft -lsep2df90 -lsep3df90 -lsep3d -lsepf90 -lsep -lsupersetf90 -lsuperset  -lfftw3f  -L/${MKLROOT}/lib/intel64 -qopenmp -lmkl_intel_lp64 -lmkl_lapack95_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm -ldl -lAdec -lAfut -lAwave -lAflt -lsepgeef90 -lAinv
+UF90LIBS= -L/u/st/by/aguitton/bins/fftw/lib/ -qopenmp  -lbei -lsepfft -lsep2df90 -lsep3df90 -lsep3d -lsepf90 -lsep -lsupersetf90 -lsuperset  -lfftw3f  -L/${MKLROOT}/lib/intel64 -qopenmp -lmkl_intel_lp64 -lmkl_lapack95_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm -ldl -lsepgeef90 -lAdec -lAfut -lAwave -lAflt -lAinv -lsepgeef90
 UF77LIBS:= ${UF77LIBS} -qopenmp -lbei
 
 LIBDIR  = ${ADIR}/lib/$(MTYPE)
@@ -41,9 +41,9 @@ all:
 #	make dirstruct
 #	(cd libs/libfut; make)
 #	(cd libs/libdec; make)
+	(cd libs/libflt; make)
 	(cd libs/libinv; make)
 	(cd libs/libwave; make)
-#	(cd libs/libflt; make)
 #	(cd progs/logdecon; make)
 #	(cd progs/match; make)
 #	(cd progs/futterman; make)

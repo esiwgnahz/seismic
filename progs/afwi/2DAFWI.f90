@@ -1,5 +1,3 @@
-! Copyright (c) 2017 Bellevue Geophysics LLC 
-
 program TWODAFWI
 
   use sep
@@ -16,7 +14,7 @@ program TWODAFWI
   use Inversion_types
   use ModelSpace_types
   use GeneralParam_types
-
+  use Sparse_regularization_mod
   use compute_function_gradient
 
   implicit none
@@ -33,10 +31,11 @@ program TWODAFWI
   type(FDbounds),    dimension(:), allocatable :: boundsgath
   type(GeneralParam),dimension(:), allocatable :: genpargath
 
+  type(SparseRegParam)                         :: sparseparam
+  type(SmoothingParam)                         :: smoothpar
   type(InversionParam)                         :: invparam
   type(BandPassParam)                          :: bpparam
   type(MuteParam)                              :: mutepar
-  type(SmoothingParam)                         :: smoothpar
 
   real, dimension(:),              allocatable :: grad
   integer :: i,j,ntotaltraces,stat
@@ -66,8 +65,9 @@ program TWODAFWI
   call read_vel(mod,genpar)
 
   call compute_fct_gdt_init(mod,modgath,genpar,genpargath,shotgath,sourcegath,bounds,boundsgath)
-
+ 
   if (genpar%task.eq.'INV') then
+     call Init_SparseRegularization(sparseparam,mod)
      call Init_BandPassParam(bpparam)
      call BandpassSouTraces(bpparam,shotgath,sourcegath)
      call Init_SmoothingParam(smoothpar,mod,bpparam)
