@@ -67,7 +67,7 @@ program TWODAFWI
   call compute_fct_gdt_init(mod,modgath,genpar,genpargath,shotgath,sourcegath,bounds,boundsgath)
  
   if (genpar%task.eq.'INV') then
-     call Init_SparseRegularization(sparseparam,mod)
+!     call Init_SparseRegularization(sparseparam,mod)
      call Init_BandPassParam(bpparam)
      call BandpassSouTraces(bpparam,shotgath,sourcegath)
      call Init_SmoothingParam(smoothpar,mod,bpparam)

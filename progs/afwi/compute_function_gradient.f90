@@ -98,7 +98,7 @@ contains
     real    :: d1
     integer :: i,j,k,l,n1,begi,endi
     integer :: ntsnap,ntotaltraces
-    double precision :: memory_needed,gist
+    double precision :: memory_needed,gist,scaling
 
     real, dimension(:), allocatable          :: illu
 
@@ -215,8 +215,9 @@ contains
     end do
 
     ! Scaling
-    f=f/(2*n1*ntotaltraces)
-    grad=grad/(n1*ntotaltraces)
+    scaling=dble(2*n1*ntotaltraces)
+    f=f/scaling
+    grad=2*grad/sngl(scaling)
     illu=(illu+maxval(illu)/10000)/sqrt(sum(dprod(illu,illu))/size(illu))
 
     grad=grad/(illu**invparam%illupow)

@@ -197,17 +197,34 @@ BMARMFWI_Fmax%.H: MARMtracesLAND.H MARMheaderLAND.H MARMsource.H MARMvpmask.H
 	v0=1800. \
 	percx=0. percz=0. \
 	verb=0 \
-	neval=75 niter=25 \
-	snapi=1 ntaper=20 num_threads=5 \
+	neval=75 niter=5 \
+	snapi=1 ntaper=20 num_threads=8 \
 	inv=$@  maxsize=1 > /dev/null
 
 
 maxfreqlist= 4 6 8 10 12 15 20
 MARMfwi:
+	Rm *BMARMFWI*H
 	Cp MARMvelpmoresmooth.H MARMvelptmp.H
 	for fmax in ${maxfreqlist}; do\
 		echo processing frequency=$$fmax Hz;\
 		Cp MARMvelptmp.H MARMvpFmax$$fmax.H;\
 		make BMARMFWI_Fmax$$fmax.H;\
-		Cp MARMFWI_Fmax$$fmax.H MARMvelptmp.H;\
+		Cp BMARMFWI_Fmax$$fmax.H MARMvelptmp.H;\
+	done
+	Rm *BMARMFWI*H
+	Cp MARMvelpmoresmooth.H MARMvelptmp.H
+	for fmax in ${maxfreqlist}; do\
+		echo processing frequency=$$fmax Hz;\
+		Cp MARMvelptmp.H MARMvpFmax$$fmax.H;\
+		make BMARMFWI_Fmax$$fmax.H;\
+		Cp BMARMFWI_Fmax$$fmax.H MARMvelptmp.H;\
+	done
+	Rm *BMARMFWI*H
+	Cp MARMvelpmoresmooth.H MARMvelptmp.H
+	for fmax in ${maxfreqlist}; do\
+		echo processing frequency=$$fmax Hz;\
+		Cp MARMvelptmp.H MARMvpFmax$$fmax.H;\
+		make BMARMFWI_Fmax$$fmax.H;\
+		Cp BMARMFWI_Fmax$$fmax.H MARMvelptmp.H;\
 	done

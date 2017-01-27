@@ -91,6 +91,10 @@ contains
        resigath(i)%trace=0.
     end do
 
+    g=0.
+    gd=0.
+    xd=0.
+    xsave=0.
     iter=0
     iflag=0
     myinfo=0
