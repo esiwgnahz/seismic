@@ -7,18 +7,22 @@ module Sparse_regularization_mod
   use helicon2_mod
   use helicon3_mod
   use createhelixmod
+  use Norm_mod
   use ModelSpace_types
   
   implicit none
 
   type SparseRegParam
-     character(len=3) :: flt_type
+     logical          :: derivdx
+     logical          :: derivdz
+     logical          :: derivdy
      character(len=6) :: nrm_type 
      type(filter)     :: xx,zz,yy
      integer          :: ntaperz
      integer          :: ntaperx
      integer          :: ntapery
      real             :: eps
+     real             :: thresh
      integer          :: nx,nz,ny
      integer          :: nx_tap,nz_tap,ny_tap
   end type SparseRegParam
@@ -29,9 +33,13 @@ contains
     type(SparseRegParam) ::            sparseparam
     type(ModelSpace)     ::                        mod
 
-    call from_param('flt_type',sparseparam%flt_type,'ZZZ')
+    write(0,*) 'jere'
+    call from_param('derivdx',sparseparam%derivdx,.false.)
+    call from_param('derivdy',sparseparam%derivdy,.false.)
+    call from_param('derivdz',sparseparam%derivdz,.false.)
     call from_param('nrm_type',sparseparam%nrm_type,'Cauchy')
     call from_param('eps',sparseparam%eps,0.)
+    call from_param('reg_threshold',sparseparam%thresh,0.)
     call from_param('sparse_taperx',sparseparam%ntaperx,10)
     call from_param('sparse_tapery',sparseparam%ntapery,0)
     call from_param('sparse_taperz',sparseparam%ntaperz,10)
@@ -49,16 +57,19 @@ contains
     sparseparam%ny=mod%ny
     sparseparam%nz=mod%nz
 
-    write(0,*) 'INFO:--------------------------'
-    write(0,*) 'INFO: Regularization paramters '
-    write(0,*) 'INFO:--------------------------'
+    write(0,*) 'INFO:---------------------------'
+    write(0,*) 'INFO: Regularization parameters '
+    write(0,*) 'INFO:---------------------------'
     write(0,*) 'INFO:'
-    write(0,*) 'INFO:  flt_type = ',sparseparam%flt_type
-    write(0,*) 'INFO:  nrm_type = ',sparseparam%nrm_type
-    write(0,*) 'INFO:  eps      = ',sparseparam%eps
-    write(0,*) 'INFO:  taperz    = ',sparseparam%ntaperz
-    write(0,*) 'INFO:  taperx    = ',sparseparam%ntaperx
-    write(0,*) 'INFO:  tapery    = ',sparseparam%ntapery
+    write(0,*) 'INFO:  d/dx       = ',sparseparam%derivdx
+    write(0,*) 'INFO:  d/dy       = ',sparseparam%derivdy
+    write(0,*) 'INFO:  d/dz       = ',sparseparam%derivdz
+    write(0,*) 'INFO:  nrm_type   = ',sparseparam%nrm_type
+    write(0,*) 'INFO:  eps        = ',sparseparam%eps
+    write(0,*) 'INFO:  reg thresh = ',sparseparam%thresh
+    write(0,*) 'INFO:  taperz     = ',sparseparam%ntaperz
+    write(0,*) 'INFO:  taperx     = ',sparseparam%ntaperx
+    write(0,*) 'INFO:  tapery     = ',sparseparam%ntapery
     write(0,*) 'INFO:'
     write(0,*) 'INFO:-------------------------'
     write(0,*) 'INFO:'
@@ -85,9 +96,11 @@ contains
        x=(/1,2,1/)
        y=(/1,1,2/)   
        sparseparam%yy=createhelix(npef,center,gap,y)
-       sparseparam%yy%flt=-1    
-       write(0,*) 'INFO: Filter y:'
-       call printn(n0,center,y,sparseparam%yy)    
+       sparseparam%yy%flt=-1  
+       if (sparseparam%derivdy) then  
+          write(0,*) 'INFO: Filter y:'
+          call printn(n0,center,y,sparseparam%yy) 
+       end if
     else
        allocate(x(2),y(2),z(2),center(2),gap(2),n0(2),npef(2))
        center=1; gap=0; npef=(/nzt,nxt/); n0=npef
@@ -99,28 +112,68 @@ contains
     sparseparam%zz%flt=-1
     sparseparam%xx%flt=-1
 
-    write(0,*) 'INFO: Filter z:'
-    call printn(n0,center,z,sparseparam%zz) 
-    write(0,*) 'INFO: Filter x:' 
-    call printn(n0,center,x,sparseparam%xx)   
+    if (sparseparam%derivdz) then
+       write(0,*) 'INFO: Filter z:'
+       call printn(n0,center,z,sparseparam%zz)
+    end if
+    if (sparseparam%derivdx) then
+       write(0,*) 'INFO: Filter x:' 
+       call printn(n0,center,x,sparseparam%xx) 
+    end if
     write(0,*) 'INFO: ----------------------------'
 
     deallocate(x,y,z,center,gap,n0,npef)
 
   end subroutine SparseRegularization_filter_init
-  
-  subroutine SparseRegularization_apply(sparseparam,mod,g,f)
+
+  subroutine SparseRegularization_filter_close(sparseparam)
+    type(SparseRegParam) ::                    sparseparam
+    call deallocatehelix(sparseparam%xx)
+    call deallocatehelix(sparseparam%zz)
+    if(sparseparam%ny_tap.ne.1) call deallocatehelix(sparseparam%yy)
+  end subroutine SparseRegularization_filter_close
+
+  subroutine SparseRegularization_apply(sparseparam,                  vel,g,f)
     type(SparseRegParam) ::             sparseparam
-    type(ModelSpace)     ::                         mod
-    real, dimension(:)   ::                             g
-    double precision     ::                               f
+    real, dimension(sparseparam%nx*sparseparam%nz*sparseparam%ny) ::  vel
+    real, dimension(sparseparam%nx*sparseparam%nz*sparseparam%ny) ::      g
+    double precision     ::                                                 f
     
+    call helicon_mod_init(sparseparam%zz)
+    call helicon2_mod_init(sparseparam%xx)
+    if (sparseparam%ny.ne.1) call helicon3_mod_init(sparseparam%yy)
+    
+    g=0.
+    f=0.
+
+    if (sparseparam%derivdx) call SparseRegularization_Compute_f_g(helicon2_mod_lop,sparseparam,vel,f,g)
+    if (sparseparam%derivdz) call SparseRegularization_Compute_f_g(helicon_mod_lop,sparseparam,vel,f,g)
+
+    if ((sparseparam%ny.ne.1).and.sparseparam%derivdy) call SparseRegularization_Compute_f_g(helicon2_mod_lop,sparseparam,vel,f,g)
+
+    g=g*sparseparam%eps
+    
+  end subroutine SparseRegularization_apply
+
+  subroutine SparseRegularization_Compute_f_g(op,sparseparam,vel,f,g)
+    interface
+       function op( adj, add, xx, yy) result(stat)
+         integer            :: stat 
+         logical,intent(in) :: adj,add 
+         real,dimension(:)  :: xx,yy 
+       end function op
+    end interface
+    type(SparseRegParam) ::                     sparseparam
+    real, dimension(sparseparam%nx*sparseparam%nz*sparseparam%ny) :: vel
+    real, dimension(sparseparam%nx*sparseparam%nz*sparseparam%ny) :: g
+    double precision     ::                                          f
+
     real, dimension(:), allocatable :: rm   
     real, dimension(:), allocatable :: rmtap   
     real, dimension(:), allocatable :: rtmptap
 
     integer :: nxt,nyt,nzt
-    integer :: nz,ny,nx
+    integer :: nz,ny,nx,stat,nrm_type
 
     nz=sparseparam%nz
     ny=sparseparam%ny
@@ -129,15 +182,33 @@ contains
     nyt=sparseparam%ny_tap
     nzt=sparseparam%nz_tap
 
+    if(sparseparam%nrm_type(1:5).eq.'Cauch') nrm_type=3
+    if(sparseparam%nrm_type(1:5).eq.'Huber') nrm_type=12
+    if(sparseparam%nrm_type(1:5).eq.'L1nor') nrm_type=1
+    if(sparseparam%nrm_type(1:5).eq.'L2nor') nrm_type=2
+
     allocate(rmtap(nxt*nyt*nzt),rtmptap(nxt*nyt*nzt),rm(nx*ny*nz))
-    call helicon_mod_init(sparseparam%zz)
-    call helicon2_mod_init(sparseparam%xx)
-    if (ny.ne.1) call helicon3_mod_init(sparseparam%yy)
     
+    rm=0.
+    
+    call SparseRegularization_add_taper(sparseparam,rtmptap,vel,forw=.true.)
+    stat=op(.false.,.false.,rtmptap,rmtap)   
+    call SparseRegularization_add_taper(sparseparam,rmtap,rm,forw=.false.)
 
-    deallocate(rm,rmtap,rtmptap)
-  end subroutine SparseRegularization_apply
+    ! Add model fitting side of objective function
+    ! --------------------------------------------  
+    f=f+sparseparam%eps*fct_compute(nrm_type,rm,nz*nx,sparseparam%thresh)
 
+    ! Now apply the adjoint to form the gradient of the model fitting
+    ! ---------------------------------------------------------------
+    stat=gdt_compute(nrm_type,rmtap,nzt*nxt,sparseparam%thresh)  
+    stat=op(.true.,.false.,rtmptap,rmtap)
+    call SparseRegularization_add_taper(sparseparam,rtmptap,g,forw=.false.)
+
+    deallocate(rmtap,rtmptap,rm)
+
+  end subroutine SparseRegularization_Compute_f_g
+  
   subroutine SparseRegularization_add_taper(sparseparam,arraytap,array,forw)
     type(SparseRegParam) ::                 sparseparam
     real    :: arraytap(-sparseparam%ntaperz+1:sparseparam%nz+sparseparam%ntaperz,-sparseparam%ntaperx+1:sparseparam%nx+sparseparam%ntaperx,-sparseparam%ntapery+1:sparseparam%ny+sparseparam%ntapery)
@@ -175,7 +246,7 @@ contains
           arraytap(:,:,j)=arraytap(:,:,ny)
        end do
     else
-       array=arraytap(1:nz,1:nx,1:ny)
+       array=array+arraytap(1:nz,1:nx,1:ny)
     end if
   end subroutine SparseRegularization_add_taper
 

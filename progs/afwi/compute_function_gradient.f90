@@ -12,11 +12,14 @@ module compute_function_gradient
   use ModelSpace_types
   use GeneralParam_types
 
+  use Sparse_regularization_mod
+
   use to_disk_to_memory_AMOD_mod
   use to_disk_to_memory_AGRAD_mod
 
   implicit none
 
+  type(SparseRegParam),pointer,private :: sparseparam
   type(InversionParam),pointer,private :: invparam
   type(SmoothingParam),pointer,private :: smoothpar
   type(MuteParam),    pointer, private :: mutepar
@@ -31,6 +34,11 @@ module compute_function_gradient
   type(GeneralParam),dimension(:), pointer, private :: genpargath
 
 contains
+
+  subroutine compute_fct_gdt_sparsepar_init(sparsepar_in)
+    type(SparseRegParam), target ::         sparsepar_in
+    sparseparam=>sparsepar_in
+  end subroutine compute_fct_gdt_sparsepar_init
 
   subroutine compute_fct_gdt_dmute_smooth_inv_init(mutepar_in,smooth_in,inv_init)
     type(MuteParam),      target ::                mutepar_in
@@ -66,6 +74,7 @@ contains
   end subroutine compute_fct_gdt_init
 
   subroutine compute_fct_gdt_nullify()
+    if(associated(sparseparam))nullify(sparseparam)
     if(associated(smoothpar))  nullify(smoothpar)
     if(associated(mutepar))    nullify(mutepar)
     if(associated(invparam))   nullify(invparam)
@@ -78,6 +87,36 @@ contains
     if(associated(boundsgath)) nullify(boundsgath)
     if(associated(genpargath)) nullify(genpargath)
   end subroutine compute_fct_gdt_nullify
+
+  function compute_fct_gdt_reg(grad,f,resigath) result(stat)
+    real, dimension(:) ::      grad
+    double precision   ::           f
+    type(TraceSpace), dimension(:) :: resigath
+    integer            ::                              stat
+    integer            :: n1,ntotaltraces
+
+    double precision                :: ftmp,scaling
+    real, dimension(:), allocatable :: gtmp
+    allocate(gtmp(mod%nx*mod%ny*mod%nz));gtmp=0.
+ 
+    scaling=dble(2*invparam%n1*invparam%ntotaltraces)
+
+    stat=compute_fct_gdt(grad,f,resigath)
+
+    call SparseRegularization_apply(sparseparam,mod%vel,gtmp,ftmp)
+
+    call srite('reg_grad',gtmp,4*mod%nx*mod%ny*mod%nz)
+    call to_history('n1',mod%nz,'reg_grad')
+    call to_history('n2',mod%nx,'reg_grad')
+    call to_history('n3',mod%ny,'reg_grad')
+    
+    f=f+ftmp/scaling
+    grad=grad-gtmp*invparam%vpmask/sngl(scaling)
+    
+    deallocate(gtmp)
+
+  end function compute_fct_gdt_reg
+
 
   function compute_fct_gdt(grad,f,resigath) result(stat)
     
@@ -102,11 +141,10 @@ contains
 
     real, dimension(:), allocatable          :: illu
 
-    call from_aux('traces','n2',ntotaltraces)
-
+    ntotaltraces=invparam%ntotaltraces
     allocate(elevgath(size(shotgath)))  ! Each shot has an elevation file
 
-    n1=genpar%nt
+    n1=invparam%n1
     d1=genpar%dt
     genpar%ntsnap=int(genpar%nt/genpar%snapi)
     genpar%dt2=(genpar%dt*genpar%snapi)**2
