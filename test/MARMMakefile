@@ -201,7 +201,7 @@ BMARMFWI_Fmax%.H: MARMtracesLAND.H MARMheaderLAND.H MARMsource.H MARMvpmask.H
 	eps=1. \
 	derivdz=1 \
 	derivdx=1 \
-	nrm_type=L1norm \
+	model_nrm_type=L1norm \
 	snapi=1 ntaper=20 num_threads=8 \
 	inv=$@  maxsize=1 > /dev/null
 
@@ -234,10 +234,109 @@ Reg_BMARMFWI_Fmax%.H: MARMtracesLAND.H MARMheaderLAND.H MARMsource.H MARMvpmask.
 	ratio=3. \
 	derivdz=1 \
 	derivdx=1 \
-	nrm_type=L1norm \
+	model_nrm_type=L1norm \
 	snapi=1 ntaper=20 num_threads=8 \
 	inv=$@  maxsize=1 > /dev/null
 
+Reg2_BMARMFWI_Fmax%.H: MARMtracesLAND.H MARMheaderLAND.H MARMsource.H MARMvpmask.H 
+	time ${AFWI} stdin=MARMsource.H vel=MARMvpFmax$*.H twoD=1 \
+	fmax=20 \
+	Task='INV' \
+	traces=MARMtracesLAND.H \
+	vpmask=MARMvpmask.H \
+	coordfile=MARMheaderLAND.H \
+	aperture_x=9000 aperture_y=1 \
+	keygx=2 keygy=3 keysx=1 keysy=4 keyselev=3 keygelev=3 \
+	withRho=0 \
+	surf_type=1 rec_type=0 shot_type=0 \
+	vpmax=4500. \
+	vpmin=1480. \
+	gradient=grad$@ \
+	residual=res$@ \
+	model=mod$@ \
+	function=fct$@ \
+	mute_out=mute$@ \
+	freeze_soft=1 \
+	fhi=$* nplo=6 nphi=25 phase=1 \
+	t0=0.35 \
+	v0=1800. \
+	percx=0. percz=0. \
+	verb=0 \
+	neval=100 niter=30 \
+	wantreg=1 \
+	ratio=6. \
+	derivdz=1 \
+	derivdx=1 \
+	model_nrm_type=L1norm \
+	snapi=1 ntaper=20 num_threads=8 \
+	inv=$@  maxsize=1 > /dev/null
+
+Reg3_BMARMFWI_Fmax%.H: MARMtracesLAND.H MARMheaderLAND.H MARMsource.H MARMvpmask.H 
+	time ${AFWI} stdin=MARMsource.H vel=MARMvpFmax$*.H twoD=1 \
+	fmax=20 \
+	Task='INV' \
+	traces=MARMtracesLAND.H \
+	vpmask=MARMvpmask.H \
+	coordfile=MARMheaderLAND.H \
+	aperture_x=9000 aperture_y=1 \
+	keygx=2 keygy=3 keysx=1 keysy=4 keyselev=3 keygelev=3 \
+	withRho=0 \
+	surf_type=1 rec_type=0 shot_type=0 \
+	vpmax=4500. \
+	vpmin=1480. \
+	gradient=grad$@ \
+	residual=res$@ \
+	model=mod$@ \
+	function=fct$@ \
+	mute_out=mute$@ \
+	freeze_soft=1 \
+	fhi=$* nplo=6 nphi=25 phase=1 \
+	t0=0.35 \
+	v0=1800. \
+	percx=0. percz=0. \
+	verb=0 \
+	neval=100 niter=30 \
+	wantreg=1 \
+	ratio=12. \
+	derivdz=1 \
+	derivdx=1 \
+	model_nrm_type=L1norm \
+	snapi=1 ntaper=20 num_threads=8 \
+	inv=$@  maxsize=1 > /dev/null
+
+Reg4_BMARMFWI_Fmax%.H: MARMtracesLAND.H MARMheaderLAND.H MARMsource.H MARMvpmask.H 
+	time ${AFWI} stdin=MARMsource.H vel=MARMvpFmax$*.H twoD=1 \
+	fmax=20 \
+	Task='INV' \
+	traces=MARMtracesLAND.H \
+	vpmask=MARMvpmask.H \
+	coordfile=MARMheaderLAND.H \
+	aperture_x=9000 aperture_y=1 \
+	keygx=2 keygy=3 keysx=1 keysy=4 keyselev=3 keygelev=3 \
+	withRho=0 \
+	surf_type=1 rec_type=0 shot_type=0 \
+	vpmax=4500. \
+	vpmin=1480. \
+	gradient=grad$@ \
+	residual=res$@ \
+	model=mod$@ \
+	function=fct$@ \
+	mute_out=mute$@ \
+	freeze_soft=1 \
+	fhi=$* nplo=6 nphi=25 phase=1 \
+	t0=0.35 \
+	v0=1800. \
+	percx=0. percz=0. \
+	verb=0 \
+	neval=100 niter=30 \
+	wantreg=1 \
+	ratio=6. \
+	derivdz=1 \
+	derivdx=1 \
+	model_nrm_type=Cauchy \
+	reg_threshold=10. \
+	snapi=1 ntaper=20 num_threads=8 \
+	inv=$@  maxsize=1 > /dev/null
 
 maxfreqlist= 4 6 8 10 12 15 20
 MARMfwi:
@@ -250,7 +349,7 @@ MARMfwi:
 		Cp BMARMFWI_Fmax$$fmax.H MARMvelptmp.H;\
 	done
 
-maxfreqlist= 4 6 8 10 12 15 20
+maxfreqlist= 4 6 8 10 12
 RegMARMfwi:
 	Rm Reg*BMARMFWI*H
 	Cp MARMvelpmoresmooth.H MARMvelptmp.H
@@ -260,3 +359,34 @@ RegMARMfwi:
 		make Reg_BMARMFWI_Fmax$$fmax.H;\
 		Cp Reg_BMARMFWI_Fmax$$fmax.H MARMvelptmp.H;\
 	done
+
+Reg2MARMfwi:
+	Rm Reg2_*BMARMFWI*H
+	Cp MARMvelpmoresmooth.H MARMvelptmp.H
+	for fmax in ${maxfreqlist}; do\
+		echo processing frequency=$$fmax Hz;\
+		Cp MARMvelptmp.H MARMvpFmax$$fmax.H;\
+		make Reg2_BMARMFWI_Fmax$$fmax.H;\
+		Cp Reg2_BMARMFWI_Fmax$$fmax.H MARMvelptmp.H;\
+	done
+
+Reg3MARMfwi:
+	Rm Reg3_*BMARMFWI*H
+	Cp MARMvelpmoresmooth.H MARMvelptmp.H
+	for fmax in ${maxfreqlist}; do\
+		echo processing frequency=$$fmax Hz;\
+		Cp MARMvelptmp.H MARMvpFmax$$fmax.H;\
+		make Reg3_BMARMFWI_Fmax$$fmax.H;\
+		Cp Reg3_BMARMFWI_Fmax$$fmax.H MARMvelptmp.H;\
+	done
+
+Reg4MARMfwi:
+	Rm Reg4_*BMARMFWI*H
+	Cp MARMvelpmoresmooth.H MARMvelptmp.H
+	for fmax in ${maxfreqlist}; do\
+		echo processing frequency=$$fmax Hz;\
+		Cp MARMvelptmp.H MARMvpFmax$$fmax.H;\
+		make Reg4_BMARMFWI_Fmax$$fmax.H;\
+		Cp Reg4_BMARMFWI_Fmax$$fmax.H MARMvelptmp.H;\
+	done
+

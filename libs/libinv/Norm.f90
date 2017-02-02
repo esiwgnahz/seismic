@@ -29,6 +29,10 @@ contains
           write(0,*) 'WARNING: thresh is not provided for Huber, uses maxval(rd) instead'
           gamd=maxval(rd)
        else
+          if (thresh.eq.0.) then
+             thresh=maxval(rd)
+             write(0,*) 'WARNING: thresh can''t be zero, reset to maxval(rd) instead'
+          end if
           gamd=thresh
        end if
        ! Huber norm
@@ -45,6 +49,10 @@ contains
           write(0,*) 'WARNING: thresh is not provided for Cauchy, uses maxval(rd) instead'
           cauchy=maxval(rd)
        else
+          if (thresh.eq.0.) then
+             thresh=maxval(rd)
+             write(0,*) 'WARNING: thresh can''t be zero, reset to maxval(rd) instead'
+          end if
           cauchy=thresh
        end if
        ! Cauchy norm

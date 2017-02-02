@@ -16,14 +16,15 @@ module Sparse_regularization_mod
      logical          :: derivdx
      logical          :: derivdz
      logical          :: derivdy
-     character(len=6) :: nrm_type 
+     character(len=6) :: mod_nrm_type_char
+     integer          :: mod_nrm_type 
      type(filter)     :: xx,zz,yy
      integer          :: ntaperz
      integer          :: ntaperx
      integer          :: ntapery
      real             :: eps
      real             :: ratio
-     real             :: thresh
+     real             :: mod_thresh
      integer          :: nx,nz,ny
      integer          :: nx_tap,nz_tap,ny_tap
   end type SparseRegParam
@@ -37,9 +38,9 @@ contains
     call from_param('derivdx',sparseparam%derivdx,.false.)
     call from_param('derivdy',sparseparam%derivdy,.false.)
     call from_param('derivdz',sparseparam%derivdz,.false.)
-    call from_param('nrm_type',sparseparam%nrm_type,'Cauchy')
+    call from_param('model_nrm_type',sparseparam%mod_nrm_type_char,'Cauchy')
     call from_param('ratio',sparseparam%ratio,10.)
-    call from_param('reg_threshold',sparseparam%thresh,0.)
+    call from_param('reg_threshold',sparseparam%mod_thresh,0.)
     call from_param('sparse_taperx',sparseparam%ntaperx,10)
     call from_param('sparse_tapery',sparseparam%ntapery,0)
     call from_param('sparse_taperz',sparseparam%ntaperz,10)
@@ -57,6 +58,11 @@ contains
     sparseparam%ny=mod%ny
     sparseparam%nz=mod%nz
 
+    if(sparseparam%mod_nrm_type_char(1:5).eq.'Cauch') sparseparam%mod_nrm_type=3
+    if(sparseparam%mod_nrm_type_char(1:5).eq.'Huber') sparseparam%mod_nrm_type=12
+    if(sparseparam%mod_nrm_type_char(1:5).eq.'L1nor') sparseparam%mod_nrm_type=1
+    if(sparseparam%mod_nrm_type_char(1:5).eq.'L2nor') sparseparam%mod_nrm_type=2
+
     write(0,*) 'INFO:---------------------------'
     write(0,*) 'INFO: Regularization parameters '
     write(0,*) 'INFO:---------------------------'
@@ -64,15 +70,18 @@ contains
     write(0,*) 'INFO:  d/dx       = ',sparseparam%derivdx
     write(0,*) 'INFO:  d/dy       = ',sparseparam%derivdy
     write(0,*) 'INFO:  d/dz       = ',sparseparam%derivdz
-    write(0,*) 'INFO:  nrm_type   = ',sparseparam%nrm_type
+    write(0,*) 'INFO:  nrm_type   = ',sparseparam%mod_nrm_type_char  
+    if ((sparseparam%mod_nrm_type.eq.3).or.(sparseparam%mod_nrm_type.eq.12)) then
+      write(0,*) 'INFO:  mod thresh = ',sparseparam%mod_thresh
+    end if
     write(0,*) 'INFO:  ratio      = ',sparseparam%ratio
-    write(0,*) 'INFO:  reg thresh = ',sparseparam%thresh
     write(0,*) 'INFO:  taperz     = ',sparseparam%ntaperz
     write(0,*) 'INFO:  taperx     = ',sparseparam%ntaperx
     write(0,*) 'INFO:  tapery     = ',sparseparam%ntapery
     write(0,*) 'INFO:'
     write(0,*) 'INFO:-------------------------'
     write(0,*) 'INFO:'
+
     call SparseRegularization_filter_init(sparseparam)
     
   end subroutine Init_SparseRegularization
@@ -179,11 +188,7 @@ contains
     nxt=sparseparam%nx_tap
     nyt=sparseparam%ny_tap
     nzt=sparseparam%nz_tap
-
-    if(sparseparam%nrm_type(1:5).eq.'Cauch') nrm_type=3
-    if(sparseparam%nrm_type(1:5).eq.'Huber') nrm_type=12
-    if(sparseparam%nrm_type(1:5).eq.'L1nor') nrm_type=1
-    if(sparseparam%nrm_type(1:5).eq.'L2nor') nrm_type=2
+    nrm_type=sparseparam%mod_nrm_type
 
     allocate(rmtap(nxt*nyt*nzt),rtmptap(nxt*nyt*nzt),rm(nx*ny*nz))
     
@@ -195,11 +200,11 @@ contains
 
     ! Add model fitting side of objective function
     ! --------------------------------------------  
-    f=f+fct_compute(nrm_type,rm,nz*nx,sparseparam%thresh)
+    f=f+fct_compute(nrm_type,rm,nz*nx,sparseparam%mod_thresh)
 
     ! Now apply the adjoint to form the gradient of the model fitting
     ! ---------------------------------------------------------------
-    stat=gdt_compute(nrm_type,rmtap,nzt*nxt,sparseparam%thresh)  
+    stat=gdt_compute(nrm_type,rmtap,nzt*nxt,sparseparam%mod_thresh)  
     stat=op(.true.,.false.,rtmptap,rmtap)
     call SparseRegularization_add_taper(sparseparam,rtmptap,g,forw=.false.)
 

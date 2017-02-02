@@ -9,11 +9,13 @@ module compute_function_gradient
 
   use Mute_gather
   use Smoothing_mod
+  use Inversion_types
   use ModelSpace_types
   use GeneralParam_types
 
   use Sparse_regularization_mod
 
+  use OF_Res_AdjSrc_mod
   use to_disk_to_memory_AMOD_mod
   use to_disk_to_memory_AGRAD_mod
 
@@ -114,13 +116,16 @@ contains
        else
           sparseparam%eps=abs(f/(sparseparam%ratio*ftmp))
        end if
+       write(0,*) 'INFO:'
+       write(0,*) 'INFO: ---- Regularization: setting epsilon ---'
        write(0,*) 'INFO: For ratio=',sparseparam%ratio,' eps=',sparseparam%eps
+       write(0,*) 'INFO:'
     end if
 
-    call srite('reg_grad',gtmp,4*mod%nx*mod%ny*mod%nz)
-    call to_history('n1',mod%nz,'reg_grad')
-    call to_history('n2',mod%nx,'reg_grad')
-    call to_history('n3',mod%ny,'reg_grad')
+!    call srite('reg_grad',gtmp,4*mod%nx*mod%ny*mod%nz)
+!    call to_history('n1',mod%nz,'reg_grad')
+!    call to_history('n2',mod%nx,'reg_grad')
+!    call to_history('n3',mod%ny,'reg_grad')
     
     f=f+ftmp*sparseparam%eps
     grad=grad-gtmp*sparseparam%eps
@@ -201,17 +206,19 @@ contains
        call AMOD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,sourcegath,wfld_fwd,i) 
 
        begi=shotgath(i)%begi
-       ! Compute residual and of
-       do j=1,size(shotgath(i)%gathtrace)
-          ! rd=W(L(m)-d)
-          dmodgath(j)%trace=mutepar%maskgath(i)%gathtrace(j)%trace*(shotgath(i)%gathtrace(j)%trace-dmodgath(j)%trace)
-          ! f=rd'rd
-          fthread(omp_get_thread_num ()+1)=fthread(omp_get_thread_num ()+1)+sum(dprod(dmodgath(j)%trace,dmodgath(j)%trace))
-          ! Save residual
-          resigath(begi+j)%trace=dmodgath(j)%trace
-          ! Compute adjoint source rd=W'W(L(m)-d)
-          dmodgath(j)%trace=mutepar%maskgath(i)%gathtrace(j)%trace*dmodgath(j)%trace
-       end do
+
+       call Compute_OF_RES_ADJ(begi,invparam,shotgath(i)%gathtrace,dmodgath,mutepar%maskgath(i)%gathtrace,resigath,fthread(omp_get_thread_num ()+1))
+!      ! Compute residual and of
+!      do j=1,size(shotgath(i)%gathtrace)
+!          ! rd=W(L(m)-d)
+!          dmodgath(j)%trace=mutepar%maskgath(i)%gathtrace(j)%trace*(shotgath(i)%gathtrace(j)%trace-dmodgath(j)%trace)
+!          ! f=rd'rd
+!          fthread(omp_get_thread_num ()+1)=fthread(omp_get_thread_num ()+1)+sum(dprod(dmodgath(j)%trace,dmodgath(j)%trace))
+!          ! Save residual
+!          resigath(begi+j)%trace=dmodgath(j)%trace
+!          ! Compute adjoint source rd=W'W(L(m)-d)
+!          dmodgath(j)%trace=mutepar%maskgath(i)%gathtrace(j)%trace*dmodgath(j)%trace
+!       end do
 
        ! Backward: imaging
        call AGRAD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,wfld_fwd)
