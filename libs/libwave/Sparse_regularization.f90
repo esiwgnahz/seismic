@@ -22,6 +22,7 @@ module Sparse_regularization_mod
      integer          :: ntaperx
      integer          :: ntapery
      real             :: eps
+     real             :: ratio
      real             :: thresh
      integer          :: nx,nz,ny
      integer          :: nx_tap,nz_tap,ny_tap
@@ -33,12 +34,11 @@ contains
     type(SparseRegParam) ::            sparseparam
     type(ModelSpace)     ::                        mod
 
-    write(0,*) 'jere'
     call from_param('derivdx',sparseparam%derivdx,.false.)
     call from_param('derivdy',sparseparam%derivdy,.false.)
     call from_param('derivdz',sparseparam%derivdz,.false.)
     call from_param('nrm_type',sparseparam%nrm_type,'Cauchy')
-    call from_param('eps',sparseparam%eps,0.)
+    call from_param('ratio',sparseparam%ratio,10.)
     call from_param('reg_threshold',sparseparam%thresh,0.)
     call from_param('sparse_taperx',sparseparam%ntaperx,10)
     call from_param('sparse_tapery',sparseparam%ntapery,0)
@@ -65,7 +65,7 @@ contains
     write(0,*) 'INFO:  d/dy       = ',sparseparam%derivdy
     write(0,*) 'INFO:  d/dz       = ',sparseparam%derivdz
     write(0,*) 'INFO:  nrm_type   = ',sparseparam%nrm_type
-    write(0,*) 'INFO:  eps        = ',sparseparam%eps
+    write(0,*) 'INFO:  ratio      = ',sparseparam%ratio
     write(0,*) 'INFO:  reg thresh = ',sparseparam%thresh
     write(0,*) 'INFO:  taperz     = ',sparseparam%ntaperz
     write(0,*) 'INFO:  taperx     = ',sparseparam%ntaperx
@@ -150,8 +150,6 @@ contains
     if (sparseparam%derivdz) call SparseRegularization_Compute_f_g(helicon_mod_lop,sparseparam,vel,f,g)
 
     if ((sparseparam%ny.ne.1).and.sparseparam%derivdy) call SparseRegularization_Compute_f_g(helicon2_mod_lop,sparseparam,vel,f,g)
-
-    g=g*sparseparam%eps
     
   end subroutine SparseRegularization_apply
 
@@ -197,7 +195,7 @@ contains
 
     ! Add model fitting side of objective function
     ! --------------------------------------------  
-    f=f+sparseparam%eps*fct_compute(nrm_type,rm,nz*nx,sparseparam%thresh)
+    f=f+fct_compute(nrm_type,rm,nz*nx,sparseparam%thresh)
 
     ! Now apply the adjoint to form the gradient of the model fitting
     ! ---------------------------------------------------------------

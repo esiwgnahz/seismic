@@ -229,9 +229,11 @@ Reg_BMARMFWI_Fmax%.H: MARMtracesLAND.H MARMheaderLAND.H MARMsource.H MARMvpmask.
 	v0=1800. \
 	percx=0. percz=0. \
 	verb=0 \
-	neval=100 niter=5 \
-	eps=1. \
+	neval=100 niter=30 \
+	wantreg=1 \
+	ratio=3. \
 	derivdz=1 \
+	derivdx=1 \
 	nrm_type=L1norm \
 	snapi=1 ntaper=20 num_threads=8 \
 	inv=$@  maxsize=1 > /dev/null
@@ -248,7 +250,7 @@ MARMfwi:
 		Cp BMARMFWI_Fmax$$fmax.H MARMvelptmp.H;\
 	done
 
-maxfreqlist= 4
+maxfreqlist= 4 6 8 10 12 15 20
 RegMARMfwi:
 	Rm Reg*BMARMFWI*H
 	Cp MARMvelpmoresmooth.H MARMvelptmp.H

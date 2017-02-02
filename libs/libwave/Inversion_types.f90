@@ -9,6 +9,7 @@ module Inversion_types
      integer:: iter       ! iteration number
      integer:: niter      ! Maximum number of iterations
      integer:: neval      ! Maximum number of fct/gdt eval.
+     integer:: eval       ! number of fct/gdt eval.
      integer:: const_type ! constrained velocity at (1) each Fct/Gdt eval
                           !                         (2) each iteration
      logical:: freeze_soft! (0) velocity is preserved in mask area
@@ -16,7 +17,7 @@ module Inversion_types
      real   :: vpmin
      real   :: vpmax
 
-     real   :: eps        ! regularization parameter
+     logical:: wantreg    ! regularization parameter
      real   :: illupow
      
      double precision, allocatable:: vpinit(:)

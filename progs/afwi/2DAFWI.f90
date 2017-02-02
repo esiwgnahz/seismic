@@ -71,21 +71,21 @@ program TWODAFWI
      call BandpassSouTraces(bpparam,shotgath,sourcegath)
      call Init_SmoothingParam(smoothpar,mod,bpparam)
      call read_inv_params(invparam)
-     if (invparam%eps.ne.0.) call Init_SparseRegularization(sparseparam,mod)
+     if (invparam%wantreg) call Init_SparseRegularization(sparseparam,mod)
      invparam%ntotaltraces=ntotaltraces
      invparam%n1=genpar%nt
      call Init_Inversion_Array(mod,invparam)
      call Init_MuteParam(mutepar)
      call MuteParam_compute_mask(mutepar,shotgath,sourcegath)
      call compute_fct_gdt_dmute_smooth_inv_init(mutepar,smoothpar,invparam)
-     if (invparam%eps.ne.0.) then
+     if (invparam%wantreg) then
         call compute_fct_gdt_sparsepar_init(sparseparam)
         call l_bfgs(invparam,compute_fct_gdt_reg,mod%vel)
      else
         call l_bfgs(invparam,compute_fct_gdt,mod%vel)
      end if
      call MuteParam_deallocate(mutepar)
-     if (invparam%eps.ne.0.) call SparseRegularization_filter_close(sparseparam)
+     if (invparam%wantreg) call SparseRegularization_filter_close(sparseparam)
      call srite('inv',mod%vel,4*mod%nz*mod%nx*mod%ny)
      call create_header(mod,invparam,genpar,ntotaltraces)
      deallocate(invparam%vpmask,invparam%vpinit)

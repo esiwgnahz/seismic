@@ -111,7 +111,7 @@ contains
 
        stat2=fctgdt(g=g,f=fd,res=resigath)
 
-       if (iter.eq.0) then
+       if (invparam%eval.eq.0) then
           g0=maxval(x)/(100*maxval(abs(g)))
           f0=dble(maxval(x)**2)/abs(fd)
           if(exist_file('function')) call srite('function',sngl(f0*fd),4)
@@ -163,8 +163,8 @@ contains
              if (info.eq.6) write(0,*) 'INFO:       ROUNDING ERRORS'
           end if
        end if
-       iter=iter+1
-       if(invparam%iter.ge.invparam%neval) then
+       invparam%eval=invparam%eval+1
+       if(invparam%eval.ge.invparam%neval) then
           write(0,*) 'INFO: iter reached neval - Iterations will stop'
           cont=.false.
        end if

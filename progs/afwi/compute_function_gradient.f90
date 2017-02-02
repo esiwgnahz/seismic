@@ -99,19 +99,31 @@ contains
     real, dimension(:), allocatable :: gtmp
     allocate(gtmp(mod%nx*mod%ny*mod%nz));gtmp=0.
  
-    scaling=dble(2*invparam%n1*invparam%ntotaltraces)
-
     stat=compute_fct_gdt(grad,f,resigath)
 
+    scaling=mod%nx*mod%ny*mod%nz
+
     call SparseRegularization_apply(sparseparam,mod%vel,gtmp,ftmp)
+
+    ftmp=ftmp/scaling
+    gtmp=gtmp*invparam%vpmask/sngl(scaling)
+
+    if (invparam%eval.eq.0) then
+       if (sparseparam%ratio.eq.0.) then
+          sparseparam%eps=0.
+       else
+          sparseparam%eps=abs(f/(sparseparam%ratio*ftmp))
+       end if
+       write(0,*) 'INFO: For ratio=',sparseparam%ratio,' eps=',sparseparam%eps
+    end if
 
     call srite('reg_grad',gtmp,4*mod%nx*mod%ny*mod%nz)
     call to_history('n1',mod%nz,'reg_grad')
     call to_history('n2',mod%nx,'reg_grad')
     call to_history('n3',mod%ny,'reg_grad')
     
-    f=f+ftmp/scaling
-    grad=grad-gtmp*invparam%vpmask/sngl(scaling)
+    f=f+ftmp*sparseparam%eps
+    grad=grad-gtmp*sparseparam%eps
     
     deallocate(gtmp)
 

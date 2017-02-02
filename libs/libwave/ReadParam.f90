@@ -83,6 +83,7 @@ contains
     type(InversionParam) ::  invparam
 
     invparam%iter=0
+    invparam%eval=0
     call from_param('niter',invparam%niter,10)
     call from_param('neval',invparam%neval,3*invparam%niter)
     call from_param('vpmin',invparam%vpmin,1500.)
@@ -90,7 +91,7 @@ contains
     
     call from_param('freeze_soft',invparam%freeze_soft,.true.)
     call from_param('bound',invparam%const_type,2)
-    call from_param('eps',invparam%eps,0.0)
+    call from_param('wantreg',invparam%wantreg,.false.)
     call from_param('illu_pow',invparam%illupow,1.)
 
     write(0,*) 'INFO: ----------------------------'
@@ -119,7 +120,7 @@ contains
        write(0,*) 'INFO:                          x=xinit where mask=0 and mask=2'
        write(0,*) 'INFO:'
     end if
-    write(0,*) 'INFO:   eps        =',invparam%eps
+    write(0,*) 'INFO:   wantreg        =',invparam%wantreg
     write(0,*) 'INFO:'
     write(0,*) 'INFO: ----------------------------'
 
