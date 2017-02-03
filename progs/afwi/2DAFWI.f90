@@ -66,7 +66,7 @@ program TWODAFWI
 
   call compute_fct_gdt_init(mod,modgath,genpar,genpargath,shotgath,sourcegath,bounds,boundsgath)
  
-  if (genpar%task.eq.'INV') then
+  if ((genpar%task.eq.'INV').or.(genpar%task.eq.'inv')) then
      call Init_BandPassParam(bpparam)
      call BandpassSouTraces(bpparam,shotgath,sourcegath)
      call Init_SmoothingParam(smoothpar,mod,bpparam)
@@ -89,8 +89,10 @@ program TWODAFWI
      call srite('inv',mod%vel,4*mod%nz*mod%nx*mod%ny)
      call create_header(mod,invparam,genpar,ntotaltraces)
      deallocate(invparam%vpmask,invparam%vpinit)
-  else if (genpar%task.eq.'MOD') then
+  else if ((genpar%task.eq.'MOD').or.(genpar%task.eq.'mod')) then
      stat=compute_mod()
+  else if ((genpar%task.eq.'MIG').or.(genpar%task.eq.'mig')) then
+     stat=compute_mig()
   end if
   call compute_fct_gdt_nullify()
 

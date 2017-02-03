@@ -77,17 +77,12 @@ contains
 
   subroutine deallocateUSpace(grid)
     type(USpace) :: grid
-    if (associated(grid%u_1)) nullify(grid%u_1)
-    if (associated(grid%u0))  nullify(grid%u0)
-    if (associated(grid%u1))  nullify(grid%u1)
-    if (associated(grid%u2))  nullify(grid%u2)
-    if (associated(grid%u3))  nullify(grid%u3)
-
-    if (allocated(grid%u_1)) deallocate(grid%u_1)
-    if (allocated(grid%u0))  deallocate(grid%u0)
-    if (allocated(grid%u1))  deallocate(grid%u1)
-    if (allocated(grid%u2))  deallocate(grid%u2)
-    if (allocated(grid%u3))  deallocate(grid%u3)
+    if (allocated(grid%u_1))  deallocate(grid%u_1)
+    if (allocated(grid%u0))   deallocate(grid%u0)
+    if (allocated(grid%u1))   deallocate(grid%u1)
+    if (allocated(grid%u2))   deallocate(grid%u2)
+    if (allocated(grid%u3))   deallocate(grid%u3)
+    if (associated(grid%utmp)) nullify(grid%utmp)
   end subroutine deallocateUSpace
 
   subroutine allocateUSpace(grid,genpar,bounds)

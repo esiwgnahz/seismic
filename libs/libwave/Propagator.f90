@@ -265,11 +265,13 @@ contains
 
     deallocate(u)
     call deallocateHigdonParam(hig)
+    call deallocateUSpace(grid)
 
     if (genpar%surf_type.ne.0) then
        if (allocated(elev%ielev_z)) deallocate(elev%ielev_z)
        if (allocated(elev%delev_z)) deallocate(elev%delev_z)
     end if
+
 
   end subroutine propagator_acoustic
 end module Propagator_mod

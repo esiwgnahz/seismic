@@ -3,6 +3,7 @@ include ${SEPINC}/SEP.top
 include EXEMakefile
 include VOLVEMakefile
 include MARMMakefile
+include BPMakefile
 #include MATCHMakefile
 
 wavelet.H:

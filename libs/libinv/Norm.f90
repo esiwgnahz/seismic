@@ -5,8 +5,8 @@ module Norm_mod
 contains
     
   function fct_compute(ntype,rd,nd,thresh) result (f)
-    optional                thresh
-    integer   :: ntype,   nd
+    optional                       thresh
+    integer   ::       ntype,   nd
     real, dimension(nd) :: rd
     double precision    :: f
     double precision    :: sized
@@ -62,9 +62,9 @@ contains
   end function fct_compute
 
   function gdt_compute(ntype,rd,nd,thresh) result (stat)
-    optional                thresh
-    integer ::   ntype,   nd
-    real, dimension(nd) :: rd
+    optional                       thresh
+    integer       ::   ntype,   nd
+    real, dimension(nd) ::   rd
     integer             :: stat,i
     double precision    :: sized
 

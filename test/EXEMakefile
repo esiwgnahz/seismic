@@ -11,6 +11,7 @@ LSRTMSEP=../bin/LINUX/3DRTM.x
 
 RTM=../bin/LINUX/Acoustic_RTM.x
 MATCH=../bin/LINUX/Matching.x
+CHANGE=../bin/LINUX/Change.x
 
 AFWI=../bin/LINUX/2DAFWI.x
 HEAD=../bin/LINUX/MakeHeader.x

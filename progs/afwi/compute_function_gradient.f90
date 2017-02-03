@@ -208,17 +208,6 @@ contains
        begi=shotgath(i)%begi
 
        call Compute_OF_RES_ADJ(begi,invparam,shotgath(i)%gathtrace,dmodgath,mutepar%maskgath(i)%gathtrace,resigath,fthread(omp_get_thread_num ()+1))
-!      ! Compute residual and of
-!      do j=1,size(shotgath(i)%gathtrace)
-!          ! rd=W(L(m)-d)
-!          dmodgath(j)%trace=mutepar%maskgath(i)%gathtrace(j)%trace*(shotgath(i)%gathtrace(j)%trace-dmodgath(j)%trace)
-!          ! f=rd'rd
-!          fthread(omp_get_thread_num ()+1)=fthread(omp_get_thread_num ()+1)+sum(dprod(dmodgath(j)%trace,dmodgath(j)%trace))
-!          ! Save residual
-!          resigath(begi+j)%trace=dmodgath(j)%trace
-!          ! Compute adjoint source rd=W'W(L(m)-d)
-!          dmodgath(j)%trace=mutepar%maskgath(i)%gathtrace(j)%trace*dmodgath(j)%trace
-!       end do
 
        ! Backward: imaging
        call AGRAD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,wfld_fwd)
@@ -288,6 +277,126 @@ contains
     stat=0
 
   end function compute_fct_gdt
+
+  function compute_mig() result(stat)
+    
+    integer            :: stat
+    type(DataSpace)    :: dat
+
+    type(TraceSpace),  dimension(:), allocatable :: dmodgath
+    type(ModelSpace_elevation), dimension(:), allocatable :: elevgath
+    type(WaveSpace), target                      :: wfld_fwd
+
+    real, dimension(:,:,:,:), allocatable :: illuthread,imagthread
+
+    real    :: d1
+    integer :: i,j,k,l,n1
+    integer :: ntsnap,ntotaltraces,nprocessed
+    double precision :: memory_needed,gist,scaling
+
+    real, dimension(:), allocatable          :: illu,imag
+
+    allocate(elevgath(size(shotgath)))  ! Each shot has an elevation file
+
+    d1=genpar%dt
+    genpar%ntsnap=int(genpar%nt/genpar%snapi)
+    genpar%dt2=(genpar%dt*genpar%snapi)**2
+
+
+    genpar%verbose=.false.
+    genpar%optim=.false.
+    memory_needed=0.
+
+    genpar%nthreads=min(genpar%nthreads,size(shotgath))
+    call omp_set_num_threads(genpar%nthreads)
+
+    ! image and illumination for each thread
+    allocate(imagthread(mod%nz,mod%nx,mod%ny,genpar%nthreads)); imagthread=0
+    allocate(illuthread(mod%nz,mod%nx,mod%ny,genpar%nthreads)); illuthread=0
+    
+    imag=0.
+    nprocessed=0
+
+    !$OMP PARALLEL DO PRIVATE(i,k,j,dmodgath,wfld_fwd)
+    do i=1,size(shotgath)
+
+       call copy_window_vel_gath(mod,modgath(i),genpar,genpargath(i),boundsgath(i),i)
+       genpargath(i)%ntsnap=int(genpargath(i)%nt/genpargath(i)%snapi)
+
+       allocate(elevgath(i)%elev(boundsgath(i)%nmin2:boundsgath(i)%nmax2, boundsgath(i)%nmin3:boundsgath(i)%nmax3))
+       elevgath(i)%elev=0.
+
+       allocate(dmodgath(size(shotgath(i)%gathtrace)))
+       do j=1,size(shotgath(i)%gathtrace)
+          allocate(dmodgath(j)%trace(n1,1))
+       end do
+       dmodgath=shotgath(i)%gathtrace
+       do j=1,size(shotgath(i)%gathtrace)
+          dmodgath(j)%trace=0.
+       end do
+
+       ! Forward: modeling
+       call AMOD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,sourcegath,wfld_fwd,i) 
+       ! Backward: imaging
+       call AGRAD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),shotgath(i)%gathtrace,wfld_fwd)
+      ! Copy to final image space
+       call mod_copy_image(modgath(i),imagthread(:,:,:,omp_get_thread_num()+1),illuthread(:,:,:,omp_get_thread_num()+1))
+
+       ! Deallocate arrays
+       deallocate(modgath(i)%imagesmall)
+       deallocate(modgath(i)%illumsmall)
+       call deallocateModelSpace_elev(elevgath(i))       
+       do k=1,shotgath(i)%ntraces
+          call deallocateTraceSpace(dmodgath(k))
+       end do
+       deallocate(modgath(i)%vel)
+       deallocate(dmodgath)
+       
+       !$OMP CRITICAL
+       nprocessed=nprocessed+1
+       if (modulo(nprocessed,10).eq.0) write(0,*) 'INFO: Migrated',nprocessed*100/size(shotgath),'% of shots'
+       !$OMP END CRITICAL
+
+    end do
+    !$OMP END PARALLEL DO
+
+    allocate(illu(mod%nz*mod%nx*mod%ny)); illu=0.
+    allocate(imag(mod%nz*mod%nx*mod%ny)); imag=0.
+    ! Add all images for each thread to final image
+    do i=1,genpar%nthreads
+
+       !$OMP PARALLEL DO PRIVATE(k,j,l)
+       do k=1,mod%ny
+          do j=1,mod%nx
+             do l=1,mod%nz
+                imag(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx)=imag(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx)+imagthread(l,j,k,i)               
+                illu(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx)=illu(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx)+illuthread(l,j,k,i)
+             end do
+          end do
+       end do
+       !$OMP END PARALLEL DO 
+       
+    end do
+
+    illu=(illu+maxval(illu)/10000)/sqrt(sum(dprod(illu,illu))/size(illu))
+    imag=imag/(illu)
+
+    write(0,*) 'INFO:'
+    write(0,*) 'INFO: RTM'
+    write(0,*) 'INFO: ---'
+    write(0,*) 'INFO: copying image to disk'
+    write(0,*) 'INFO:'
+    call srite('image',imag,4*size(imag))
+    call to_history('n1',mod%nz,'image')
+    call to_history('n2',mod%nx,'image')
+    call to_history('n3',mod%ny,'image')
+
+    deallocate(imagthread,illu,imag,illuthread)
+    deallocate(elevgath)
+
+    stat=0
+
+  end function compute_mig
 
   function compute_mod() result(stat)
     
