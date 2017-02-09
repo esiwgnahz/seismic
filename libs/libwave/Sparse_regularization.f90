@@ -8,6 +8,7 @@ module Sparse_regularization_mod
   use helicon3_mod
   use createhelixmod
   use Norm_mod
+  use Logistic_mod
   use ModelSpace_types
   
   implicit none
@@ -22,11 +23,17 @@ module Sparse_regularization_mod
      integer          :: ntaperz
      integer          :: ntaperx
      integer          :: ntapery
+     logical          :: compute_eps
      real             :: eps
+     real             :: eps_log
+     real             :: k
      real             :: ratio
+     real             :: ratio_log
      real             :: mod_thresh
      integer          :: nx,nz,ny
      integer          :: nx_tap,nz_tap,ny_tap
+     real, allocatable, dimension(:) :: zweight
+     logical          :: have_z_weight
   end type SparseRegParam
 
 contains
@@ -34,12 +41,21 @@ contains
   subroutine Init_SparseRegularization(sparseparam,mod)
     type(SparseRegParam) ::            sparseparam
     type(ModelSpace)     ::                        mod
+    integer :: n1, n2, nm
 
+    call from_param('compute_eps',sparseparam%compute_eps,.false.)
     call from_param('derivdx',sparseparam%derivdx,.false.)
     call from_param('derivdy',sparseparam%derivdy,.false.)
     call from_param('derivdz',sparseparam%derivdz,.false.)
     call from_param('model_nrm_type',sparseparam%mod_nrm_type_char,'Cauchy')
-    call from_param('ratio',sparseparam%ratio,10.)
+    if (sparseparam%compute_eps) then
+       call from_param('ratio',sparseparam%ratio,10.)
+       call from_param('ratio_logistic',sparseparam%ratio_log,10.)
+    else
+       call from_param('eps',sparseparam%eps,1.)
+       call from_param('eps_log',sparseparam%eps_log,1.)
+    end if
+    call from_param('k_logistic',sparseparam%k,1.)
     call from_param('reg_threshold',sparseparam%mod_thresh,0.)
     call from_param('sparse_taperx',sparseparam%ntaperx,10)
     call from_param('sparse_tapery',sparseparam%ntapery,0)
@@ -47,7 +63,11 @@ contains
 
     sparseparam%nx_tap=mod%nx+2*sparseparam%ntaperx
     sparseparam%nz_tap=mod%nz+2*sparseparam%ntaperz
+    
+    nm=mod%nx*mod%ny*mod%nz
 
+    sparseparam%have_z_weight=.false.
+  
     if (mod%ny.ne.1) then
        sparseparam%ny_tap=mod%ny+2*sparseparam%ntapery
     else
@@ -74,17 +94,45 @@ contains
     if ((sparseparam%mod_nrm_type.eq.3).or.(sparseparam%mod_nrm_type.eq.12)) then
       write(0,*) 'INFO:  mod thresh = ',sparseparam%mod_thresh
     end if
-    write(0,*) 'INFO:  ratio      = ',sparseparam%ratio
     write(0,*) 'INFO:  taperz     = ',sparseparam%ntaperz
     write(0,*) 'INFO:  taperx     = ',sparseparam%ntaperx
     write(0,*) 'INFO:  tapery     = ',sparseparam%ntapery
     write(0,*) 'INFO:'
+    write(0,*) 'INFO:  K-logistic = ',sparseparam%k
+    if (sparseparam%compute_eps)then
+       write(0,*) 'INFO:  ratio      = ',sparseparam%ratio
+       write(0,*) 'INFO:  ratio logis= ',sparseparam%ratio_log
+    else
+       write(0,*) 'INFO:  Eps TV     = ',sparseparam%eps
+       write(0,*) 'INFO:  Eps logis  = ',sparseparam%eps_log
+    end if
     write(0,*) 'INFO:-------------------------'
     write(0,*) 'INFO:'
 
     call SparseRegularization_filter_init(sparseparam)
     
   end subroutine Init_SparseRegularization
+
+  subroutine Init_SparseRegularization_Array(sparseparam,mod)
+    type(SparseRegParam) ::                  sparseparam
+    type(ModelSpace)     ::                              mod
+
+    integer :: n1, n2
+
+    if (exist_file('Z_weights')) then
+       write(0,*) 'INFO:'
+       write(0,*) 'INFO: Found Z_weights, reading and copying to array'
+       write(0,*) 'INFO:'
+       sparseparam%have_z_weight=.true.
+       allocate(sparseparam%zweight(mod%nx*mod%ny*mod%nz))
+       call from_aux('Z_weights','n1',n1)
+       call from_aux('Z_weights','n2',n2)
+       if (n1.ne.mod%nz) call erexit('Error: n1 and nz mask/vel different, exit now')
+       if (n2.ne.mod%nx) call erexit('Error: n2 and nx mask/vel different, exit now')
+       call sreed('Z_weights',sparseparam%zweight,4*mod%nz*mod%nx*mod%ny)    
+    end if
+
+  end subroutine Init_SparseRegularization_Array
 
   subroutine SparseRegularization_filter_init(sparseparam)
     type(SparseRegParam) ::                   sparseparam
@@ -140,7 +188,23 @@ contains
     call deallocatehelix(sparseparam%xx)
     call deallocatehelix(sparseparam%zz)
     if(sparseparam%ny_tap.ne.1) call deallocatehelix(sparseparam%yy)
+    if(allocated(sparseparam%zweight)) deallocate(sparseparam%zweight)
   end subroutine SparseRegularization_filter_close
+
+  subroutine LogisticRegularization_apply(sparseparam,                  vel,g,f)
+    type(SparseRegParam) ::               sparseparam
+    real, dimension(sparseparam%nx*sparseparam%nz*sparseparam%ny) ::    vel
+    real, dimension(sparseparam%nx*sparseparam%nz*sparseparam%ny) ::        g
+    double precision     ::                                                   f
+    
+    call helicon_mod_init(sparseparam%zz)
+    
+    g=0.
+    f=0.
+
+    call LogisticRegularization_Compute_f_g(helicon_mod_lop,sparseparam,vel,f,g)
+    
+  end subroutine LogisticRegularization_apply
 
   subroutine SparseRegularization_apply(sparseparam,                  vel,g,f)
     type(SparseRegParam) ::             sparseparam
@@ -175,7 +239,7 @@ contains
     real, dimension(sparseparam%nx*sparseparam%nz*sparseparam%ny) :: g
     double precision     ::                                          f
 
-    real, dimension(:), allocatable :: rm   
+    real, dimension(:), allocatable :: gtmp  
     real, dimension(:), allocatable :: rmtap   
     real, dimension(:), allocatable :: rtmptap
 
@@ -190,27 +254,114 @@ contains
     nzt=sparseparam%nz_tap
     nrm_type=sparseparam%mod_nrm_type
 
-    allocate(rmtap(nxt*nyt*nzt),rtmptap(nxt*nyt*nzt),rm(nx*ny*nz))
+    allocate(rmtap(nxt*nyt*nzt),rtmptap(nxt*nyt*nzt),gtmp(nz*nx*ny))
     
-    rm=0.
+    gtmp=0.
     
     call SparseRegularization_add_taper(sparseparam,rtmptap,vel,forw=.true.)
     stat=op(.false.,.false.,rtmptap,rmtap)   
-    call SparseRegularization_add_taper(sparseparam,rmtap,rm,forw=.false.)
+    call SparseRegularization_add_taper(sparseparam,rmtap,gtmp,forw=.false.)
+    if (sparseparam%have_z_weight) gtmp=sparseparam%zweight*gtmp
 
     ! Add model fitting side of objective function
     ! --------------------------------------------  
-    f=f+fct_compute(nrm_type,rm,nz*nx,sparseparam%mod_thresh)
+    f=f+fct_compute(nrm_type,gtmp,nz*nx,sparseparam%mod_thresh)
 
     ! Now apply the adjoint to form the gradient of the model fitting
     ! ---------------------------------------------------------------
     stat=gdt_compute(nrm_type,rmtap,nzt*nxt,sparseparam%mod_thresh)  
     stat=op(.true.,.false.,rtmptap,rmtap)
-    call SparseRegularization_add_taper(sparseparam,rtmptap,g,forw=.false.)
+    gtmp=0.
+    call SparseRegularization_add_taper(sparseparam,rtmptap,gtmp,forw=.false.)
+    if (sparseparam%have_z_weight) gtmp=sparseparam%zweight*gtmp
 
-    deallocate(rmtap,rtmptap,rm)
+    g=g+gtmp
+
+    deallocate(rmtap,rtmptap,gtmp)
 
   end subroutine SparseRegularization_Compute_f_g
+  
+  subroutine LogisticRegularization_Compute_f_g(op,sparseparam,vel,f,g)
+    interface
+       function op( adj, add, xx, yy) result(stat)
+         integer            :: stat 
+         logical,intent(in) :: adj,add 
+         real,dimension(:)  :: xx,yy 
+       end function op
+    end interface
+    type(SparseRegParam) ::                     sparseparam
+    real, dimension(sparseparam%nx*sparseparam%nz*sparseparam%ny) :: vel
+    real, dimension(sparseparam%nx*sparseparam%nz*sparseparam%ny) :: g
+    double precision     ::                                          f
+
+    real, dimension(:), allocatable :: gtmp 
+    real, dimension(:), allocatable :: mask   
+    real, dimension(:), allocatable :: rmtap   
+    real, dimension(:), allocatable :: rtmptap
+
+    integer :: nxt,nyt,nzt
+    integer :: nz,ny,nx,stat,nrm_type
+
+    nz=sparseparam%nz
+    ny=sparseparam%ny
+    nx=sparseparam%nx
+    nxt=sparseparam%nx_tap
+    nyt=sparseparam%ny_tap
+    nzt=sparseparam%nz_tap
+    nrm_type=sparseparam%mod_nrm_type
+
+    allocate(mask(nxt*nyt*nzt),rmtap(nxt*nyt*nzt),rtmptap(nxt*nyt*nzt),gtmp(nx*ny*nz))
+    
+    mask=0.
+    gtmp=0.
+    
+    ! rmtap=Grad(m)
+    call SparseRegularization_add_taper(sparseparam,rtmptap,vel,forw=.true.)
+    stat=op(.false.,.false.,rtmptap,rmtap)  
+    ! Keep gradient in memory
+    ! rtmp=rmtap=Grad(m)
+    rtmptap=rmtap
+
+    ! rtmptap=L(Grad(m))
+    !stat=logistic_comp(rtmptap,sparseparam%k) 
+    mask=rmtap
+
+    stat=Heaviside_comp(mask)   
+    ! rmtap=Grad(m)*L(Grad(m))
+    rmtap=rmtap*mask
+    call SparseRegularization_add_taper(sparseparam,rmtap,gtmp,forw=.false.)
+    if (sparseparam%have_z_weight) gtmp=sparseparam%zweight*gtmp
+
+!    call srite('of_log',g,4*size(g))
+!       call to_history('n1',nz,'of_log')
+!       call to_history('n2',nx,'of_log')
+!       call to_history('n3',3,'of_log')
+
+    ! Add model fitting side of objective function
+    ! --------------------------------------------  
+    f=f+fct_compute(nrm_type,gtmp,nz*nx,sparseparam%mod_thresh)
+
+    ! Now apply the adjoint to form the gradient of the model fitting
+    ! ---------------------------------------------------------------
+
+    ! Compute rm
+    stat=gdt_compute(nrm_type,rmtap,nzt*nxt,sparseparam%mod_thresh)
+
+!    g=0.
+!    call SparseRegularization_add_taper(sparseparam,rmtap,g,forw=.false.)
+!    call srite('of_log',g,4*size(g))
+    ! Compute (L(grad(m))*(1-L(grad(m)))*grad(m)*rm+L(grad(m))*rm)
+!    rmtap=sparseparam%k*rtmptap*(1-rtmptap)*rtmp*rmtap+rtmptap*rmtap
+    rmtap=mask*rmtap
+    gtmp=0.
+    stat=op(.true.,.false.,rtmptap,rmtap)
+    call SparseRegularization_add_taper(sparseparam,rtmptap,gtmp,forw=.false.)
+    if (sparseparam%have_z_weight) gtmp=sparseparam%zweight*gtmp
+!    call srite('of_log',g,4*size(g))
+    g=g+gtmp
+    deallocate(rmtap,rtmptap,mask,gtmp)
+
+  end subroutine LogisticRegularization_Compute_f_g
   
   subroutine SparseRegularization_add_taper(sparseparam,arraytap,array,forw)
     type(SparseRegParam) ::                 sparseparam

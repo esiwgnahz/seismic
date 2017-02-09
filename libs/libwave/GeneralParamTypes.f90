@@ -12,6 +12,7 @@ module GeneralParam_types
      logical :: verbose
      logical :: optim
 
+     real    :: t0
      real    :: dt
      real    :: dt2
 

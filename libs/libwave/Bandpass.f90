@@ -66,11 +66,13 @@ contains
        ntraces=shotgath(i)%ntraces
        if (modulo(i,10).eq.0) write(0,*) 'INFO: Starting bandassing',ntraces,'traces for shot',i
 
+       !$OMP PARALLEL DO PRIVATE(j,tracetmp)
        do j=1,ntraces
           tracetmp=0.
           call bandpass(1,shotgath(i)%gathtrace(j)%trace(:,1),tracetmp,bpparam)
           shotgath(i)%gathtrace(j)%trace(:,1)=tracetmp
        end do
+       !$OMP END PARALLEL DO
 
     end do
     write(0,*) 'INFO: Done bandassing'
@@ -115,9 +117,7 @@ contains
        nplo_i=bpparam%nplo
        phase_i=bpparam%phase
 
-!       data(1:npad)=in(1,i)
        data(npad+1:bpparam%nt+npad)=in(:,i)
-!       data(n1+npad+1:)=in(n1,i)
 
        do j=1,npad
           data(j)=in(1,i)*sin((j-1)*pi/(2*(npad-1)))**2

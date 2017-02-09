@@ -267,11 +267,13 @@ contains
     allocate(source(1))
     call from_history('n1',source(1)%dimt%nt)
     call from_history('d1',source(1)%dimt%dt)
+    call from_history('o1',source(1)%dimt%ot)
     allocate(source(1)%trace(source(1)%dimt%nt,1))
     call sreed('in',source(1)%trace(:,1),4*source(1)%dimt%nt)
     
     genpar%dt=source(1)%dimt%dt
     genpar%nt=source(1)%dimt%nt
+    genpar%t0=source(1)%dimt%ot
     
     if (genpar%Born.or.genpar%LSRTM) then
        allocate(trace(source(1)%dimt%nt))

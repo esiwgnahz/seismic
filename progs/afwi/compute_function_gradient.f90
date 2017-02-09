@@ -97,43 +97,95 @@ contains
     integer            ::                              stat
     integer            :: n1,ntotaltraces
 
-    double precision                :: ftmp,scaling
+    double precision                :: ftmp,ftmp1,scaling
     real, dimension(:), allocatable :: gtmp
-    allocate(gtmp(mod%nx*mod%ny*mod%nz));gtmp=0.
- 
+
+    allocate(gtmp(mod%nx*mod%ny*mod%nz))
+
+    gtmp=0.
+    ftmp=0.
+    ftmp1=0.
+    f=0.
+
     stat=compute_fct_gdt(grad,f,resigath)
 
     scaling=mod%nx*mod%ny*mod%nz
-
-    call SparseRegularization_apply(sparseparam,mod%vel,gtmp,ftmp)
-
-    ftmp=ftmp/scaling
-    gtmp=gtmp*invparam%vpmask/sngl(scaling)
-
-    if (invparam%eval.eq.0) then
-       if (sparseparam%ratio.eq.0.) then
+    if (sparseparam%compute_eps) then
+       if (invparam%eval.eq.0) then
+          sparseparam%eps_log=0.
           sparseparam%eps=0.
-       else
-          sparseparam%eps=abs(f/(sparseparam%ratio*ftmp))
        end if
-       write(0,*) 'INFO:'
-       write(0,*) 'INFO: ---- Regularization: setting epsilon ---'
-       write(0,*) 'INFO: For ratio=',sparseparam%ratio,' eps=',sparseparam%eps
-       write(0,*) 'INFO:'
     end if
 
-!    call srite('reg_grad',gtmp,4*mod%nx*mod%ny*mod%nz)
-!    call to_history('n1',mod%nz,'reg_grad')
-!    call to_history('n2',mod%nx,'reg_grad')
-!    call to_history('n3',mod%ny,'reg_grad')
-    
-    f=f+ftmp*sparseparam%eps
-    grad=grad-gtmp*sparseparam%eps
+    if (invparam%wantreg) then
+
+       call SparseRegularization_apply(sparseparam,mod%vel,gtmp,ftmp)
+       
+       ftmp=ftmp/scaling
+       gtmp=gtmp/sngl(scaling)
+       
+       if (sparseparam%compute_eps) then
+          if (invparam%eval.eq.0) then
+             if (sparseparam%ratio.eq.0.) then
+                sparseparam%eps=0.
+             else
+                sparseparam%eps=abs(f/(sparseparam%ratio*ftmp))
+             end if
+             write(0,*) 'INFO:'
+             write(0,*) 'INFO: ---- Regularization: setting epsilon ---'
+             write(0,*) 'INFO: For ratio=',sparseparam%ratio,' eps=',sparseparam%eps
+             write(0,*) 'INFO:'
+          end if
+       end if
+       
+       grad=grad-gtmp*sparseparam%eps
+
+!       call srite('grad_reg',gtmp,4*size(gtmp))
+!       call to_history('n1',mod%nz,'grad_reg')
+!       call to_history('n2',mod%nx,'grad_reg')
+!       call to_history('n3',mod%ny,'grad_reg')
+    else
+       sparseparam%eps=0.
+    end if
+
+    if (invparam%wantlog) then
+       gtmp=0.
+
+       call LogisticRegularization_apply(sparseparam,mod%vel,gtmp,ftmp1)
+       
+       ftmp1=ftmp1/scaling
+       gtmp=gtmp/sngl(scaling)
+       
+       if (sparseparam%compute_eps) then
+          if (invparam%eval.eq.0) then
+             if (sparseparam%ratio_log.eq.0.) then
+                sparseparam%eps_log=0.
+             else
+                sparseparam%eps_log=abs(f/(sparseparam%ratio_log*ftmp1))
+             end if
+             write(0,*) 'INFO:'
+             write(0,*) 'INFO: ---- Logistic Reg.: setting epsilon ---'
+             write(0,*) 'INFO: For ratio=',sparseparam%ratio_log,' eps=',sparseparam%eps_log
+             write(0,*) 'INFO:'
+          end if
+       end if
+
+       grad=grad-gtmp*sparseparam%eps_log
+!       call srite('grad_reg_log',gtmp,4*size(gtmp))
+!       call to_history('n1',mod%nz,'grad_reg_log')
+!       call to_history('n2',mod%nx,'grad_reg_log')
+!       call to_history('n3',mod%ny,'grad_reg_log')
+
+    else
+       sparseparam%eps_log=0.
+    end if
+
+    grad=grad*invparam%vpmask
+    f=f+ftmp*sparseparam%eps+ftmp1*sparseparam%eps_log
     
     deallocate(gtmp)
 
   end function compute_fct_gdt_reg
-
 
   function compute_fct_gdt(grad,f,resigath) result(stat)
     
@@ -260,13 +312,15 @@ contains
 
     end do
 
+    illu=illu**invparam%illupow
+
     ! Scaling
     scaling=dble(2*n1*ntotaltraces)
     f=f/scaling
     grad=2*grad/sngl(scaling)
     illu=(illu+maxval(illu)/10000)/sqrt(sum(dprod(illu,illu))/size(illu))
 
-    grad=grad/(illu**invparam%illupow)
+    grad=grad/illu
     grad=grad*invparam%vpmask
     call triangle2(smoothpar,grad)
     grad=grad*invparam%vpmask

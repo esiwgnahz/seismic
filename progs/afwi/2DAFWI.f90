@@ -71,21 +71,27 @@ program TWODAFWI
      call BandpassSouTraces(bpparam,shotgath,sourcegath)
      call Init_SmoothingParam(smoothpar,mod,bpparam)
      call read_inv_params(invparam)
-     if (invparam%wantreg) call Init_SparseRegularization(sparseparam,mod)
+     if (invparam%wantreg.or.invparam%wantlog) call Init_SparseRegularization(sparseparam,mod)
      invparam%ntotaltraces=ntotaltraces
      invparam%n1=genpar%nt
      call Init_Inversion_Array(mod,invparam)
+     if (invparam%wantreg.or.invparam%wantlog) call Init_SparseRegularization_Array(sparseparam,mod)
      call Init_MuteParam(mutepar)
      call MuteParam_compute_mask(mutepar,shotgath,sourcegath)
      call compute_fct_gdt_dmute_smooth_inv_init(mutepar,smoothpar,invparam)
-     if (invparam%wantreg) then
+     if (invparam%wantreg.or.invparam%wantlog) then
         call compute_fct_gdt_sparsepar_init(sparseparam)
         call l_bfgs(invparam,compute_fct_gdt_reg,mod%vel)
      else
         call l_bfgs(invparam,compute_fct_gdt,mod%vel)
      end if
+
+     ! Freeze velocity model again, and make sure we don't update where we freeze
+     call Freeze(invparam%vpmin,invparam%vpmax,invparam%vpmask,invparam%freeze_soft,mod%vel,mod%nx*mod%ny*mod%nz,invparam%vpinit)
+     call ApplyMask(mod%nx*mod%ny*mod%nz,invparam%vpmask,mod%vel,invparam%vpinit)
+
      call MuteParam_deallocate(mutepar)
-     if (invparam%wantreg) call SparseRegularization_filter_close(sparseparam)
+     if (invparam%wantreg.or.invparam%wantlog) call SparseRegularization_filter_close(sparseparam)
      call srite('inv',mod%vel,4*mod%nz*mod%nx*mod%ny)
      call create_header(mod,invparam,genpar,ntotaltraces)
      deallocate(invparam%vpmask,invparam%vpinit)
@@ -167,7 +173,7 @@ subroutine create_header(mod,invparam,genpar,ntotaltraces)
         call to_history('n3',invparam%iter,'residual')
         call to_history('d1',genpar%dt,'residual')
         call to_history('d2',1.,'residual')
-        call to_history('o1',0.,'residual')
+        call to_history('o1',genpar%t0,'residual')
         call to_history('o2',0.,'residual')
      end if
 
@@ -181,3 +187,33 @@ subroutine create_header(mod,invparam,genpar,ntotaltraces)
      end if
 
 end subroutine create_header
+
+subroutine ApplyMask(nd,mask,vel,velinit)
+  integer ::         nd
+  real,             dimension(nd) :: mask,vel
+  double precision, dimension(nd) :: velinit
+
+  vel=mask*vel+(1-mask)*sngl(velinit)
+
+end subroutine ApplyMask
+
+subroutine Freeze(xmin,xmax,mask,type,x,n,xinit)
+  real ::         xmin,xmax
+  integer ::                            n
+  logical ::                     type
+  real, dimension(n) ::     mask,     x
+  double precision, dimension(n) ::       xinit
+
+  IF (type) THEN
+     x=max(xmin,x)
+     x=min(xmax,x)
+  ELSE     
+     where((mask.ne.0.).and.(mask.ne.2.))
+        x=max(xmin,x)
+        x=min(xmax,x)
+     end where       
+     where(mask.eq.0.) x=sngl(xinit)
+     where(mask.eq.2.) x=sngl(xinit)
+  ENDIF
+
+end subroutine Freeze

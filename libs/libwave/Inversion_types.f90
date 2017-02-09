@@ -18,6 +18,7 @@ module Inversion_types
      real   :: vpmax
 
      logical:: wantreg    ! regularization parameter
+     logical:: wantlog    ! regularization parameter, logistic
      real   :: illupow
      character(len=6) :: dat_nrm_type_char
      integer          :: dat_nrm_type 
@@ -46,6 +47,7 @@ contains
     call from_param('freeze_soft',invparam%freeze_soft,.true.)
     call from_param('bound',invparam%const_type,2)
     call from_param('wantreg',invparam%wantreg,.false.)
+    call from_param('wantlog',invparam%wantlog,.false.)
     call from_param('illu_pow',invparam%illupow,1.)
     call from_param('data_nrm_type',invparam%dat_nrm_type_char,'L2norm')
     call from_param('data_threshold',invparam%dat_thresh,0.)
@@ -86,6 +88,7 @@ contains
        write(0,*) 'INFO:'
     end if
     write(0,*) 'INFO:   wantreg        =',invparam%wantreg
+    write(0,*) 'INFO:   wantlog        =',invparam%wantlog
     write(0,*) 'INFO:'
     write(0,*) 'INFO: ----------------------------'
 

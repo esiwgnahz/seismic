@@ -295,11 +295,14 @@ Reg3_BMARMFWI_Fmax%.H: MARMtracesLAND.H MARMheaderLAND.H MARMsource.H MARMvpmask
 	v0=1800. \
 	percx=0. percz=0. \
 	verb=0 \
-	neval=100 niter=30 \
+	neval=100 niter=5 \
 	wantreg=1 \
-	ratio=12. \
+	wantlog=1 \
+	k_logistic=1e7 \
+	ratio_logistic=5. \
+	ratio=0. \
 	derivdz=1 \
-	derivdx=1 \
+	derivdx=0 \
 	model_nrm_type=L1norm \
 	snapi=1 ntaper=20 num_threads=8 \
 	inv=$@  maxsize=1 > /dev/null
