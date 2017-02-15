@@ -19,6 +19,7 @@ program Apply_Filter
   character(len=7)  :: filtpchtag
 
   integer :: ndim,stat
+  logical :: adj,add
 
   call sep_init(SOURCE)
   filttag='filt'
@@ -26,17 +27,28 @@ program Apply_Filter
   
   ndim=sep_dimension()
 
+  call from_param('adj',adj,.false.)
+  call from_param('add',add,.false.)
+
   write(0,*) 'INFO: Reading input'
   call ReadData_dim('in',input,ndim)
   call ReadData_cube('in',input)
   write(0,*) 'INFO: Allocating output'
   allocate(output%dat(product(input%n)))
-  output%dat=0.
   allocate(output%n(3),output%o(3),output%d(3))
   output%n=input%n
   output%o=input%o
   output%d=input%d
 
+  write(0,*) 'INFO: '
+  write(0,*) 'INFO: ADJ/ADD parameters'
+  write(0,*) 'INFO: ------------------'
+  write(0,*) 'INFO: Adj=',adj
+  write(0,*) 'INFO: Add=',add
+  write(0,*) 'INFO: ------------------'
+  write(0,*) 'INFO: '
+  write(0,*) 'INFO: '
+  if (.not.add) output%dat=0.
   write(0,*) 'INFO: Reading filter'
   call NSfilter_read_param_from_file(filttag,nmatch,ndim)
   call psize_init(input,ndim,nmatch)
@@ -46,7 +58,12 @@ program Apply_Filter
   
   write(0,*) 'INFO: Applying filter'
   call ncnhelicon_init(nmatch%nmatch)
-  stat=ncnhelicon_lop(.false.,.false.,input%dat,output%dat)
+
+  if (adj) then
+     stat=ncnhelicon_lop(adj,add,output%dat,input%dat)
+  else
+     stat=ncnhelicon_lop(adj,add,input%dat,output%dat)
+  end if
  
   write(0,*) 'INFO: Writing output'
   call WriteData_dim('out',output,ndim)
