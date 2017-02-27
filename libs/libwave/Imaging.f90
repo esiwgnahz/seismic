@@ -361,6 +361,141 @@ contains
 
   end subroutine Imaging_condition_AFWI_from_memory_noomp
 
+  subroutine Imaging_condition_AFWI_RHOVP_from_memory_noomp(bounds,model,elev,u,genpar,it)
+    type(FDbounds)    ::                              bounds
+    type(ModelSpace)  ::                                     model
+    type(ModelSpace_elevation) ::                                  elev
+    type(GeneralParam)::                                                   genpar
+    real              ::                                                u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                                                                           bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    integer :: i,j,k,di,dj,dk,counter
+    real, dimension (:,:,:), pointer :: bwd
+
+    integer :: ierr,blocksize,index,indexm1,indexp1
+    real    :: taper,tmp,tmp1,dxi,dzi,dyi,dti2
+    logical :: Twoparam
+
+    dzi =1./genpar%delta(1)
+    dxi =1./genpar%delta(2)
+    dyi =1./genpar%delta(3)
+    dti2=1./genpar%dt2
+
+    Twoparam=.false.
+    if (size(model%imagesmall_nparam(1,1,1,:)).eq.2) Twoparam=.true.
+    if (model%nyw.eq.1) dk=0
+    di=1
+    dj=1
+    if (genpar%withRho) then
+       MODULO:if (mod(it,genpar%snapi).eq.0) then
+
+          model%counter=model%counter+1
+          index=genpar%ntsnap-model%counter+1
+          indexp1=min(index+1,genpar%ntsnap)
+          indexm1=max(index-1,1)
+          
+          if (genpar%surf_type.ne.0) then
+             if (.not.Twoparam) then
+                do k=1,model%nyw
+                   do j=1,model%nxw
+                      taper=model%taperx(j)*model%tapery(k)
+                      do i=elev%ielev_z(j,k),model%nz
+                         tmp=dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1))/(model%vel(i,j,k)**3*model%rho(i,j,k))
+                         model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+u(i,j,k)*tmp*taper
+                         model%illumsmall(i,j,k)=        model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper
+                      end do
+                   end do
+                end do
+             else
+                do k=1,max(1,model%nyw-1)
+                   do j=1,model%nxw-1
+                      taper=model%taperx(j)*model%tapery(k)
+                      do i=elev%ielev_z(j,k),model%nz-1
+                         
+                         tmp=    dzi*(u(i+di,j,k)-u(i,j,k))*dzi*(model%wvfld%wave(i+di,j,k,index,1)-model%wvfld%wave(i,j,k,index,1))                  ! grad_z
+                         tmp=tmp+dxi*(u(i,j+dj,k)-u(i,j,k))*dxi*(model%wvfld%wave(i,j+dj,k,index,1)-model%wvfld%wave(i,j,k,index,1))                  ! grad_x
+                         tmp=tmp+dyi*(u(i,j,k+dk)-u(i,j,k))*dyi*(model%wvfld%wave(i,j,k+dk,index,1)-model%wvfld%wave(i,j,k,index,1))                  ! grad_y
+                         tmp1=u(i,j,k)*dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1)) ! d/dt^2
+                         
+                         model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+tmp1*taper/(model%vel(i,j,k)**3*model%rho(i,j,k))
+                         model%imagesmall_nparam(i,j,k,2)= model%imagesmall_nparam(i,j,k,2)+ tmp*taper/(model%rho(i,j,k)**2)+ &
+                         &                                                                  tmp1*taper/(model%rho(i,j,k)**2*model%vel(i,j,k)**2)
+                         model%illumsmall(i,j,k)=        model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper
+                         
+                      end do
+                   end do
+                end do
+             end if
+          else
+             if (.not.Twoparam) then
+                do k=1,model%nyw
+                   do j=1,model%nxw
+                      taper=model%taperx(j)*model%tapery(k)
+                      do i=1,model%nz
+                         tmp=dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1))/(model%vel(i,j,k)**3*model%rho(i,j,k))
+                         model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+u(i,j,k)*tmp*taper
+                         model%illumsmall(i,j,k)  =        model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper
+                      end do
+                   end do
+                end do
+             else
+                do k=1,max(1,model%nyw-1)
+                   do j=1,model%nxw-1
+                      taper=model%taperx(j)*model%tapery(k)
+                      do i=1,model%nz-1
+                         tmp=    dzi*(u(i+di,j,k)-u(i,j,k))*dzi*(model%wvfld%wave(i+di,j,k,index,1)-model%wvfld%wave(i,j,k,index,1))                  ! grad_z
+                         tmp=tmp+dxi*(u(i,j+dj,k)-u(i,j,k))*dxi*(model%wvfld%wave(i,j+dj,k,index,1)-model%wvfld%wave(i,j,k,index,1))                  ! grad_x
+                         tmp=tmp+dyi*(u(i,j,k+dk)-u(i,j,k))*dyi*(model%wvfld%wave(i,j,k+dk,index,1)-model%wvfld%wave(i,j,k,index,1))                  ! grad_y
+                         tmp1=u(i,j,k)*dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1)) ! d/dt^2
+                         
+                         model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+tmp1*taper/(model%vel(i,j,k)**3*model%rho(i,j,k))
+                         model%imagesmall_nparam(i,j,k,2)= model%imagesmall_nparam(i,j,k,2)+ tmp*taper/(model%rho(i,j,k)**2)+ &
+                         &                                                                  tmp1*taper/(model%rho(i,j,k)**2*model%vel(i,j,k)**2)
+                         model%illumsmall(i,j,k)=        model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper                        
+                      end do
+                   end do
+                end do
+             end if
+          end if
+
+       end if MODULO
+    else
+       if (mod(it,genpar%snapi).eq.0) then
+
+          model%counter=model%counter+1
+          index=genpar%ntsnap-model%counter+1
+          indexp1=min(index+1,genpar%ntsnap)
+          indexm1=max(index-1,1)
+
+          if (genpar%surf_type.ne.0) then
+             do k=1,model%nyw
+                do j=1,model%nxw
+                   taper=model%taperx(j)*model%tapery(k)
+                   do i=elev%ielev_z(j,k),model%nz
+                      tmp=dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1))/(model%vel(i,j,k)**3)
+                      model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+u(i,j,k)*tmp*taper
+                      model%illumsmall(i,j,k)=        model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper
+                   end do
+                end do
+             end do
+          else
+             do k=1,model%nyw
+                do j=1,model%nxw
+                   taper=model%taperx(j)*model%tapery(k)
+                   do i=1,model%nz
+                      tmp=dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1))/(model%vel(i,j,k)**3)
+                      model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+u(i,j,k)*tmp*taper
+                      model%illumsmall(i,j,k)  =        model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper
+                   end do
+                end do
+             end do
+          end if
+
+       end if
+    end if
+
+  end subroutine Imaging_condition_AFWI_RHOVP_from_memory_noomp
+
   subroutine Imaging_condition_LSRTM_sourceonly_from_memory(bounds,model,elev,u,genpar,it)
     type(FDbounds)    ::                                   bounds
     type(ModelSpace)  ::                                          model

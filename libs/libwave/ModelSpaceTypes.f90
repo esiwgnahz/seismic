@@ -13,8 +13,9 @@ module ModelSpace_types
      character(len=8)  :: waFtag
      character(len=8)  :: waBtag
 
-     real, allocatable :: vel(:,:,:)
-     real, allocatable :: rho(:,:,:)
+     real, allocatable :: vel(:,:,:)    ! velocity
+     real, allocatable :: imp(:,:,:)    ! impedance
+     real, allocatable :: rho(:,:,:)    ! density
      real, allocatable :: rho2(:,:,:) 
      real, allocatable :: vel2(:,:,:) 
   
@@ -22,7 +23,8 @@ module ModelSpace_types
 
      real, allocatable :: illum(:,:,:)  ! illumination
 
-     real, allocatable :: imagesmall(:,:,:)  ! Resulting image 
+     real, allocatable :: imagesmall(:,:,:)           ! Resulting image 
+     real, allocatable :: imagesmall_nparam(:,:,:,:)  ! Resulting image with more parameters
 
      real, allocatable :: illumsmall(:,:,:)  ! illumination
 

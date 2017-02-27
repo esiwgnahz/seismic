@@ -381,6 +381,129 @@ contains
 
   end subroutine FD_3D_derivatives_acoustic_forward_grid
   
+  subroutine FD_3D_derivatives_acoustic_forward_grid_noomp(genpar,bounds,u2,u3,mod)
+    type(GeneralParam)   ::                     genpar
+    type(ModelSpace)     ::                                     mod
+    type(FDbounds)       ::                            bounds
+    real                 :: u2(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    real                 :: u3(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    real                 :: tmpzz, tmpxx, tmpyy
+    real, dimension(:,:,:), allocatable :: sxx,szz,syy,delp
+    real                 :: dxi,dyi,dzi
+    integer              :: i,j,k
+
+    allocate(sxx(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))
+    allocate(syy(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))
+    allocate(szz(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))    
+    allocate(delp(bounds%nmin1:bounds%nmax1,bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
+    
+    delp=1./mod%rho2
+    dzi =1./genpar%delta(1)
+    dxi =1./genpar%delta(2)
+    dyi =1./genpar%delta(3)
+
+    szz=0.
+    syy=0.
+    sxx=0.
+
+    do k=bounds%nmin3,bounds%nmax3
+       do j=bounds%nmin2,bounds%nmax2
+          do i=bounds%nmin1,bounds%nmax1   
+             szz(i,j,k)=           (coefs%c1z*(u2(i+1,j,k)-u2(i,j,k))+ &
+             &                      coefs%c2z*(u2(i+2,j,k)-u2(i-1,j,k))+ &
+             &                      coefs%c3z*(u2(i+3,j,k)-u2(i-2,j,k))+ &
+             &                      coefs%c4z*(u2(i+4,j,k)-u2(i-3,j,k)))*delp(i,j,k)
+             sxx(i,j,k)=           (coefs%c1x*(u2(i,j+1,k)-u2(i,j,k))+ &
+             &                      coefs%c2x*(u2(i,j+2,k)-u2(i,j-1,k))+ &
+             &                      coefs%c3x*(u2(i,j+3,k)-u2(i,j-2,k))+ &
+             &                      coefs%c4x*(u2(i,j+4,k)-u2(i,j-3,k)))*delp(i,j,k)
+             syy(i,j,k)=           (coefs%c1y*(u2(i,j,k+1)-u2(i,j,k))+ &
+             &                      coefs%c2y*(u2(i,j,k+2)-u2(i,j,k-1))+ &
+             &                      coefs%c3y*(u2(i,j,k+3)-u2(i,j,k-2))+ &
+             &                      coefs%c4y*(u2(i,j,k+4)-u2(i,j,k-3)))*delp(i,j,k)
+          end do
+       end do
+    end do
+     
+    do k=bounds%nmin3,bounds%nmax3
+       do j=bounds%nmin2,bounds%nmax2
+          ! Gradient of the p-wave potential in the top operator padding 
+          do i=bounds%nmin1-1,bounds%nmin1-3,-1
+             szz(i,j,k)=dzi*(u2(i+1,j,k)-u2(i,j,k))*delp(bounds%nmin1,j,k)
+             sxx(i,j,k)=dxi*(u2(i,j+1,k)-u2(i,j,k))*delp(bounds%nmin1,j,k)
+             syy(i,j,k)=dyi*(u2(i,j,k+1)-u2(i,j,k))*delp(bounds%nmin1,j,k)
+          end do
+          ! Gradient of the p-wave potential in the bottom operator padding
+          do i=bounds%nmax1+1,bounds%nmax1+3
+             szz(i,j,k)=dzi*(u2(i+1,j,k)-u2(i,j,k))*delp(bounds%nmax1,j,k)
+             sxx(i,j,k)=dxi*(u2(i,j+1,k)-u2(i,j,k))*delp(bounds%nmax1,j,k)
+             syy(i,j,k)=dyi*(u2(i,j,k+1)-u2(i,j,k))*delp(bounds%nmax1,j,k)
+          end do
+       end do
+       ! Gradient of the p-wave potential in the left side operator padding 
+       do j=bounds%nmin2-1,bounds%nmin2-3,-1
+          do i=bounds%nmin1,bounds%nmax1
+             szz(i,j,k)=dzi*(u2(i+1,j,k)-u2(i,j,k))*delp(i,bounds%nmin2,k)
+             sxx(i,j,k)=dxi*(u2(i,j+1,k)-u2(i,j,k))*delp(i,bounds%nmin2,k)
+             syy(i,j,k)=dyi*(u2(i,j,k+1)-u2(i,j,k))*delp(i,bounds%nmin2,k)
+          end do
+       end do
+       ! Gradient of the p-wave potential in the right side operator padding 
+       do j=bounds%nmax2+1,bounds%nmax2+3
+          do i=bounds%nmin1,bounds%nmax1
+             szz(i,j,k)=dzi*(u2(i+1,j,k)-u2(i,j,k))*delp(i,bounds%nmax2,k)
+             sxx(i,j,k)=dxi*(u2(i,j+1,k)-u2(i,j,k))*delp(i,bounds%nmax2,k)
+             syy(i,j,k)=dyi*(u2(i,j,k+1)-u2(i,j,k))*delp(i,bounds%nmax2,k)
+          end do
+       end do
+    end do
+    
+    ! Gradient of the p-wave potential in the front side operator padding 
+    do k=bounds%nmin3-1,bounds%nmin3-3,-1
+       do j=bounds%nmin2,bounds%nmax2
+          do i=bounds%nmin1,bounds%nmax1
+             szz(i,j,k)=dzi*(u2(i+1,j,k)-u2(i,j,k))*delp(i,j,bounds%nmin3)
+             sxx(i,j,k)=dxi*(u2(i,j+1,k)-u2(i,j,k))*delp(i,j,bounds%nmin3)
+             syy(i,j,k)=dyi*(u2(i,j,k+1)-u2(i,j,k))*delp(i,j,bounds%nmin3)
+          end do
+       end do
+    end do
+    
+    ! Gradient of the p-wave potential in the back side operator padding 
+    do k=bounds%nmax3+1,bounds%nmax3+3
+       do j=bounds%nmin2,bounds%nmax2
+          do i=bounds%nmin1,bounds%nmax1
+             szz(i,j,k)=dzi*(u2(i+1,j,k)-u2(i,j,k))*delp(i,j,bounds%nmax3)
+             sxx(i,j,k)=dxi*(u2(i,j+1,k)-u2(i,j,k))*delp(i,j,bounds%nmax3)
+             syy(i,j,k)=dyi*(u2(i,j,k+1)-u2(i,j,k))*delp(i,j,bounds%nmax3)
+          end do
+       end do
+    end do
+    
+    do k=bounds%nmin3,bounds%nmax3
+       do j=bounds%nmin2,bounds%nmax2
+          do i=bounds%nmin1,bounds%nmax1
+             tmpzz=         coefs%c1z*(szz(i  ,j,k)-szz(i-1,j,k))+ &
+             &              coefs%c2z*(szz(i+1,j,k)-szz(i-2,j,k))+ &
+             &              coefs%c3z*(szz(i+2,j,k)-szz(i-3,j,k))+ &
+             &              coefs%c4z*(szz(i+3,j,k)-szz(i-4,j,k))
+             tmpxx=         coefs%c1x*(sxx(i  ,j,k)-sxx(i,j-1,k))+ &
+             &              coefs%c2x*(sxx(i,j+1,k)-sxx(i,j-2,k))+ &
+             &              coefs%c3x*(sxx(i,j+2,k)-sxx(i,j-3,k))+ &
+             &              coefs%c4x*(sxx(i,j+3,k)-sxx(i,j-4,k))
+             tmpyy=         coefs%c1y*(syy(i,j,k  )-syy(i,j,k-1))+ &
+             &              coefs%c2y*(syy(i,j,k+1)-syy(i,j,k-2))+ &
+             &              coefs%c3y*(syy(i,j,k+2)-syy(i,j,k-3))+ &
+             &              coefs%c4y*(syy(i,j,k+3)-syy(i,j,k-4))
+             u3(i,j,k)=mod%vel(i,j,k)**2* &
+             &              mod%rho(i,j,k)*(tmpxx+tmpyy+tmpzz)
+          end do
+       end do
+    end do
+    deallocate(sxx,syy,szz,delp)
+
+  end subroutine FD_3D_derivatives_acoustic_forward_grid_noomp
+  
   subroutine FD_2D_derivatives_acoustic_forward(genpar,bounds,u,mod)
     type(GeneralParam)   ::                     genpar
     type(ModelSpace)     ::                                     mod

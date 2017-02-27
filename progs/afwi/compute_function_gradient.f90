@@ -138,7 +138,7 @@ contains
           end if
        end if
        
-       grad=grad-gtmp*sparseparam%eps
+       grad(1:mod%nx*mod%ny*mod%nz)=grad(1:mod%nx*mod%ny*mod%nz)-gtmp*sparseparam%eps
 
 !       call srite('grad_reg',gtmp,4*size(gtmp))
 !       call to_history('n1',mod%nz,'grad_reg')
@@ -170,7 +170,7 @@ contains
           end if
        end if
 
-       grad=grad-gtmp*sparseparam%eps_log
+       grad(1:mod%nx*mod%ny*mod%nz)=grad(1:mod%nx*mod%ny*mod%nz)-gtmp*sparseparam%eps_log
 !       call srite('grad_reg_log',gtmp,4*size(gtmp))
 !       call to_history('n1',mod%nz,'grad_reg_log')
 !       call to_history('n2',mod%nx,'grad_reg_log')
@@ -180,7 +180,7 @@ contains
        sparseparam%eps_log=0.
     end if
 
-    grad=grad*invparam%vpmask
+    call mult_grad_mask(grad,invparam%modmask)
     f=f+ftmp*sparseparam%eps+ftmp1*sparseparam%eps_log
     
     deallocate(gtmp)
@@ -200,11 +200,12 @@ contains
     type(ModelSpace_elevation), dimension(:), allocatable :: elevgath
     type(WaveSpace), target                      :: wfld_fwd
 
-    real, dimension(:,:,:,:), allocatable :: illuthread,gradthread
+    real, dimension(:,:,:,:,:), allocatable :: gradthread
+    real, dimension(:,:,:,:),   allocatable :: illuthread
     double precision, dimension(:),       allocatable :: fthread
 
     real    :: d1
-    integer :: i,j,k,l,n1,begi,endi
+    integer :: i,j,k,l,m,n1,begi,endi
     integer :: ntsnap,ntotaltraces
     double precision :: memory_needed,gist,scaling
 
@@ -229,12 +230,15 @@ contains
     call omp_set_num_threads(genpar%nthreads)
 
     ! image and illumination for each thread
-    allocate(gradthread(mod%nz,mod%nx,mod%ny,genpar%nthreads)); gradthread=0
-    allocate(illuthread(mod%nz,mod%nx,mod%ny,genpar%nthreads)); illuthread=0
+    allocate(gradthread(mod%nz,mod%nx,mod%ny,invparam%nparam,genpar%nthreads)); gradthread=0
+    allocate(illuthread(mod%nz,mod%nx,mod%ny,genpar%nthreads));                 illuthread=0
     allocate(fthread(genpar%nthreads));fthread=0.
     
     f=0.
     grad=0.
+
+    ! Convert impedances back to density for propagator
+    if ((invparam%nparam.eq.2).and.(invparam%vprho_param.eq.1)) mod%rho=mod%imp/mod%vel
 
     !$OMP PARALLEL DO PRIVATE(i,k,j,dmodgath,begi,endi,wfld_fwd)
     do i=1,size(shotgath)
@@ -262,13 +266,13 @@ contains
        call Compute_OF_RES_ADJ(begi,invparam,shotgath(i)%gathtrace,dmodgath,mutepar%maskgath(i)%gathtrace,resigath,fthread(omp_get_thread_num ()+1))
 
        ! Backward: imaging
-       call AGRAD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,wfld_fwd)
+       call AGRAD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,wfld_fwd,invparam%nparam)
 
-       ! Copy to final image space 
-       call mod_copy_image(modgath(i),gradthread(:,:,:,omp_get_thread_num()+1),illuthread(:,:,:,omp_get_thread_num()+1))
+       ! Copy to final image space and convert gradient to match parameterization
+       call mod_copy_image_nparam(modgath(i),gradthread(:,:,:,:,omp_get_thread_num()+1),illuthread(:,:,:,omp_get_thread_num()+1),invparam%vprho_param)
 
        ! Deallocate arrays
-       deallocate(modgath(i)%imagesmall)
+       deallocate(modgath(i)%imagesmall_nparam)
        deallocate(modgath(i)%illumsmall)
        call deallocateModelSpace_elev(elevgath(i))       
        do k=1,shotgath(i)%ntraces
@@ -276,38 +280,37 @@ contains
        end do
        deallocate(modgath(i)%vel)
        deallocate(dmodgath)
+       if (allocated(modgath(i)%rho)) deallocate(modgath(i)%rho)
+       if (allocated(modgath(i)%rho2)) deallocate(modgath(i)%rho2)
 
     end do
     !$OMP END PARALLEL DO
-
-!    do j=1,size(mutepar%maskgath)
-!       do i=1,mutepar%maskgath(j)%ntraces
-!          call srite('mute',mutepar%maskgath(j)%gathtrace(i)%trace,4*n1)
-!       end do
-!    end do
-!        
-!
-!    call to_history('n1',n1,'mute')
-!    call to_history('n2',ntotaltraces,'mute')
-!    call to_history('d1',d1,'mute')
-!    call to_history('d2',1.,'mute')
-!    call to_history('o1',0.,'mute')
-!    call to_history('o2',0.,'mute')
-
+    
     allocate(illu(mod%nz*mod%nx*mod%ny)); illu=0.
     ! Add all images for each thread to final image
     do i=1,genpar%nthreads
        f   =f   +fthread(i)
 
-       !$OMP PARALLEL DO PRIVATE(k,j,l)
-       do k=1,mod%ny
-          do j=1,mod%nx
-             do l=1,mod%nz
-                grad(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx)=grad(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx)+gradthread(l,j,k,i)               
-                illu(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx)=illu(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx)+illuthread(l,j,k,i)
+       !$OMP PARALLEL DO PRIVATE(m,k,j,l)
+       do m=1,invparam%nparam
+          do k=1,mod%ny
+             do j=1,mod%nx
+                do l=1,mod%nz
+                   grad(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx+(m-1)*mod%nz*mod%nx*mod%ny)=grad(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx+(m-1)*mod%nz*mod%nx*mod%ny)+invparam%sigma(m)*gradthread(l,j,k,m,i)            
+                end do
              end do
           end do
        end do
+       !$OMP END PARALLEL DO 
+
+       !$OMP PARALLEL DO PRIVATE(k,j,l)
+          do k=1,mod%ny
+             do j=1,mod%nx
+                do l=1,mod%nz
+                   illu(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx)=illu(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx)+illuthread(l,j,k,i)
+                end do
+             end do
+          end do
        !$OMP END PARALLEL DO 
 
     end do
@@ -320,10 +323,13 @@ contains
     grad=2*grad/sngl(scaling)
     illu=(illu+maxval(illu)/10000)/sqrt(sum(dprod(illu,illu))/size(illu))
 
-    grad=grad/illu
-    grad=grad*invparam%vpmask
-    call triangle2(smoothpar,grad)
-    grad=grad*invparam%vpmask
+    grad(1:mod%nz*mod%nx*mod%ny)=grad(1:mod%nz*mod%nx*mod%ny)/illu
+    grad(1+mod%nz*mod%nx*mod%ny:)=grad(1+mod%nz*mod%nx*mod%ny:)/illu
+
+    call mult_grad_mask(grad,invparam%modmask)
+    call triangle2(smoothpar,grad(1:mod%nz*mod%nx*mod%ny))
+    call triangle2(smoothpar,grad(1+mod%nz*mod%nx*mod%ny:))
+    call mult_grad_mask(grad,invparam%modmask)
 
     deallocate(gradthread,illu,illuthread,fthread)
     deallocate(elevgath)
@@ -331,6 +337,25 @@ contains
     stat=0
 
   end function compute_fct_gdt
+
+  subroutine mult_grad_mask(grad,mask)
+    real, dimension(:) ::   grad
+    real, dimension(:,:) ::      mask
+
+    integer::l,k,j,i
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k,l)
+    do l=1,invparam%nparam
+       do k=1,mod%ny
+          do j=1,mod%nx
+             do i=1,mod%nz
+                grad(i+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx+(l-1)*mod%nz*mod%nx*mod%ny)=grad(i+(j-1)*mod%nz+(k-1)* &
+               &             mod%nz*mod%nx+(l-1)*mod%nz*mod%nx*mod%ny)*mask(i+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx+(l-1),l)
+             end do
+          end do
+       end do
+    end do
+  end subroutine mult_grad_mask
 
   function compute_mig() result(stat)
     
@@ -392,7 +417,7 @@ contains
        ! Forward: modeling
        call AMOD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,sourcegath,wfld_fwd,i) 
        ! Backward: imaging
-       call AGRAD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),shotgath(i)%gathtrace,wfld_fwd)
+       call AGRAD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),shotgath(i)%gathtrace,wfld_fwd,invparam%nparam)
       ! Copy to final image space
        call mod_copy_image(modgath(i),imagthread(:,:,:,omp_get_thread_num()+1),illuthread(:,:,:,omp_get_thread_num()+1))
 

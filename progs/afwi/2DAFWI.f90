@@ -38,6 +38,7 @@ program TWODAFWI
   type(MuteParam)                              :: mutepar
 
   real, dimension(:),              allocatable :: grad
+  real, dimension(:),              pointer     :: x
   integer :: i,j,ntotaltraces,stat
   double precision    :: f
   call sep_init()
@@ -72,6 +73,11 @@ program TWODAFWI
      call BandpassSouTraces(bpparam,shotgath,sourcegath)
      call Init_SmoothingParam(smoothpar,mod,bpparam)
      call read_inv_params(invparam)
+
+     allocate(x(mod%nz*mod%nx*mod%ny*invparam%nparam))
+     if ((invparam%nparam.eq.2).and.(invparam%vprho_param.eq.0)) call x_to_vel_rho(size(mod%vel),mod%vel,mod%rho,x)
+     if ((invparam%nparam.eq.2).and.(invparam%vprho_param.eq.1)) call x_to_vel_rho(size(mod%vel),mod%vel,mod%imp,x)
+
      if (invparam%wantreg.or.invparam%wantlog) call Init_SparseRegularization(sparseparam,mod)
      invparam%ntotaltraces=ntotaltraces
      invparam%n1=genpar%nt
@@ -82,20 +88,21 @@ program TWODAFWI
      call compute_fct_gdt_dmute_smooth_inv_init(mutepar,smoothpar,invparam)
      if (invparam%wantreg.or.invparam%wantlog) then
         call compute_fct_gdt_sparsepar_init(sparseparam)
-        call l_bfgs(invparam,compute_fct_gdt_reg,mod%vel)
+        call l_bfgs(invparam,compute_fct_gdt_reg,x)
      else
-        call l_bfgs(invparam,compute_fct_gdt,mod%vel)
+        call l_bfgs(invparam,compute_fct_gdt,x)
      end if
 
      ! Freeze velocity model again, and make sure we don't update where we freeze
-     call Freeze(invparam%vpmin,invparam%vpmax,invparam%vpmask,invparam%freeze_soft,mod%vel,mod%nx*mod%ny*mod%nz,invparam%vpinit)
-     call ApplyMask(mod%nx*mod%ny*mod%nz,invparam%vpmask,mod%vel,invparam%vpinit)
+     call Freeze(invparam%parmin,invparam%parmax,invparam%nparam,invparam%modmask,invparam%freeze_soft,mod%vel,mod%nx*mod%ny*mod%nz,invparam%modinit)
+     call ApplyMask(mod%nx*mod%ny*mod%nz*invparam%nparam,invparam%modmask,x,invparam%modinit)
 
      call MuteParam_deallocate(mutepar)
      if (invparam%wantreg.or.invparam%wantlog) call SparseRegularization_filter_close(sparseparam)
-     call srite('inv',mod%vel,4*mod%nz*mod%nx*mod%ny)
+     call srite('inv',x,4*mod%nz*mod%nx*mod%ny*invparam%nparam)
      call create_header(mod,invparam,genpar,ntotaltraces)
-     deallocate(invparam%vpmask,invparam%vpinit)
+     deallocate(invparam%modmask,invparam%modinit)
+     deallocate(invparam%parmin,invparam%parmax)
   else if ((genpar%task.eq.'MOD').or.(genpar%task.eq.'mod')) then
      stat=compute_mod()
   else if ((genpar%task.eq.'MIG').or.(genpar%task.eq.'mig')) then
@@ -114,6 +121,9 @@ program TWODAFWI
   end do
   call deallocateTraceSpace(source(1))
   deallocate(mod%vel)
+  if (allocated(mod%rho)) deallocate(mod%rho)
+  if (allocated(mod%imp)) deallocate(mod%imp)
+  if (associated(x)) nullify(x)
 
 end program TWODAFWI
 
@@ -132,26 +142,28 @@ subroutine create_header(mod,invparam,genpar,ntotaltraces)
         call to_history('n1',mod%nz,'gradient')
         call to_history('n2',mod%nx,'gradient')
         call to_history('n3',mod%ny,'gradient')
+        call to_history('n4',invparam%nparam,'gradient')
         call to_history('d1',mod%dz,'gradient')
         call to_history('d2',mod%dx,'gradient')
         call to_history('d3',mod%dy,'gradient')
         call to_history('o1',mod%oz,'gradient')
         call to_history('o2',mod%ox,'gradient')
         call to_history('o3',mod%oy,'gradient')
-        call to_history('n4',invparam%iter,'gradient')
+        call to_history('n5',invparam%iter,'gradient')
      end if
      
      if (exist_file('model')) then
         call to_history('n1',mod%nz,'model')
         call to_history('n2',mod%nx,'model')
         call to_history('n3',mod%ny,'model')
+        call to_history('n4',invparam%nparam,'model')
         call to_history('d1',mod%dz,'model')
         call to_history('d2',mod%dx,'model')
         call to_history('d3',mod%dy,'model')
         call to_history('o1',mod%oz,'model')
         call to_history('o2',mod%ox,'model')
         call to_history('o3',mod%oy,'model')
-        call to_history('n4',invparam%iter,'model')
+        call to_history('n5',invparam%iter,'model')
      end if
 
      if (exist_file('function')) then
@@ -161,6 +173,7 @@ subroutine create_header(mod,invparam,genpar,ntotaltraces)
      call to_history('n1',mod%nz,'inv')
      call to_history('n2',mod%nx,'inv')
      call to_history('n3',mod%ny,'inv')
+     call to_history('n3',invparam%nparam,'inv')
      call to_history('d1',mod%dz,'inv')
      call to_history('d2',mod%dx,'inv')
      call to_history('d3',mod%dy,'inv')
@@ -198,23 +211,42 @@ subroutine ApplyMask(nd,mask,vel,velinit)
 
 end subroutine ApplyMask
 
-subroutine Freeze(xmin,xmax,mask,type,x,n,xinit)
-  real ::         xmin,xmax
-  integer ::                            n
+subroutine Freeze(xmin,xmax,nparam,mask,type,x,n,xinit)
+  integer :: nparam
+  real ::         xmin(nparam),xmax(nparam)
+  integer ::                            n,m,j,i
   logical ::                     type
   real, dimension(n) ::     mask,     x
   double precision, dimension(n) ::       xinit
 
-  IF (type) THEN
-     x=max(xmin,x)
-     x=min(xmax,x)
-  ELSE     
-     where((mask.ne.0.).and.(mask.ne.2.))
-        x=max(xmin,x)
-        x=min(xmax,x)
-     end where       
-     where(mask.eq.0.) x=sngl(xinit)
-     where(mask.eq.2.) x=sngl(xinit)
-  ENDIF
+  m=n/nparam
+
+  do j=1,nparam
+     IF (type) THEN
+        do i=1+(J-1)*M,M+(J-1)*M
+           x(i)=max(xmin(j),x(i))
+           x(i)=min(xmax(j),x(i))
+        end do
+     ELSE     
+        do i=1+(J-1)*M,M+(J-1)*M
+           if ((mask(i).ne.0.).and.(mask(i).ne.2.)) then
+              x(i)=max(xmin(j),x(i))
+              x(i)=min(xmax(j),x(i))
+           end if
+        end do
+        do i=1+(J-1)*M,M+(J-1)*M
+           if(mask(i).eq.0.) x(i)=sngl(xinit(i))
+           if(mask(i).eq.2.) x(i)=sngl(xinit(i))
+        end do
+     ENDIF
+  end do
 
 end subroutine Freeze
+
+subroutine x_to_vel_rho(n,mod1,mod2,x)
+  real, dimension(n), target :: mod1,mod2
+  real, dimension(:), pointer:: x
+
+  x(1:n)=>mod1
+  x(n+1:)=>mod2
+end subroutine x_to_vel_rho

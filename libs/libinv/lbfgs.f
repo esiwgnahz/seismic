@@ -1,40 +1,47 @@
-      SUBROUTINE FREEZE_X(XMIN,XMAX,MASK,TYPE,X,N,XINIT)
+      SUBROUTINE FREEZE_X(XMIN,XMAX,NPARAM,MASK,TYPE,X,N,XINIT)
       
-      DOUBLE PRECISION XMIN,XMAX
       LOGICAL TYPE
-      INTEGER N
+      INTEGER N,NPARAM,M
+      DOUBLE PRECISION XMIN(NPARAM),XMAX(NPARAM)
       DOUBLE PRECISION X(N),XINIT(N)
       REAL MASK(N)
-      INTEGER I
+      INTEGER I,J
+
+c     size of each model      
+      M=N/NPARAM
       
-      IF (TYPE) THEN
-         
-         DO 30 I=1,N
-            X(I)=max(XMIN,X(I))
-            X(I)=min(XMAX,X(I))
- 30      CONTINUE
-         
-      ELSE
-         
-         DO 10 I=1,N
+      DO 40 J=1,NPARAM
+
+         IF (TYPE) THEN
             
-            IF ((MASK(I).ne.0).and.(MASK(I).ne.2)) THEN
+            DO 30 I=1+(J-1)*M,M+(J-1)*M
+               X(I)=max(XMIN(J),X(I))
+               X(I)=min(XMAX(J),X(I))
+ 30         CONTINUE
+            
+         ELSE
+            
+            DO 10 I=1+(J-1)*M,M+(J-1)*M
                
-               X(I)=max(XMIN,X(I))
-               X(I)=min(XMAX,X(I))
+               IF ((MASK(I).ne.0).and.(MASK(I).ne.2)) THEN
+                  
+                  X(I)=max(XMIN(J),X(I))
+                  X(I)=min(XMAX(J),X(I))
+                  
+               ENDIF
                
-            ENDIF
+ 10         CONTINUE
             
- 10      CONTINUE
+            DO 20 I=1+(J-1)*M,M+(J-1)*M
+               
+               IF (MASK(I).eq.0) X(I)=XINIT(I)
+               IF (MASK(I).eq.2) X(I)=XINIT(I)
+               
+ 20         CONTINUE
+            
+         ENDIF
          
-         DO 20 I=1,N
-            
-            IF (MASK(I).eq.0) X(I)=XINIT(I)
-            IF (MASK(I).eq.2) X(I)=XINIT(I)
-            
- 20      CONTINUE
-         
-      ENDIF
+ 40   CONTINUE
       
       RETURN
       END
@@ -47,9 +54,9 @@ C     LBFGS SUBROUTINE
 C     ****************
 C
       SUBROUTINE LBFGS(N,M,X,F,G,DIAGCO,DIAG,IPRINT,EPS,XTOL,W,IFLAG,
-     *                 MYINFO,XMIN,XMAX,MASK,BOUNDT,TYPE,XINIT)
+     *                 MYINFO,XMIN,XMAX,NPARAM,MASK,BOUNDT,TYPE,XINIT)
 C
-      INTEGER N,M,IPRINT(2),IFLAG,MYINFO
+      INTEGER NPARAM,N,M,IPRINT(2),IFLAG,MYINFO
       DOUBLE PRECISION X(N),G(N),DIAG(N),W(N*(2*M+1)+2*M)
       DOUBLE PRECISION F,EPS,XTOL
       LOGICAL DIAGCO
@@ -434,7 +441,8 @@ C     ----------------------------------------------------
       NFUN= NFUN + NFEV
       MYINFO = INFO
       IF (BOUNDT.EQ.2) THEN
-         IF (INFO .EQ. 1) CALL FREEZE_X(XMIN,XMAX,MASK,TYPE,X,N,XINIT)
+         IF (INFO .EQ. 1) CALL FREEZE_X(XMIN,XMAX,NPARAM,MASK,TYPE,
+     *                                  X,N,XINIT)
       ENDIF
 
 c
@@ -819,7 +827,8 @@ c         write(LP,*) 'MAXVAL BEFORE X',maxval(X)
          DO 40 J = 1, N
             X(J) = WA(J) + STP*S(J)
    40       CONTINUE
-         IF (BOUNDT.EQ.1) CALL FREEZE_X(XMIN,XMAX,MASK,TYPE,X,N,XINIT)
+         IF (BOUNDT.EQ.1) CALL FREEZE_X(XMIN,XMAX,NPARAM,
+     *                                  MASK,TYPE,X,N,XINIT)
 c         write(LP,*) 'MINVAL AFTER X',minval(X),'WA',minval(WA)
 c         write(LP,*) 'MAXVAL AFTER X',maxval(X)
          INFO=-1

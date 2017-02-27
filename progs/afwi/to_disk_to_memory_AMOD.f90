@@ -49,25 +49,49 @@ contains
 
     if (genpar%verbose) write(0,*) 'INFO: Starting forward modeling'
     if (genpar%twoD) then
-       call propagator_acoustic(                          &
-       & FD_acoustic_init_coefs,                          &
-       & FD_2nd_2D_derivatives_scalar_forward_grid_noomp, &
-       & Injection_sinc_noomp,                            &
-       & FD_2nd_time_derivative_grid_noomp,               &
-       & FDswaptime_pointer,                              &
-       & bounds,model,elev,genpar,                        &
-       & sou=source,wfld=wfld_fwd,datavec=datavec,     &
-       & ExtractData=Extraction_array_simple_afwi_noomp,ExtractWave=Extraction_wavefield)
+       if (genpar%withRho) then
+          call propagator_acoustic(                          &
+          & FD_acoustic_rho_init_coefs,                      &
+          & FD_2D_derivatives_acoustic_forward_grid,         &
+          & Injection_sinc_noomp,                            &
+          & FD_2nd_time_derivative_grid_noomp,               &
+          & FDswaptime_pointer,                              &
+          & bounds,model,elev,genpar,                        &
+          & sou=source,wfld=wfld_fwd,datavec=datavec,     &
+          & ExtractData=Extraction_array_simple_afwi_noomp,ExtractWave=Extraction_wavefield)
+       else
+          call propagator_acoustic(                          &
+          & FD_acoustic_init_coefs,                          &
+          & FD_2nd_2D_derivatives_scalar_forward_grid_noomp, &
+          & Injection_sinc_noomp,                            &
+          & FD_2nd_time_derivative_grid_noomp,               &
+          & FDswaptime_pointer,                              &
+          & bounds,model,elev,genpar,                        &
+          & sou=source,wfld=wfld_fwd,datavec=datavec,     &
+          & ExtractData=Extraction_array_simple_afwi_noomp,ExtractWave=Extraction_wavefield)
+       end if
     else
-       call propagator_acoustic(                          &
-       & FD_acoustic_init_coefs,                          &
-       & FD_2nd_3D_derivatives_scalar_forward_grid_noomp, &
-       & Injection_sinc_noomp,                            &
-       & FD_2nd_time_derivative_grid_noomp,               &
-       & FDswaptime_pointer,                              &
-       & bounds,model,elev,genpar,                        &
-       & sou=source,wfld=wfld_fwd,datavec=datavec,     &
-       & ExtractData=Extraction_array_simple_afwi_noomp,ExtractWave=Extraction_wavefield)
+       if (genpar%withRho) then
+          call propagator_acoustic(                          &
+          & FD_acoustic_init_coefs,                          &
+          & FD_3D_derivatives_acoustic_forward_grid_noomp,   &
+          & Injection_sinc_noomp,                            &
+          & FD_2nd_time_derivative_grid_noomp,               &
+          & FDswaptime_pointer,                              &
+          & bounds,model,elev,genpar,                        &
+          & sou=source,wfld=wfld_fwd,datavec=datavec,     &
+          & ExtractData=Extraction_array_simple_afwi_noomp,ExtractWave=Extraction_wavefield)
+       else
+          call propagator_acoustic(                          &
+          & FD_acoustic_init_coefs,                          &
+          & FD_2nd_3D_derivatives_scalar_forward_grid_noomp, &
+          & Injection_sinc_noomp,                            &
+          & FD_2nd_time_derivative_grid_noomp,               &
+          & FDswaptime_pointer,                              &
+          & bounds,model,elev,genpar,                        &
+          & sou=source,wfld=wfld_fwd,datavec=datavec,     &
+          & ExtractData=Extraction_array_simple_afwi_noomp,ExtractWave=Extraction_wavefield)
+       end if
     end if
     if (genpar%verbose) write(0,*) 'INFO: Done with forward modeling'
 !

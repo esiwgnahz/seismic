@@ -514,6 +514,15 @@ contains
 
     call model_pad(tmpsmall,modgath%vel,boundsgath,mod%nz,modgath%nxw,modgath%nyw,genpar)
 
+    if(genpar%withRho) then
+       allocate(modgath%rho(boundsgath%nmin1-4:boundsgath%nmax1+4, boundsgath%nmin2-4:boundsgath%nmax2+4, boundsgath%nmin3-genpar%nbound:boundsgath%nmax3+genpar%nbound))
+       allocate(modgath%rho2(boundsgath%nmin1-4:boundsgath%nmax1+4, boundsgath%nmin2-4:boundsgath%nmax2+4, boundsgath%nmin3-genpar%nbound:boundsgath%nmax3+genpar%nbound)) 
+       tmpsmall=0.
+       call mod_window_pad(.true.,mod%rho,tmpsmall,modgath)
+       call model_pad(tmpsmall,modgath%rho,boundsgath,mod%nz,modgath%nxw,modgath%nyw,genpar)
+       call Interpolate(modgath,boundsgath,genpar)
+    end if
+
     deallocate(tmpsmall)
 
 
@@ -636,5 +645,52 @@ contains
     deallocate(tmpim,tmpil) 
 
   end subroutine mod_copy_image
+
+  subroutine mod_copy_image_nparam(mod,image,illum,vprho_param)
+    type(ModelSpace) ::            mod
+    real, dimension(:,:,:,:) ::        image
+    real, dimension(:,:,:) ::                illum
+    real, dimension(:,:,:,:), allocatable :: tmpim
+    real, dimension(:,:,:),   allocatable :: tmpil
+
+    integer :: i,j,k,ix,iy,ix1,iy1,nparam,         vprho_param
+    real    :: coord_x, coord_y
+
+    nparam=size(mod%imagesmall_nparam(1,1,1,:))
+    allocate(tmpim(mod%nz,mod%nx,mod%ny,nparam))
+    allocate(tmpil(mod%nz,mod%nx,mod%ny))
+    tmpim=0.
+    tmpil=0.
+
+    do j=1,mod%nyw
+       coord_y=(j-1)*mod%dy+mod%oyw
+       iy=nint((coord_y-mod%oy)/mod%dy)+1
+       if ((iy.lt.1).or.(iy.gt.mod%ny)) cycle
+
+       do i=1,mod%nxw
+          coord_x=(i-1)*mod%dx+mod%oxw
+          ix=nint((coord_x-mod%ox)/mod%dx)+1
+          if ((ix.lt.1).or.(ix.gt.mod%nx)) cycle
+          
+          tmpil(1:mod%nz,ix,iy)=tmpil(1:mod%nz,ix,iy)+mod%illumsmall(1:mod%nz,i,j)
+          do k=1,nparam
+             tmpim(1:mod%nz,ix,iy,k)=tmpim(1:mod%nz,ix,iy,k)+mod%imagesmall_nparam(1:mod%nz,i,j,k)
+          end do
+             
+       end do
+    end do
+
+    if (vprho_param.eq.0) then
+       image=image+tmpim
+    else
+       ! Convert grad(vp,rho) into grad(vp,imp)
+       image(:,:,:,1)=image(:,:,:,1)+tmpim(:,:,:,1)
+       if (nparam.eq.2) image(:,:,:,2)=image(:,:,:,2)+tmpim(:,:,:,1)/mod%rho+tmpim(:,:,:,2)/mod%vel
+    end if   
+    illum=illum+tmpil
+
+    deallocate(tmpim,tmpil) 
+
+  end subroutine mod_copy_image_nparam
 
 end module ExtractPadModel_mod

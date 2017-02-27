@@ -14,17 +14,19 @@ module Inversion_types
                           !                         (2) each iteration
      logical:: freeze_soft! (0) velocity is preserved in mask area
                           ! (1) velocity is not strictly'0, enforced in masking area
-     real   :: vpmin
-     real   :: vpmax
-     real   :: par2min
-     real   :: par2max
-     real   :: sigma      ! Coefficients for gradient of second model vector
+
+     real, allocatable   :: parmin(:)
+     real, allocatable   :: parmax(:)
+
+     real, allocatable   :: sigma(:) ! Coefficients for gradient of second model vector
      
      logical:: invert_rho ! (0) Update rho
                           ! (1) Doesn't update rho
 
      integer:: vprho_param! (0) Vp/rho parameterization 
                           ! (1) Vp/Ip  parameterization 
+
+     integer:: nparam     ! Number of parameters to invert
 
      logical:: wantreg    ! regularization parameter
      logical:: wantlog    ! regularization parameter, logistic
@@ -33,11 +35,8 @@ module Inversion_types
      integer          :: dat_nrm_type 
      real             :: dat_thresh
      
-     double precision, allocatable:: vpinit(:)
-     real,             allocatable:: vpmask(:)
-
-     double precision, allocatable:: par2init(:)
-     real,             allocatable:: par2mask(:)
+     double precision, allocatable:: modinit(:,:)
+     real,             allocatable:: modmask(:,:)
 
      integer :: n1
      integer :: ntotaltraces
@@ -54,8 +53,6 @@ contains
     invparam%eval=0
     call from_param('niter',invparam%niter,10)
     call from_param('neval',invparam%neval,3*invparam%niter)
-    call from_param('vpmin',invparam%vpmin,1500.)
-    call from_param('vpmax',invparam%vpmax,4500.)
     
     call from_param('freeze_soft',invparam%freeze_soft,.true.)
     call from_param('bound',invparam%const_type,2)
@@ -71,14 +68,27 @@ contains
     if(invparam%dat_nrm_type_char(1:5).eq.'L2nor') invparam%dat_nrm_type=2
 
     call from_param('withRho',withRho,.false.)
+    invparam%nparam=1
+
     if (withRho) then
        call from_param('invert_rho',invparam%invert_rho,.false.)
        if (invparam%invert_rho) then
-          call from_param('rhomin',invparam%par2min,1000.)
-          call from_param('rhomax',invparam%par2max,3000.)
+          invparam%nparam=2
           call from_param('vprho_param',invparam%vprho_param,0)
-          call from_param('sigma',invparam%sigma,1.)
        end if
+    end if
+    allocate(invparam%parmin(invparam%nparam))
+    allocate(invparam%parmax(invparam%nparam))
+    allocate(invparam%sigma(invparam%nparam))
+    invparam%sigma=1.
+    call from_param('sigma1',invparam%sigma(1),1.)
+
+    call from_param('vpmin',invparam%parmin(1),1500.)
+    call from_param('vpmax',invparam%parmax(1),4500.)
+    if (invparam%nparam.eq.2) then
+    call from_param('sigma2',invparam%sigma(2),1.)
+       call from_param('par2min',invparam%parmin(2),1000.)
+       call from_param('par2max',invparam%parmax(2),3000.)
     end if
 
     write(0,*) 'INFO: ----------------------------'
@@ -91,16 +101,16 @@ contains
     end if
     write(0,*) 'INFO:   niter      = ',invparam%niter
     write(0,*) 'INFO:   neval      = ',invparam%neval
-    write(0,*) 'INFO:   vpmin      = ',invparam%vpmin
-    write(0,*) 'INFO:   vpmax      = ',invparam%vpmax
+    write(0,*) 'INFO:   vpmin      = ',invparam%parmin(1)
+    write(0,*) 'INFO:   vpmax      = ',invparam%parmax(2)
     if (withRho) then
        write(0,*) 'INFO:'
        write(0,*) 'INFO:  Inversion with density '
        write(0,*) 'INFO:'
        if (invparam%invert_rho) then
-          write(0,*) 'INFO:   par2min    = ',invparam%par2min
-          write(0,*) 'INFO:   par2max    = ',invparam%par2max
-          write(0,*) 'INFO:   sigma      = ',invparam%sigma
+          write(0,*) 'INFO:   par2min    = ',invparam%parmin(1)
+          write(0,*) 'INFO:   par2max    = ',invparam%parmax(2)
+          write(0,*) 'INFO:   sigma(1,2) = ',invparam%sigma
           if (invparam%vprho_param.eq.0) then
              write(0,*) 'INFO: Inversion with Vp/Rho parameterization'
           else if (invparam%vprho_param.eq.1) then
@@ -142,13 +152,13 @@ contains
     type(InversionParam) ::           invparam
     integer::i,j,k,n1,n2,n3
 
-    allocate(invparam%vpinit(mod%nz*mod%nx*mod%ny))
-    allocate(invparam%vpmask(mod%nz*mod%nx*mod%ny))
+    allocate(invparam%modinit(mod%nz*mod%nx*mod%ny,invparam%nparam))
+    allocate(invparam%modmask(mod%nz*mod%nx*mod%ny,invparam%nparam))
 
     do k=1,mod%ny
        do j=1,mod%nx
           do i=1,mod%nz
-             invparam%vpinit(i+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx)=mod%vel(i,j,k)
+             invparam%modinit(i+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx,1)=mod%vel(i,j,k)
           end do
        end do
     end do
@@ -158,9 +168,43 @@ contains
        call from_aux('vpmask','n2',n2)
        if (n1.ne.mod%nz) call erexit('Error: n1 and nz mask/vel different, exit now')
        if (n2.ne.mod%nx) call erexit('Error: n2 and nx mask/vel different, exit now')
-       call sreed('vpmask',invparam%vpmask,4*mod%nz*mod%nx*mod%ny)
+       call sreed('vpmask',invparam%modmask(:,1),4*mod%nz*mod%nx*mod%ny)
     else
-       invparam%vpmask=1.
+       invparam%modmask=1.
+    end if
+
+    if (invparam%nparam.eq.2) then  
+       if (invparam%vprho_param.eq.0) then
+          ! Density parameterization
+          do k=1,mod%ny
+             do j=1,mod%nx
+                do i=1,mod%nz
+                   invparam%modinit(i+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx,2)=mod%rho(i,j,k)
+                end do
+             end do
+          end do
+       else
+          allocate(mod%imp(mod%nz,mod%nx,mod%ny))
+          ! Impedance Ip=Vp*Rho parameterization
+          do k=1,mod%ny
+             do j=1,mod%nx
+                do i=1,mod%nz
+                   invparam%modinit(i+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx,2)=mod%vel(i,j,k)*mod%rho(i,j,k)
+                end do
+             end do
+          end do
+          mod%imp=mod%vel*mod%rho
+       end if
+
+       if (exist_file('par2mask')) then
+          call from_aux('par2mask','n1',n1)
+          call from_aux('par2mask','n2',n2)
+          if (n1.ne.mod%nz) call erexit('Error: n1 and nz par2mask/vel different, exit now')
+          if (n2.ne.mod%nx) call erexit('Error: n2 and nx par2mask/vel different, exit now')
+          call sreed('par2mask',invparam%modmask(:,2),4*mod%nz*mod%nx*mod%ny)
+       else
+          invparam%modmask=1.
+       end if      
     end if
 
   end subroutine Init_Inversion_Array

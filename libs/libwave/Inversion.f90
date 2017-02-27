@@ -33,9 +33,9 @@ contains
        end function fctgdt
     end interface
 
-    type(InversionParam)                   :: invparam
-    real, dimension(size(invparam%vpinit)) :: x 
-    integer                                :: count
+    type(InversionParam)                                         :: invparam
+    real, dimension(size(invparam%modinit(:,1))*invparam%nparam) :: x 
+    integer                                                      :: count
 
     real, dimension(:),     allocatable :: g
 
@@ -59,7 +59,8 @@ contains
     integer              :: i,iter,info
     integer              :: stat2,iflag,myinfo
 
-    DOUBLE PRECISION GTOL,STPMIN,STPMAX,XMIN,XMAX
+    DOUBLE PRECISION GTOL,STPMIN,STPMAX
+    DOUBLE PRECISION, dimension(invparam%nparam) :: XMIN,XMAX
     INTEGER MP,LP,NDIM,NWORK,MSAVE
 
     external :: LB2
@@ -82,8 +83,8 @@ contains
     allocate(xd(NDIM))
     allocate(xsave(NDIM))
     allocate(xdsave(NDIM))
-    XMIN=dble(invparam%vpmin)
-    XMAX=dble(invparam%vpmax)
+    XMIN=dble(invparam%parmin)
+    XMAX=dble(invparam%parmax)
 
     allocate(resigath(invparam%ntotaltraces))
     do i=1,invparam%ntotaltraces
@@ -126,13 +127,13 @@ contains
 
        call LBFGS(NDIM,MSAVE,xd,fd,-gd,&
        &          .False.,diagd,iprint,EPS,&
-       &          XTOL,wd,iflag,myinfo,XMIN,XMAX,invparam%vpmask,invparam%const_type,invparam%freeze_soft,invparam%vpinit)
+       &          XTOL,wd,iflag,myinfo,XMIN,XMAX,invparam%nparam,invparam%modmask,invparam%const_type,invparam%freeze_soft,invparam%modinit)
 
        x=sngl(xd)
        info=myinfo
 
        if (myinfo.eq.1) then
-          if (invparam%const_type.eq.2) call FREEZE_X(XMIN,XMAX,invparam%vpmask,invparam%freeze_soft,XDSAVE,NDIM,invparam%vpinit)
+          if (invparam%const_type.eq.2) call FREEZE_X(XMIN,XMAX,invparam%nparam,invparam%modmask,invparam%freeze_soft,XDSAVE,NDIM,invparam%modinit)
           xsave=xdsave
           myinfo=0
           invparam%iter=invparam%iter+1
