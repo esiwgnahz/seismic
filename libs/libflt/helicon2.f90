@@ -35,6 +35,8 @@ contains
     else
        yy =        yy + xx
     end if
+
+    !$OMP PARALLEL DO PRIVATE(ia,iy,ix)
     do ia = 1, size( aa%lag)
        do iy = 1  + aa%lag( ia), size( yy)
           if ( associated( aa%mis)) then
@@ -50,6 +52,8 @@ contains
           end if
        end do
     end do
+    !$OMP END PARALLEL DO
+
   end subroutine helicon2_mod_lop2
   subroutine helicon2_mod_close()
   end subroutine helicon2_mod_close

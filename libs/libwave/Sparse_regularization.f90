@@ -18,7 +18,9 @@ module Sparse_regularization_mod
      logical          :: derivdz
      logical          :: derivdy
      character(len=6) :: mod_nrm_type_char
+     character(len=6) :: hin_nrm_type_char
      integer          :: mod_nrm_type 
+     integer          :: hin_nrm_type 
      type(filter)     :: xx,zz,yy
      integer          :: ntaperz
      integer          :: ntaperx
@@ -30,6 +32,7 @@ module Sparse_regularization_mod
      real             :: ratio
      real             :: ratio_log
      real             :: mod_thresh
+     real             :: hin_thresh
      integer          :: nx,nz,ny
      integer          :: nx_tap,nz_tap,ny_tap
      real, allocatable, dimension(:) :: zweight
@@ -48,6 +51,7 @@ contains
     call from_param('derivdy',sparseparam%derivdy,.false.)
     call from_param('derivdz',sparseparam%derivdz,.false.)
     call from_param('model_nrm_type',sparseparam%mod_nrm_type_char,'Cauchy')
+    call from_param('hinge_nrm_type',sparseparam%hin_nrm_type_char,'L2norm')
     if (sparseparam%compute_eps) then
        call from_param('ratio',sparseparam%ratio,10.)
        call from_param('ratio_logistic',sparseparam%ratio_log,10.)
@@ -57,6 +61,7 @@ contains
     end if
     call from_param('k_logistic',sparseparam%k,1.)
     call from_param('reg_threshold',sparseparam%mod_thresh,0.)
+    call from_param('hin_threshold',sparseparam%hin_thresh,0.)
     call from_param('sparse_taperx',sparseparam%ntaperx,10)
     call from_param('sparse_tapery',sparseparam%ntapery,0)
     call from_param('sparse_taperz',sparseparam%ntaperz,10)
@@ -83,6 +88,11 @@ contains
     if(sparseparam%mod_nrm_type_char(1:5).eq.'L1nor') sparseparam%mod_nrm_type=1
     if(sparseparam%mod_nrm_type_char(1:5).eq.'L2nor') sparseparam%mod_nrm_type=2
 
+    if(sparseparam%hin_nrm_type_char(1:5).eq.'Cauch') sparseparam%hin_nrm_type=3
+    if(sparseparam%hin_nrm_type_char(1:5).eq.'Huber') sparseparam%hin_nrm_type=12
+    if(sparseparam%hin_nrm_type_char(1:5).eq.'L1nor') sparseparam%hin_nrm_type=1
+    if(sparseparam%hin_nrm_type_char(1:5).eq.'L2nor') sparseparam%hin_nrm_type=2
+
     write(0,*) 'INFO:---------------------------'
     write(0,*) 'INFO: Regularization parameters '
     write(0,*) 'INFO:---------------------------'
@@ -90,9 +100,13 @@ contains
     write(0,*) 'INFO:  d/dx       = ',sparseparam%derivdx
     write(0,*) 'INFO:  d/dy       = ',sparseparam%derivdy
     write(0,*) 'INFO:  d/dz       = ',sparseparam%derivdz
-    write(0,*) 'INFO:  nrm_type   = ',sparseparam%mod_nrm_type_char  
+    write(0,*) 'INFO:  Regul nrm_type   = ',sparseparam%mod_nrm_type_char 
+    write(0,*) 'INFO:  Hinge nrm_type   = ',sparseparam%hin_nrm_type_char  
     if ((sparseparam%mod_nrm_type.eq.3).or.(sparseparam%mod_nrm_type.eq.12)) then
       write(0,*) 'INFO:  mod thresh = ',sparseparam%mod_thresh
+    end if  
+    if ((sparseparam%hin_nrm_type.eq.3).or.(sparseparam%hin_nrm_type.eq.12)) then
+      write(0,*) 'INFO:  hin thresh = ',sparseparam%hin_thresh
     end if
     write(0,*) 'INFO:  taperz     = ',sparseparam%ntaperz
     write(0,*) 'INFO:  taperx     = ',sparseparam%ntaperx
@@ -297,7 +311,8 @@ contains
     real, dimension(:), allocatable :: gtmp 
     real, dimension(:), allocatable :: mask   
     real, dimension(:), allocatable :: rmtap   
-    real, dimension(:), allocatable :: rtmptap
+    real, dimension(:), allocatable :: rtmptap  
+    real, dimension(:), allocatable :: zweighttap
 
     integer :: nxt,nyt,nzt
     integer :: nz,ny,nx,stat,nrm_type
@@ -308,10 +323,12 @@ contains
     nxt=sparseparam%nx_tap
     nyt=sparseparam%ny_tap
     nzt=sparseparam%nz_tap
-    nrm_type=sparseparam%mod_nrm_type
+    nrm_type=sparseparam%hin_nrm_type
 
-    allocate(mask(nxt*nyt*nzt),rmtap(nxt*nyt*nzt),rtmptap(nxt*nyt*nzt),gtmp(nx*ny*nz))
-    
+    allocate(zweighttap(nxt*nyt*nzt),mask(nxt*nyt*nzt),rmtap(nxt*nyt*nzt),rtmptap(nxt*nyt*nzt),gtmp(nx*ny*nz))
+    zweighttap=1.
+    if (sparseparam%have_z_weight) call SparseRegularization_add_taper(sparseparam,zweighttap,sparseparam%zweight,forw=.true.)
+
     mask=0.
     gtmp=0.
     
@@ -323,43 +340,31 @@ contains
     rtmptap=rmtap
 
     ! rtmptap=L(Grad(m))
-    !stat=logistic_comp(rtmptap,sparseparam%k) 
-    mask=rmtap
+    where(rmtap.le.0.)
+       mask=1.
+    elsewhere
+       mask=0.
+    end where
 
-    stat=Heaviside_comp(mask)   
     ! rmtap=Grad(m)*L(Grad(m))
-    rmtap=rmtap*mask
+    rmtap=rmtap*mask*zweighttap
     call SparseRegularization_add_taper(sparseparam,rmtap,gtmp,forw=.false.)
-    if (sparseparam%have_z_weight) gtmp=sparseparam%zweight*gtmp
-
-!    call srite('of_log',g,4*size(g))
-!       call to_history('n1',nz,'of_log')
-!       call to_history('n2',nx,'of_log')
-!       call to_history('n3',3,'of_log')
 
     ! Add model fitting side of objective function
     ! --------------------------------------------  
-    f=f+fct_compute(nrm_type,gtmp,nz*nx,sparseparam%mod_thresh)
+    f=f+fct_compute(nrm_type,gtmp,nz*nx,sparseparam%hin_thresh)
 
+    gtmp=0.
     ! Now apply the adjoint to form the gradient of the model fitting
     ! ---------------------------------------------------------------
+    stat=gdt_compute(nrm_type,rmtap,nzt*nxt,sparseparam%hin_thresh)
 
-    ! Compute rm
-    stat=gdt_compute(nrm_type,rmtap,nzt*nxt,sparseparam%mod_thresh)
-
-!    g=0.
-!    call SparseRegularization_add_taper(sparseparam,rmtap,g,forw=.false.)
-!    call srite('of_log',g,4*size(g))
-    ! Compute (L(grad(m))*(1-L(grad(m)))*grad(m)*rm+L(grad(m))*rm)
-!    rmtap=sparseparam%k*rtmptap*(1-rtmptap)*rtmp*rmtap+rtmptap*rmtap
-    rmtap=mask*rmtap
-    gtmp=0.
+    rmtap=mask*rmtap*zweighttap
     stat=op(.true.,.false.,rtmptap,rmtap)
     call SparseRegularization_add_taper(sparseparam,rtmptap,gtmp,forw=.false.)
-    if (sparseparam%have_z_weight) gtmp=sparseparam%zweight*gtmp
-!    call srite('of_log',g,4*size(g))
+
     g=g+gtmp
-    deallocate(rmtap,rtmptap,mask,gtmp)
+    deallocate(rmtap,rtmptap,mask,gtmp,zweighttap)
 
   end subroutine LogisticRegularization_Compute_f_g
   

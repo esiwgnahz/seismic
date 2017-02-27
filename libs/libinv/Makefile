@@ -10,6 +10,9 @@ SOURCES= $(notdir $(wildcard ${SRCDIR}/*.r90 ${SRCDIR}/*.f90 ${SRCDIR}/*.f ${SRC
 lbfgs.o: lbfgs.f
 	${F90C} -O${FCOLEVEL} -Bstatic -c  -o lbfgs.o ./lbfgs.f
 
+lbfgs_smp.o: lbfgs_smp.f
+	${F90C} -O${FCOLEVEL} -Bstatic -c  -o lbfgs_smp.o ./lbfgs_smp.f
+
 blas.o: blas.f
 	${F90C} -O${FCOLEVEL} -Bstatic -c  -o blas.o ./blas.f
 

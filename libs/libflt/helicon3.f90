@@ -9,7 +9,7 @@ module helicon3_mod
   type( filter), private :: aa 
 
   !$OMP THREADPRIVATE(aa)
-
+ 
 contains
   subroutine helicon3_mod_init ( aa_in )
     type( filter)    :: aa_in 
@@ -34,6 +34,8 @@ contains
     else
        yy =        yy + xx
     end if
+
+    !$OMP PARALLEL DO PRIVATE(ia,iy,ix)
     do ia = 1, size( aa%lag)
        do iy = 1  + aa%lag( ia), size( yy)
           if ( associated( aa%mis)) then
@@ -49,6 +51,8 @@ contains
           end if
        end do
     end do
+    !$OMP END PARALLEL DO
+
   end subroutine helicon3_mod_lop2
   subroutine helicon3_mod_close()
   end subroutine helicon3_mod_close
