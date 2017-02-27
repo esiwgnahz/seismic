@@ -43,6 +43,7 @@ program TWODAFWI
   call sep_init()
 
 
+  mod%rhotag='rho'
   mod%veltag='vel'
   mod%waFtag='wave_fwd'
 

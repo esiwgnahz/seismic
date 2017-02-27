@@ -13,9 +13,18 @@ module Inversion_types
      integer:: const_type ! constrained velocity at (1) each Fct/Gdt eval
                           !                         (2) each iteration
      logical:: freeze_soft! (0) velocity is preserved in mask area
-                          ! (1) velocity is not strictly enforced in masking area
+                          ! (1) velocity is not strictly'0, enforced in masking area
      real   :: vpmin
      real   :: vpmax
+     real   :: par2min
+     real   :: par2max
+     real   :: sigma      ! Coefficients for gradient of second model vector
+     
+     logical:: invert_rho ! (0) Update rho
+                          ! (1) Doesn't update rho
+
+     integer:: vprho_param! (0) Vp/rho parameterization 
+                          ! (1) Vp/Ip  parameterization 
 
      logical:: wantreg    ! regularization parameter
      logical:: wantlog    ! regularization parameter, logistic
@@ -27,6 +36,9 @@ module Inversion_types
      double precision, allocatable:: vpinit(:)
      real,             allocatable:: vpmask(:)
 
+     double precision, allocatable:: par2init(:)
+     real,             allocatable:: par2mask(:)
+
      integer :: n1
      integer :: ntotaltraces
 
@@ -36,6 +48,7 @@ contains
 
   subroutine read_inv_params(invparam)
     type(InversionParam) ::  invparam
+    logical              ::  withRho
 
     invparam%iter=0
     invparam%eval=0
@@ -57,6 +70,17 @@ contains
     if(invparam%dat_nrm_type_char(1:5).eq.'L1nor') invparam%dat_nrm_type=1
     if(invparam%dat_nrm_type_char(1:5).eq.'L2nor') invparam%dat_nrm_type=2
 
+    call from_param('withRho',withRho,.false.)
+    if (withRho) then
+       call from_param('invert_rho',invparam%invert_rho,.false.)
+       if (invparam%invert_rho) then
+          call from_param('rhomin',invparam%par2min,1000.)
+          call from_param('rhomax',invparam%par2max,3000.)
+          call from_param('vprho_param',invparam%vprho_param,0)
+          call from_param('sigma',invparam%sigma,1.)
+       end if
+    end if
+
     write(0,*) 'INFO: ----------------------------'
     write(0,*) 'INFO:   Inversion Parameters      '
     write(0,*) 'INFO: ----------------------------'
@@ -69,6 +93,25 @@ contains
     write(0,*) 'INFO:   neval      = ',invparam%neval
     write(0,*) 'INFO:   vpmin      = ',invparam%vpmin
     write(0,*) 'INFO:   vpmax      = ',invparam%vpmax
+    if (withRho) then
+       write(0,*) 'INFO:'
+       write(0,*) 'INFO:  Inversion with density '
+       write(0,*) 'INFO:'
+       if (invparam%invert_rho) then
+          write(0,*) 'INFO:   par2min    = ',invparam%par2min
+          write(0,*) 'INFO:   par2max    = ',invparam%par2max
+          write(0,*) 'INFO:   sigma      = ',invparam%sigma
+          if (invparam%vprho_param.eq.0) then
+             write(0,*) 'INFO: Inversion with Vp/Rho parameterization'
+          else if (invparam%vprho_param.eq.1) then
+             write(0,*) 'INFO: Inversion with Vp/Ip parameterization'
+          end if
+       else
+          write(0,*) 'INFO:   Density is not changed'
+       end if
+       write(0,*) 'INFO:'
+    end if
+             
     write(0,*) 'INFO:   illu_pow   = ',invparam%illupow
     write(0,*) 'INFO:'
     if (invparam%const_type.eq.1) then

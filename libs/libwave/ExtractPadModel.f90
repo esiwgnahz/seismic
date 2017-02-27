@@ -337,6 +337,10 @@ contains
     genpar%delta(2)=mod%dx
     genpar%delta(3)=mod%dy
 
+    write(0,*) 'INFO:'
+    write(0,*) 'INFO:------------------------'
+    write(0,*) 'INFO: Reading velocity model '
+    write(0,*) 'INFO:'
     if (.not.exist_file(mod%veltag)) then
        call erexit('ERROR: Need velocity file, exit now')
     else
@@ -345,6 +349,31 @@ contains
        end do
        call auxclose(mod%veltag)
        call vel_check(mod%vel,genpar)
+    end if
+    write(0,*) 'INFO:'
+    write(0,*) 'INFO: Done reading velocity model '
+    write(0,*) 'INFO:-----------------------------'
+    write(0,*) 'INFO:'
+
+    if(genpar%withRho) then
+       write(0,*) 'INFO:'
+       write(0,*) 'INFO:-----------------------'
+       write(0,*) 'INFO: Reading density model '
+       write(0,*) 'INFO:'
+       if (.not.exist_file(mod%rhotag)) then
+          call erexit('ERROR: Need rho file, exit now')
+       else
+          call dim_consistency_check(mod%rhotag,mod%veltag,genpar%twoD)
+          allocate(mod%rho(mod%nz,mod%nx,mod%ny))          
+          do i=1,mod%ny
+             call sreed(mod%rhotag,mod%rho(:,:,i),4*mod%nz*mod%nx)
+          end do
+          call auxclose(mod%rhotag)
+          write(0,*) 'INFO:'
+          write(0,*) 'INFO: Done reading density model '
+          write(0,*) 'INFO:----------------------------'
+          write(0,*) 'INFO:'
+       end if
     end if
 
   end subroutine read_vel
