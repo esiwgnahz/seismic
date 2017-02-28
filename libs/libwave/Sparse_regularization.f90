@@ -26,6 +26,7 @@ module Sparse_regularization_mod
      integer          :: ntaperx
      integer          :: ntapery
      logical          :: compute_eps
+     logical          :: compute_eps_log
      real             :: eps
      real             :: eps_log
      real             :: k
@@ -47,6 +48,7 @@ contains
     integer :: n1, n2, nm
 
     call from_param('compute_eps',sparseparam%compute_eps,.false.)
+    call from_param('compute_eps_log',sparseparam%compute_eps_log,.false.)
     call from_param('derivdx',sparseparam%derivdx,.false.)
     call from_param('derivdy',sparseparam%derivdy,.false.)
     call from_param('derivdz',sparseparam%derivdz,.false.)
@@ -54,9 +56,12 @@ contains
     call from_param('hinge_nrm_type',sparseparam%hin_nrm_type_char,'L2norm')
     if (sparseparam%compute_eps) then
        call from_param('ratio',sparseparam%ratio,10.)
-       call from_param('ratio_logistic',sparseparam%ratio_log,10.)
     else
        call from_param('eps',sparseparam%eps,1.)
+    end if
+    if (sparseparam%compute_eps_log) then
+       call from_param('ratio_logistic',sparseparam%ratio_log,10.)
+    else
        call from_param('eps_log',sparseparam%eps_log,1.)
     end if
     call from_param('k_logistic',sparseparam%k,1.)
@@ -115,9 +120,12 @@ contains
     write(0,*) 'INFO:  K-logistic = ',sparseparam%k
     if (sparseparam%compute_eps)then
        write(0,*) 'INFO:  ratio      = ',sparseparam%ratio
-       write(0,*) 'INFO:  ratio logis= ',sparseparam%ratio_log
     else
        write(0,*) 'INFO:  Eps TV     = ',sparseparam%eps
+    end if
+    if (sparseparam%compute_eps_log)then
+       write(0,*) 'INFO:  ratio logis= ',sparseparam%ratio_log
+    else
        write(0,*) 'INFO:  Eps logis  = ',sparseparam%eps_log
     end if
     write(0,*) 'INFO:-------------------------'
