@@ -132,8 +132,8 @@ contains
 
     allocate(sxx(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))
     allocate(syy(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))
-    allocate(szz(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))    
-    allocate(delp(bounds%nmin1:bounds%nmax1,bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
+    allocate(szz(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))  
+    allocate(delp(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))
     
     delp=1./mod%rho2
     dzi =1./genpar%delta(1)
@@ -263,8 +263,8 @@ contains
 
     allocate(sxx(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))
     allocate(syy(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))
-    allocate(szz(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))    
-    allocate(delp(bounds%nmin1:bounds%nmax1,bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
+    allocate(szz(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))
+    allocate(delp(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4)) 
     
     delp=1./mod%rho2
     dzi =1./genpar%delta(1)
@@ -394,8 +394,8 @@ contains
 
     allocate(sxx(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))
     allocate(syy(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))
-    allocate(szz(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))    
-    allocate(delp(bounds%nmin1:bounds%nmax1,bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
+    allocate(szz(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))
+    allocate(delp(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4)) 
     
     delp=1./mod%rho2
     dzi =1./genpar%delta(1)
@@ -515,8 +515,8 @@ contains
     integer              :: i,j
 
     allocate(sxx(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3:bounds%nmax3))
-    allocate(szz(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3:bounds%nmax3))     
-    allocate(delp(bounds%nmin1:bounds%nmax1,bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
+    allocate(szz(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3:bounds%nmax3))
+    allocate(delp(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3:bounds%nmax3))  
     
     delp=1./mod%rho2
     dzi =1./genpar%delta(1)
@@ -597,8 +597,9 @@ contains
 
     allocate(sxx(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3:bounds%nmax3))
     allocate(szz(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3:bounds%nmax3))     
-    allocate(delp(bounds%nmin1:bounds%nmax1,bounds%nmin2:bounds%nmax2,bounds%nmin3:bounds%nmax3))
+    allocate(delp(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3:bounds%nmax3))
     
+    delp=0.
     delp=1./mod%rho2
     dzi =1./genpar%delta(1)
     dxi =1./genpar%delta(2)

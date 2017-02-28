@@ -525,7 +525,6 @@ contains
 
     deallocate(tmpsmall)
 
-
   end subroutine copy_window_vel_gath
 
   subroutine mod_window_pad(adj,big,small,mod)
