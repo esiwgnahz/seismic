@@ -400,7 +400,7 @@ contains
                    do j=1,model%nxw
                       taper=model%taperx(j)*model%tapery(k)
                       do i=elev%ielev_z(j,k),model%nz
-                         tmp=dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1))/(model%vel(i,j,k)**3*model%rho(i,j,k))
+                         tmp=2*dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1))/(model%vel(i,j,k)**3*model%rho(i,j,k))
                          model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+u(i,j,k)*tmp*taper
                          model%illumsmall(i,j,k)=        model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper
                       end do
@@ -417,8 +417,8 @@ contains
                          tmp=tmp+dyi*(u(i,j,k+dk)-u(i,j,k))*dyi*(model%wvfld%wave(i,j,k+dk,index,1)-model%wvfld%wave(i,j,k,index,1))                  ! grad_y
                          tmp1=u(i,j,k)*dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1)) ! d/dt^2
                          
-                         model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+tmp1*taper/(model%vel(i,j,k)**3*model%rho(i,j,k))
-                         model%imagesmall_nparam(i,j,k,2)= model%imagesmall_nparam(i,j,k,2)+ tmp*taper/(model%rho(i,j,k)**2)+ &
+                         model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+2*tmp1*taper/(model%vel(i,j,k)**3*model%rho(i,j,k))
+                         model%imagesmall_nparam(i,j,k,2)= model%imagesmall_nparam(i,j,k,2)+   tmp*taper/(model%rho(i,j,k)**2)+ &
                          &                                                                  tmp1*taper/(model%rho(i,j,k)**2*model%vel(i,j,k)**2)
                          model%illumsmall(i,j,k)=        model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper
                          
@@ -432,7 +432,7 @@ contains
                    do j=1,model%nxw
                       taper=model%taperx(j)*model%tapery(k)
                       do i=1,model%nz
-                         tmp=dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1))/(model%vel(i,j,k)**3*model%rho(i,j,k))
+                         tmp=2*dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1))/(model%vel(i,j,k)**3*model%rho(i,j,k))
                          model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+u(i,j,k)*tmp*taper
                          model%illumsmall(i,j,k)  =        model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper
                       end do
@@ -448,7 +448,7 @@ contains
                          tmp=tmp+dyi*(u(i,j,k+dk)-u(i,j,k))*dyi*(model%wvfld%wave(i,j,k+dk,index,1)-model%wvfld%wave(i,j,k,index,1))                  ! grad_y
                          tmp1=u(i,j,k)*dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1)) ! d/dt^2
                          
-                         model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+tmp1*taper/(model%vel(i,j,k)**3*model%rho(i,j,k))
+                         model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+2*tmp1*taper/(model%vel(i,j,k)**3*model%rho(i,j,k))
                          model%imagesmall_nparam(i,j,k,2)= model%imagesmall_nparam(i,j,k,2)+ tmp*taper/(model%rho(i,j,k)**2)+ &
                          &                                                                  tmp1*taper/(model%rho(i,j,k)**2*model%vel(i,j,k)**2)
                          model%illumsmall(i,j,k)=        model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper                        
@@ -472,7 +472,7 @@ contains
                 do j=1,model%nxw
                    taper=model%taperx(j)*model%tapery(k)
                    do i=elev%ielev_z(j,k),model%nz
-                      tmp=dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1))/(model%vel(i,j,k)**3)
+                      tmp=2*dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1))/(model%vel(i,j,k)**3)
                       model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+u(i,j,k)*tmp*taper
                       model%illumsmall(i,j,k)=        model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper
                    end do
@@ -483,7 +483,7 @@ contains
                 do j=1,model%nxw
                    taper=model%taperx(j)*model%tapery(k)
                    do i=1,model%nz
-                      tmp=dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1))/(model%vel(i,j,k)**3)
+                      tmp=2*dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1))/(model%vel(i,j,k)**3)
                       model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+u(i,j,k)*tmp*taper
                       model%illumsmall(i,j,k)  =        model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper
                    end do
