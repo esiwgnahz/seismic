@@ -267,7 +267,7 @@ contains
 
        ! Backward: imaging
        call AGRAD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,wfld_fwd,invparam%nparam)
-
+       write(0,*) minval(modgath(i)%imagesmall_nparam),maxval(modgath(i)%imagesmall_nparam)
        ! Copy to final image space and convert gradient to match parameterization
        call mod_copy_image_nparam(modgath(i),gradthread(:,:,:,:,omp_get_thread_num()+1),illuthread(:,:,:,omp_get_thread_num()+1),invparam%vprho_param)
 
@@ -366,7 +366,8 @@ contains
     type(ModelSpace_elevation), dimension(:), allocatable :: elevgath
     type(WaveSpace), target                      :: wfld_fwd
 
-    real, dimension(:,:,:,:), allocatable :: illuthread,imagthread
+    real, dimension(:,:,:,:,:), allocatable :: imagthread
+    real, dimension(:,:,:,:),   allocatable :: illuthread
 
     real    :: d1
     integer :: i,j,k,l,n1
@@ -390,7 +391,7 @@ contains
     call omp_set_num_threads(genpar%nthreads)
 
     ! image and illumination for each thread
-    allocate(imagthread(mod%nz,mod%nx,mod%ny,genpar%nthreads)); imagthread=0
+    allocate(imagthread(mod%nz,mod%nx,mod%ny,1,genpar%nthreads)); imagthread=0
     allocate(illuthread(mod%nz,mod%nx,mod%ny,genpar%nthreads)); illuthread=0
     
     imag=0.
@@ -417,12 +418,12 @@ contains
        ! Forward: modeling
        call AMOD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,sourcegath,wfld_fwd,i) 
        ! Backward: imaging
-       call AGRAD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),shotgath(i)%gathtrace,wfld_fwd,invparam%nparam)
+       call AGRAD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),shotgath(i)%gathtrace,wfld_fwd,1)
       ! Copy to final image space
-       call mod_copy_image(modgath(i),imagthread(:,:,:,omp_get_thread_num()+1),illuthread(:,:,:,omp_get_thread_num()+1))
+       call mod_copy_image_nparam(modgath(i),imagthread(:,:,:,:,omp_get_thread_num()+1),illuthread(:,:,:,omp_get_thread_num()+1),0)
 
        ! Deallocate arrays
-       deallocate(modgath(i)%imagesmall)
+       deallocate(modgath(i)%imagesmall_nparam)
        deallocate(modgath(i)%illumsmall)
        call deallocateModelSpace_elev(elevgath(i))       
        do k=1,shotgath(i)%ntraces
@@ -448,7 +449,7 @@ contains
        do k=1,mod%ny
           do j=1,mod%nx
              do l=1,mod%nz
-                imag(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx)=imag(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx)+imagthread(l,j,k,i)               
+                imag(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx)=imag(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx)+imagthread(l,j,k,1,i)               
                 illu(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx)=illu(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx)+illuthread(l,j,k,i)
              end do
           end do

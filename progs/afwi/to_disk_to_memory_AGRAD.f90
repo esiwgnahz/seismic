@@ -50,7 +50,7 @@ contains
     if (genpar%twoD) then
        if (genpar%withRho) then
           call propagator_acoustic(                          &
-          & FD_acoustic_init_coefs,                          &
+          & FD_acoustic_rho_init_coefs,                      &
           & FD_2D_derivatives_acoustic_forward_grid,         &
           & Injection_simple_noomp,                          &
           & FD_2nd_time_derivative_grid_noomp,               &
@@ -70,7 +70,7 @@ contains
     else
        if (genpar%withRho) then
           call propagator_acoustic(                          &
-          & FD_acoustic_init_coefs,                          &
+          & FD_acoustic_rho_init_coefs,                      &
           & FD_3D_derivatives_acoustic_forward_grid_noomp,   &
           & Injection_simple_noomp,                          &
           & FD_2nd_time_derivative_grid_noomp,               &
