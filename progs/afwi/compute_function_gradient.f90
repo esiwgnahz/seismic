@@ -156,7 +156,7 @@ contains
        ftmp1=ftmp1/scaling
        gtmp=gtmp/sngl(scaling)
        
-       if (sparseparam%compute_eps) then
+       if (sparseparam%compute_eps_log) then
           if (invparam%eval.eq.0) then
              if (sparseparam%ratio_log.eq.0.) then
                 sparseparam%eps_log=0.
