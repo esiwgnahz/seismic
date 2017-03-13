@@ -83,7 +83,7 @@ contains
           call compute_top_mute(mutepar,dt,t0,hx,hy,tmp)
           call compute_bottom_mute(mutepar,dt,t0,hx,hy,tmp1)
           mutepar%maskgath(i)%gathtrace(j)%trace(:,1)=tmp*tmp1
-          if (exist_file('mute_out')) call srite('mute',mutepar%maskgath(i)%gathtrace(j)%trace,4*nt)
+          if (exist_file('mute_out')) call srite('mute_out',mutepar%maskgath(i)%gathtrace(j)%trace,4*nt)
        end do
 
     end do

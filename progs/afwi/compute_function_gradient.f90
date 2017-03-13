@@ -235,7 +235,6 @@ contains
     
     f=0.
     grad=0.
-
     !$OMP PARALLEL DO PRIVATE(i,k,j,dmodgath,begi,endi,wfld_fwd)
     do i=1,size(shotgath)
 

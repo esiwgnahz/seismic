@@ -141,7 +141,7 @@ contains
        & FD_2nd_time_derivative_grid,                   &
        & FDswaptime_pointer,                            &
        & bounds,model,elev,genpar,                      &
-       & sou=sourcevec,wfld=wfld_fwd,ExtractWave=Extraction_wavefield)
+       & sou=sourcevec,ExtractWave=Extraction_wavefield,wfld=wfld_fwd)
     else
        call propagator_acoustic(                        &
        & FD_acoustic_init_coefs,                        &
@@ -150,7 +150,7 @@ contains
        & FD_2nd_time_derivative_grid,                   &
        & FDswaptime_pointer,                            &
        & bounds,model,elev,genpar,                      &
-       & sou=sourcevec,wfld=wfld_fwd,ExtractWave=Extraction_wavefield)
+       & sou=sourcevec,ExtractWave=Extraction_wavefield,wfld=wfld_fwd)
     end if
     write(0,*) 'INFO: Done with forward modeling'
 

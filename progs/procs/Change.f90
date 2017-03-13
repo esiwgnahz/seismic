@@ -19,10 +19,11 @@ program Change
   ndim=sep_dimension()
   if (ndim.eq.2) ndim=ndim+1
   allocate(n(ndim), o(ndim), d(ndim))
+  n=0.
   do i=1,ndim
      call sep_get_data_axis_par("in",i,n(i),o(i),d(i),label)
   end do
-  n(3)=1
+  n(3)=max(n(3),1)
   allocate(in(n(1),n(2)),ou(n(1),n(2)))
   call from_param('value',value,0.)
 

@@ -4,6 +4,8 @@ include EXEMakefile
 include VOLVEMakefile
 include MARMMakefile
 include BPMakefile
+include 1DMakefile
+include FIGMakefile
 #include MATCHMakefile
 
 wavelet.H:
