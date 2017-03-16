@@ -27,10 +27,10 @@ contains
     case (12) 
        if (.not.present(thresh)) then
           write(0,*) 'WARNING: thresh is not provided for Huber, uses maxval(rd) instead'
-          gamd=maxval(rd)
+          gamd=maxval(abs(rd))
        else
           if (thresh.eq.0.) then
-             thresh=maxval(rd)
+             thresh=maxval(abs(rd))
              write(0,*) 'WARNING: thresh can''t be zero, reset to maxval(rd) instead'
           end if
           gamd=thresh
@@ -47,10 +47,10 @@ contains
     case(3)
        if (.not.present(thresh)) then
           write(0,*) 'WARNING: thresh is not provided for Cauchy, uses maxval(rd) instead'
-          cauchy=maxval(rd)
+          cauchy=maxval(abs(rd))
        else
           if (thresh.eq.0.) then
-             thresh=maxval(rd)
+             thresh=maxval(abs(rd))
              write(0,*) 'WARNING: thresh can''t be zero, reset to maxval(rd) instead'
           end if
           cauchy=thresh
@@ -90,7 +90,7 @@ contains
     case (12) 
        if (.not.present(thresh)) then
           write(0,*) 'WARNING: thresh is not provided for Huber, uses maxval(rd) instead'
-          gamd=maxval(rd)
+          gamd=maxval(abs(rd))
        else
           gamd=thresh
        end if
@@ -99,7 +99,7 @@ contains
     case (3)
        if (.not.present(thresh)) then
           write(0,*) 'WARNING: thresh is not provided for Cauchy, uses maxval(rd) instead'
-          cauchy=maxval(rd)
+          cauchy=maxval(abs(rd))
        else
           cauchy=thresh
        end if

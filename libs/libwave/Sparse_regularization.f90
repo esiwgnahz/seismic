@@ -351,7 +351,7 @@ contains
     nzt=sparseparam%nz_tap
     nrm_type=sparseparam%hin_nrm_type
 
-    allocate(zweighttap(nxt*nyt*nzt),mask(nxt*nyt*nzt),rmtap(nxt*nyt*nzt),rtmptap(nxt*nyt*nzt),gtmp(nx*ny*nz))
+    allocate(zweighttap(nxt*nyt*nzt),mask(nxt*nyt*nzt),rmtap(nxt*nyt*nzt),rtmptap(nxt*nyt*nzt),gtmp(nz*nx*ny))
     zweighttap=1.
     if (sparseparam%have_z_weight) call SparseRegularization_add_taper(sparseparam,zweighttap,sparseparam%zweight,forw=.true.)
 
@@ -360,10 +360,7 @@ contains
     
     ! rmtap=Grad(m)
     call SparseRegularization_add_taper(sparseparam,rtmptap,vel,forw=.true.)
-    stat=op(.false.,.false.,rtmptap,rmtap)  
-    ! Keep gradient in memory
-    ! rtmp=rmtap=Grad(m)
-    rtmptap=rmtap
+    stat=op(.false.,.false.,rtmptap,rmtap)
 
     ! rtmptap=L(Grad(m))
     where(rmtap.le.0.)
@@ -375,12 +372,12 @@ contains
     ! rmtap=Grad(m)*L(Grad(m))
     rmtap=rmtap*mask*zweighttap
     call SparseRegularization_add_taper(sparseparam,rmtap,gtmp,forw=.false.)
-
+    
     ! Add model fitting side of objective function
-    ! --------------------------------------------  
+    ! --------------------------------------------
     f=f+fct_compute(nrm_type,gtmp,nz*nx,sparseparam%hin_thresh)
-
     gtmp=0.
+
     ! Now apply the adjoint to form the gradient of the model fitting
     ! ---------------------------------------------------------------
     stat=gdt_compute(nrm_type,rmtap,nzt*nxt,sparseparam%hin_thresh)

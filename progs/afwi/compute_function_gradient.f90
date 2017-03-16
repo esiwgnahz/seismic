@@ -112,8 +112,13 @@ contains
     scaling=mod%nx*mod%ny*mod%nz
     if (sparseparam%compute_eps) then
        if (invparam%eval.eq.0) then
-          sparseparam%eps_log=0.
           sparseparam%eps=0.
+       end if
+    end if
+
+    if (sparseparam%compute_eps_log) then
+       if (invparam%eval.eq.0) then
+          sparseparam%eps_log=0.
        end if
     end if
 
@@ -129,7 +134,11 @@ contains
              if (sparseparam%ratio.eq.0.) then
                 sparseparam%eps=0.
              else
-                sparseparam%eps=abs(f/(sparseparam%ratio*ftmp))
+                if (ftmp.ne.0.) then
+                   sparseparam%eps=abs(f/(sparseparam%ratio*ftmp))
+                else
+                   call erexit('ERROR: cannot compute eps for regularization, please give one')
+                end if
              end if
              write(0,*) 'INFO:'
              write(0,*) 'INFO: ---- Regularization: setting epsilon ---'
@@ -161,7 +170,11 @@ contains
              if (sparseparam%ratio_log.eq.0.) then
                 sparseparam%eps_log=0.
              else
-                sparseparam%eps_log=abs(f/(sparseparam%ratio_log*ftmp1))
+                if (ftmp1.eq.0.) then
+                   sparseparam%eps_log=abs(f/(sparseparam%ratio_log*ftmp))      
+                else
+                   sparseparam%eps_log=abs(f/(sparseparam%ratio_log*ftmp1)) 
+                endif
              end if
              write(0,*) 'INFO:'
              write(0,*) 'INFO: ---- Logistic Reg.: setting epsilon ---'
