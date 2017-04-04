@@ -43,6 +43,7 @@ module DataSpace_types
      real,    dimension(3):: coord      ! physical coordinate 
      real,    dimension(3):: dcoord     ! delta for extraction 
      integer, dimension(3):: icoord     ! index
+     real                 :: tstat      ! total static for trace
   end type TraceSpace
 
   ! A collection of traces belonging to the same gather

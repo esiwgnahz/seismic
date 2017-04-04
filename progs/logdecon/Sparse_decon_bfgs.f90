@@ -1,3 +1,4 @@
+
 program Sparse_Decon_LBFGS
 
   use sep
@@ -16,13 +17,13 @@ program Sparse_Decon_LBFGS
   complex,    dimension(:,:),   allocatable :: inw,ginw! input Fourier domain
   real,       dimension(:,:),   allocatable :: gt      ! gain function
   real,       dimension(:,:),   allocatable :: qt
-  real,       dimension(:,:),   allocatable :: rt,rtmp
+  real,       dimension(:,:),   allocatable :: rt,rtmp,rt_save
   real,       dimension(:),     allocatable :: regt
   real,       dimension(:),     allocatable :: reg2t
   real,       dimension(:),     allocatable :: reg3t
   real,       dimension(:),     allocatable :: reg4t
   
-  real,             dimension(:), allocatable :: ut, dut ! filter time domain
+  real,             dimension(:), allocatable :: ut, dut, uts ! filter time domain
   double precision, dimension(:), allocatable :: ut_dp,dut_dp,ut_save
   real,             dimension(:), allocatable :: tmp1,utb,regw
 
@@ -139,6 +140,7 @@ program Sparse_Decon_LBFGS
   allocate(dut(NDIM))   ! single precision
   allocate(ut_dp(NDIM)) ! double precision
   allocate(ut(NDIM))    ! single precision
+  allocate(uts(NDIM))    ! single precision
   
   iter=0
   iflag=0
@@ -162,7 +164,7 @@ program Sparse_Decon_LBFGS
   call fft1d_r2c_c2r_n23(in,inw,n23,plan1,FORWARD)
 
   allocate(uw(nw),duw(nw),euw(nw),tmp(nw),tmp2(nw))
-  allocate(rt(nt,n23),rtmp(nt,n23),qt(nt,n23),regt(nt),reg2t(nt),reg3t(nt),reg4t(nt),regw(nt))
+  allocate(rt(nt,n23),rt_save(nt,n23),rtmp(nt,n23),qt(nt,n23),regt(nt),reg2t(nt),reg3t(nt),reg4t(nt),regw(nt))
 
   ut=0.
   uw=0.
@@ -240,6 +242,12 @@ program Sparse_Decon_LBFGS
 
   do while (cont)
 
+     if(info.eq.1) then
+        ut_save=ut_dp
+        rt_save=rt
+        uts=sngl(ut_dp)
+     end if
+
      fd=0.
      duw=0.
      dut=0.
@@ -295,11 +303,10 @@ program Sparse_Decon_LBFGS
      dut_dp=dble(dut)
      ut_dp=dble(ut)
 
-     call LBFGS(NDIM,MSAVE,ut_dp,fd,dut_dp,&
+     call LBFGSS(NDIM,MSAVE,ut_dp,fd,dut_dp,&
      &          .False.,diagd,iprint,EPS,&
      &          XTOL,wd,iflag,myinfo)
 
-     if(myinfo.eq.1) ut_save=ut_dp
      ut=sngl(ut_dp)
 
      info=myinfo
@@ -344,11 +351,11 @@ program Sparse_Decon_LBFGS
 
     end do
 
-    call srite('out',rt,4*nt*n23)
+    call srite('out',rt_save,4*nt*n23)
     if (exist_file('qt')) call srite('qt',qt,4*nt*n23)
 
   if (exist_file('filter')) then
-     call fft1d_r2c_c2r_n23(ut,uw,1,plan1,FORWARD)
+     call fft1d_r2c_c2r_n23(uts,uw,1,plan1,FORWARD)
      call srite('filter',uw,8*nw)
      call to_history('n1',nw,'filter')
      call to_history('d1',dw,'filter')

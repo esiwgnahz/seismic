@@ -136,6 +136,41 @@ contains
 
   end subroutine readcoords
 
+  subroutine readtstat(datavec,sourcevec,genpar)
+    type(TraceSpace), dimension(:) :: datavec,sourcevec
+    type(GeneralParam)             :: genpar
+    integer :: index
+    integer :: nkeys,ntraces,i
+    real, allocatable, dimension(:) :: tracekeys
+
+    write(0,*) 'INFO:--------------------------------------'
+    write(0,*) 'INFO: Starting reading traces static tstat '
+
+    call from_param('tstat',index)
+
+    if (.not.exist_file('coordfile')) call erexit('ERROR: need coordfile')
+    call from_aux('coordfile','n1',nkeys)
+    call from_aux('coordfile','n2',ntraces)
+
+    if(ntraces.ne.size(datavec)) then
+       call erexit('ERROR: size datavec ne number of traces in coordfiles, exit')
+    end if
+
+    allocate(tracekeys(nkeys))
+    do i=1,ntraces
+       tracekeys=0.
+       call sreed('coordfile',tracekeys,4*nkeys)      
+       datavec(i)%tstat=tracekeys(index)    
+    end do
+
+    call auxclose('coordfile')
+
+    write(0,*) 'INFO: Finished reading static header tstat '
+    write(0,*) 'INFO:--------------------------------------'
+    deallocate(tracekeys)
+
+  end subroutine readtstat
+
   subroutine readgathercoords(shotgath,sourcevec,genpar)
     type(GatherSpace), dimension(:), allocatable :: shotgath
     type(TraceSpace), dimension(:), allocatable :: sourcevec
