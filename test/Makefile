@@ -1,5 +1,6 @@
 include ${SEPINC}/SEP.top
 
+RESDIR=Fig
 include EXEMakefile
 include VOLVEMakefile
 include MARMMakefile
@@ -7,6 +8,8 @@ include BPMakefile
 include 1DMakefile
 include FIGMakefile
 #include MATCHMakefile
+
+OPSTEXFLAGS= color=y fat=1 fatmult=1.5 invras=n force= 
 
 wavelet.H:
 	Wavelet wavelet=ricker2 fund=25 tdelay=0.13 n1=1000 d1=0.001 > $@
