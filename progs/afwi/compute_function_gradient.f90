@@ -267,7 +267,7 @@ contains
 
        ! Backward: imaging
        call AGRAD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,wfld_fwd,invparam%nparam)
-       write(0,*) minval(modgath(i)%imagesmall_nparam),maxval(modgath(i)%imagesmall_nparam)
+       !write(0,*) minval(modgath(i)%imagesmall_nparam),maxval(modgath(i)%imagesmall_nparam)
        ! Copy to final image space and convert gradient to match parameterization
        call mod_copy_image_nparam(modgath(i),gradthread(:,:,:,:,omp_get_thread_num()+1),illuthread(:,:,:,omp_get_thread_num()+1),invparam%vprho_param)
 
@@ -289,8 +289,8 @@ contains
     allocate(illu(mod%nz*mod%nx*mod%ny)); illu=0.
     ! Add all images for each thread to final image
     do i=1,genpar%nthreads
-       f   =f   +fthread(i)
 
+       f   =f   +fthread(i)
        !$OMP PARALLEL DO PRIVATE(m,k,j,l)
        do m=1,invparam%nparam
           do k=1,mod%ny

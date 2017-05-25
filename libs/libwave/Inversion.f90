@@ -3,6 +3,7 @@ module Inversion_mod
   use sep
   use Inversion_types
   use DataSpace_types
+  use ModelSpace_types
   
   implicit none
   
@@ -21,7 +22,7 @@ contains
   ! * D.C. Liu and J. Nocedal. On the Limited Memory Method for Large Scale 
   !                            Optimization (1989), Mathematical Programming B, 45, 3, pp. 503-528.
   !
-  subroutine l_bfgs(invparam,fctgdt,x)
+  subroutine l_bfgs(invparam,fctgdt,modin)
     
     interface
        function fctgdt(g,f,res) result (stat)
@@ -34,7 +35,7 @@ contains
     end interface
 
     type(InversionParam)                                         :: invparam
-    real, dimension(size(invparam%modinit(:,1))*invparam%nparam) :: x 
+    type(ModelSpace)                                             :: modin 
     integer                                                      :: count
 
     real, dimension(:),     allocatable :: g
@@ -66,7 +67,7 @@ contains
     external :: LB2
     COMMON /LB3/MP,LP,GTOL,STPMIN,STPMAX
 
-    NDIM=size(x)
+    NDIM=size(modin%vel*invparam%nparam)
     MSAVE=5
     NWORK=NDIM*(2*MSAVE+1)+2*MSAVE
 
@@ -105,23 +106,23 @@ contains
     found=.False.
 
     ! We keep the starting guess in memory
-    xsave = dble(x)
+    call mod_to_x(.true.,modin,xsave,invparam)    
     xdsave=xsave
 
     do while (cont.and.(.not.found))
 
        stat2=fctgdt(g=g,f=fd,res=resigath)
-
        if (invparam%eval.eq.0) then
-          g0=maxval(x)/(100*maxval(abs(g)))
-          f0=dble(maxval(x)**2)/abs(fd)
+          g0=maxval(xsave)/(100*maxval(abs(g)))
+          f0=dble(maxval(xsave)**2)/abs(fd)
           if(exist_file('function')) call srite('function',sngl(f0*fd),4)
        end if
 
        g=g0*g 
        fd=f0*fd
 
-       xd=dble(x)
+       call mod_to_x(.true.,modin,xd,invparam)
+
        gd=dble(g)
        xdsave=xd
 
@@ -129,7 +130,8 @@ contains
        &          .False.,diagd,iprint,EPS,&
        &          XTOL,wd,iflag,myinfo,XMIN,XMAX,invparam%nparam,invparam%modmask,invparam%const_type,invparam%freeze_soft,invparam%modinit)
 
-       x=sngl(xd)
+       call mod_to_x(.false.,modin,xd,invparam)
+       
        info=myinfo
 
        if (myinfo.eq.1) then
@@ -174,8 +176,9 @@ contains
     ! We didn't really find a new model vector, the line-search
     ! was still going. We take the previous best solution.
     if (.not.cont) then
-       x=sngl(xsave)
+       call mod_to_x(.false.,modin,xsave,invparam)
     end if
+
     deallocate(xd,xsave,xdsave,g,wd,gd,diagd)
 
     do i=1,invparam%ntotaltraces
@@ -185,4 +188,54 @@ contains
 
   end subroutine l_bfgs
   
+  subroutine copy_array(adj,mod,array1,array3)
+    type(ModelSpace) ::     mod
+    logical          :: adj
+    double precision, dimension(:)::        array1
+    real, dimension(:,:,:) ::          array3
+    integer          :: i,j,k,index
+
+    if (adj) then 
+       !$OMP PARALLEL DO PRIVATE(k,j,i)
+       do k=1,mod%ny
+          do j=1,mod%nx
+             do i=1,mod%nz
+                index=i+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx
+                array1(index)=dble(array3(i,j,k))
+             end do
+          end do
+       end do
+       !$OMP END PARALLEL DO
+    else 
+       !$OMP PARALLEL DO PRIVATE(k,j,i)
+       do k=1,mod%ny
+          do j=1,mod%nx
+             do i=1,mod%nz
+                index=i+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx
+                array3(i,j,k)=sngl(array1(index))
+             end do
+          end do
+       end do
+       !$OMP END PARALLEL DO
+    end if
+
+  end subroutine copy_array
+
+  subroutine mod_to_x(adj,mod,x,invparam)
+    type(InversionParam)     :: invparam
+    type(ModelSpace)         :: mod
+    double precision, dimension(:):: x
+    logical          :: adj
+
+    call copy_array(adj,mod,x(1:size(mod%vel)),mod%vel)
+       if (invparam%nparam.eq.2) then
+          if (invparam%vprho_param.eq.0) then
+             call copy_array(adj,mod,x(1+size(mod%vel):),mod%rho)
+          else
+             call copy_array(adj,mod,x(1+size(mod%vel):),mod%imp)
+          end if
+       end if
+
+     end subroutine mod_to_x
+    
 end module Inversion_mod

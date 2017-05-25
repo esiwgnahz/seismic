@@ -102,13 +102,13 @@ contains
     write(0,*) 'INFO:   niter      = ',invparam%niter
     write(0,*) 'INFO:   neval      = ',invparam%neval
     write(0,*) 'INFO:   vpmin      = ',invparam%parmin(1)
-    write(0,*) 'INFO:   vpmax      = ',invparam%parmax(2)
+    write(0,*) 'INFO:   vpmax      = ',invparam%parmax(1)
     if (withRho) then
        write(0,*) 'INFO:'
        write(0,*) 'INFO:  Inversion with density '
        write(0,*) 'INFO:'
        if (invparam%invert_rho) then
-          write(0,*) 'INFO:   par2min    = ',invparam%parmin(1)
+          write(0,*) 'INFO:   par2min    = ',invparam%parmin(2)
           write(0,*) 'INFO:   par2max    = ',invparam%parmax(2)
           write(0,*) 'INFO:   sigma(1,2) = ',invparam%sigma
           if (invparam%vprho_param.eq.0) then
@@ -170,7 +170,7 @@ contains
        if (n2.ne.mod%nx) call erexit('Error: n2 and nx mask/vel different, exit now')
        call sreed('vpmask',invparam%modmask(:,1),4*mod%nz*mod%nx*mod%ny)
     else
-       invparam%modmask=1.
+       invparam%modmask(:,1)=1.
     end if
 
     if (invparam%nparam.eq.2) then  
@@ -203,7 +203,7 @@ contains
           if (n2.ne.mod%nx) call erexit('Error: n2 and nx par2mask/vel different, exit now')
           call sreed('par2mask',invparam%modmask(:,2),4*mod%nz*mod%nx*mod%ny)
        else
-          invparam%modmask=1.
+          invparam%modmask(:,2)=1.
        end if      
     end if
 

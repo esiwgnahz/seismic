@@ -20,7 +20,7 @@ program TWODAFWI
   implicit none
 
   type(GeneralParam) :: genpar
-  type(ModelSpace)   :: mod
+  type(ModelSpace), target   :: mod
   type(FDbounds)     :: bounds
   type(ModelSpace_elevation) :: elev
 
@@ -38,7 +38,6 @@ program TWODAFWI
   type(MuteParam)                              :: mutepar
 
   real, dimension(:),              allocatable :: grad
-  real, dimension(:),              pointer     :: x
   integer :: i,j,ntotaltraces,stat
   double precision    :: f
   call sep_init()
@@ -73,33 +72,43 @@ program TWODAFWI
      call BandpassSouTraces(bpparam,shotgath,sourcegath)
      call Init_SmoothingParam(smoothpar,mod,bpparam)
      call read_inv_params(invparam)
-
-     allocate(x(mod%nz*mod%nx*mod%ny*invparam%nparam))
-     if ((invparam%nparam.eq.2).and.(invparam%vprho_param.eq.0)) call x_to_vel_rho(size(mod%vel),mod%vel,mod%rho,x)
-     if ((invparam%nparam.eq.2).and.(invparam%vprho_param.eq.1)) call x_to_vel_rho(size(mod%vel),mod%vel,mod%imp,x)
-
      if (invparam%wantreg.or.invparam%wantlog) call Init_SparseRegularization(sparseparam,mod)
      invparam%ntotaltraces=ntotaltraces
      invparam%n1=genpar%nt
      call Init_Inversion_Array(mod,invparam)
+
      if (invparam%wantreg.or.invparam%wantlog) call Init_SparseRegularization_Array(sparseparam,mod)
      call Init_MuteParam(mutepar)
      call MuteParam_compute_mask(mutepar,shotgath,sourcegath)
      call compute_fct_gdt_dmute_smooth_inv_init(mutepar,smoothpar,invparam)
-     if (invparam%wantreg.or.invparam%wantlog) then
-        call compute_fct_gdt_sparsepar_init(sparseparam)
-        call l_bfgs(invparam,compute_fct_gdt_reg,x)
-     else
-        call l_bfgs(invparam,compute_fct_gdt,x)
-     end if
+!     if (invparam%wantreg.or.invparam%wantlog) then
+!        call compute_fct_gdt_sparsepar_init(sparseparam)
+!        call l_bfgs(invparam,compute_fct_gdt_reg,x)
+!     else
+        call l_bfgs(invparam,compute_fct_gdt,mod)
+!     end if
 
      ! Freeze velocity model again, and make sure we don't update where we freeze
      call Freeze(invparam%parmin,invparam%parmax,invparam%nparam,invparam%modmask,invparam%freeze_soft,mod%vel,mod%nx*mod%ny*mod%nz,invparam%modinit)
-     call ApplyMask(mod%nx*mod%ny*mod%nz*invparam%nparam,invparam%modmask,x,invparam%modinit)
+     call ApplyMask(mod%nx*mod%ny*mod%nz*invparam%nparam,invparam%modmask,mod%vel,invparam%modinit)
+     if (invparam%nparam.eq.2) then
+        if (invparam%vprho_param.eq.0) then
+           call ApplyMask(mod%nx*mod%ny*mod%nz*invparam%nparam,invparam%modmask,mod%rho,invparam%modinit)
+        else
+           call ApplyMask(mod%nx*mod%ny*mod%nz*invparam%nparam,invparam%modmask,mod%imp,invparam%modinit)
+        end if
+     end if
 
      call MuteParam_deallocate(mutepar)
      if (invparam%wantreg.or.invparam%wantlog) call SparseRegularization_filter_close(sparseparam)
-     call srite('inv',x,4*mod%nz*mod%nx*mod%ny*invparam%nparam)
+     call srite('inv',mod%vel,4*mod%nz*mod%nx*mod%ny)
+     if (invparam%nparam.eq.2) then
+        if (invparam%vprho_param.eq.0) then
+           call srite('inv',mod%rho,4*mod%nz*mod%nx*mod%ny)
+        else
+           call srite('inv',mod%imp,4*mod%nz*mod%nx*mod%ny)
+        end if
+     end if
      call create_header(mod,invparam,genpar,ntotaltraces)
      deallocate(invparam%modmask,invparam%modinit)
      deallocate(invparam%parmin,invparam%parmax)
@@ -123,7 +132,6 @@ program TWODAFWI
   deallocate(mod%vel)
   if (allocated(mod%rho)) deallocate(mod%rho)
   if (allocated(mod%imp)) deallocate(mod%imp)
-  if (associated(x)) nullify(x)
 
 end program TWODAFWI
 
@@ -243,10 +251,3 @@ subroutine Freeze(xmin,xmax,nparam,mask,type,x,n,xinit)
 
 end subroutine Freeze
 
-subroutine x_to_vel_rho(n,mod1,mod2,x)
-  real, dimension(n), target :: mod1,mod2
-  real, dimension(:), pointer:: x
-
-  x(1:n)=>mod1
-  x(n+1:)=>mod2
-end subroutine x_to_vel_rho
