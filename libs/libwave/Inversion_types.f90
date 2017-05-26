@@ -77,6 +77,9 @@ contains
           call from_param('vprho_param',invparam%vprho_param,0)
        end if
     end if
+
+    if ((.not.withRho).and.(invparam%invert_rho)) call erexit('ERROR: withRho and invert_rho are incompatible, please reparameterize, exit now')
+
     allocate(invparam%parmin(invparam%nparam))
     allocate(invparam%parmax(invparam%nparam))
     allocate(invparam%sigma(invparam%nparam))
@@ -169,6 +172,7 @@ contains
        if (n1.ne.mod%nz) call erexit('Error: n1 and nz mask/vel different, exit now')
        if (n2.ne.mod%nx) call erexit('Error: n2 and nx mask/vel different, exit now')
        call sreed('vpmask',invparam%modmask(:,1),4*mod%nz*mod%nx*mod%ny)
+       call auxclose('vpmask')
     else
        invparam%modmask(:,1)=1.
     end if
@@ -202,6 +206,7 @@ contains
           if (n1.ne.mod%nz) call erexit('Error: n1 and nz par2mask/vel different, exit now')
           if (n2.ne.mod%nx) call erexit('Error: n2 and nx par2mask/vel different, exit now')
           call sreed('par2mask',invparam%modmask(:,2),4*mod%nz*mod%nx*mod%ny)
+          call auxclose('par2mask')
        else
           invparam%modmask(:,2)=1.
        end if      

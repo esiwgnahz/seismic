@@ -158,6 +158,13 @@ subroutine create_header(mod,invparam,genpar,ntotaltraces)
         call to_history('o2',mod%ox,'gradient')
         call to_history('o3',mod%oy,'gradient')
         call to_history('n5',invparam%iter,'gradient')
+        if (invparam%nparam.eq.2) then
+           if (invparam%vprho_param.eq.0) then
+              call to_history('label4','vel:rho','gradient')
+           else
+              call to_history('label4','vel:imp','gradient')
+           endif
+        end if
      end if
      
      if (exist_file('model')) then
@@ -172,6 +179,13 @@ subroutine create_header(mod,invparam,genpar,ntotaltraces)
         call to_history('o2',mod%ox,'model')
         call to_history('o3',mod%oy,'model')
         call to_history('n5',invparam%iter,'model')
+        if (invparam%nparam.eq.2) then
+           if (invparam%vprho_param.eq.0) then
+              call to_history('label4','vel:rho','model')
+           else
+              call to_history('label4','vel:imp','model')
+           endif
+        end if
      end if
 
      if (exist_file('function')) then
@@ -181,13 +195,20 @@ subroutine create_header(mod,invparam,genpar,ntotaltraces)
      call to_history('n1',mod%nz,'inv')
      call to_history('n2',mod%nx,'inv')
      call to_history('n3',mod%ny,'inv')
-     call to_history('n3',invparam%nparam,'inv')
+     call to_history('n4',invparam%nparam,'inv')
      call to_history('d1',mod%dz,'inv')
      call to_history('d2',mod%dx,'inv')
      call to_history('d3',mod%dy,'inv')
      call to_history('o1',mod%oz,'inv')
      call to_history('o2',mod%ox,'inv')
      call to_history('o3',mod%oy,'inv')
+     if (invparam%nparam.eq.2) then
+        if (invparam%vprho_param.eq.0) then
+           call to_history('label4','vel:rho','inv')
+        else
+           call to_history('label4','vel:imp','inv')
+        endif
+     end if
 
      if (exist_file('residual')) then
         call to_history('n1',genpar%nt,'residual')
