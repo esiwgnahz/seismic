@@ -100,12 +100,18 @@ contains
     double precision                :: ftmp,ftmp1,scaling
     real, dimension(:), allocatable :: gtmp
 
-    allocate(gtmp(mod%nx*mod%ny*mod%nz))
+    real, dimension(:), pointer :: gtmp1
+    real, dimension(:), pointer :: gtmp2
+
+    allocate(gtmp(mod%nx*mod%ny*mod%nz*invparam%nparam))
 
     gtmp=0.
     ftmp=0.
     ftmp1=0.
     f=0.
+
+!    gtmp1=>gtmp(1:mod%nx*mod%ny*mod%nz)
+!    if (invparam%nparam.eq.2) gtmp2=>gtmp(1+mod%nx*mod%ny*mod%nz:)
 
     stat=compute_fct_gdt(grad,f,resigath)
 
@@ -206,7 +212,7 @@ contains
 
     real    :: d1
     integer :: i,j,k,l,m,n1,begi,endi
-    integer :: ntsnap,ntotaltraces
+    integer :: ntsnap,ntotaltraces,index
     double precision :: memory_needed,gist,scaling
 
     real, dimension(:), allocatable          :: illu
@@ -242,13 +248,13 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,k,j,dmodgath,begi,endi,wfld_fwd)
     do i=1,size(shotgath)
-
+!
        call copy_window_vel_gath(mod,modgath(i),genpar,genpargath(i),boundsgath(i),i)
        genpargath(i)%ntsnap=int(genpargath(i)%nt/genpargath(i)%snapi)
-
+!
        allocate(elevgath(i)%elev(boundsgath(i)%nmin2:boundsgath(i)%nmax2, boundsgath(i)%nmin3:boundsgath(i)%nmax3))
        elevgath(i)%elev=0.
-
+!
        allocate(dmodgath(size(shotgath(i)%gathtrace)))
        do j=1,size(shotgath(i)%gathtrace)
           allocate(dmodgath(j)%trace(n1,1))
@@ -259,7 +265,7 @@ contains
        end do
 
        ! Forward: modeling
-       call AMOD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,sourcegath,wfld_fwd,i) 
+        call AMOD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,sourcegath,wfld_fwd,i) 
 
        begi=shotgath(i)%begi
 
@@ -267,7 +273,7 @@ contains
 
        ! Backward: imaging
        call AGRAD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,wfld_fwd,invparam%nparam)
-       !write(0,*) minval(modgath(i)%imagesmall_nparam),maxval(modgath(i)%imagesmall_nparam)
+!       !write(0,*) minval(modgath(i)%imagesmall_nparam),maxval(modgath(i)%imagesmall_nparam)
        ! Copy to final image space and convert gradient to match parameterization
        call mod_copy_image_nparam(modgath(i),gradthread(:,:,:,:,omp_get_thread_num()+1),illuthread(:,:,:,omp_get_thread_num()+1),invparam%vprho_param)
 
@@ -281,6 +287,7 @@ contains
        deallocate(modgath(i)%vel)
        deallocate(dmodgath)
        if (allocated(modgath(i)%rho)) deallocate(modgath(i)%rho)
+       if (allocated(modgath(i)%imp)) deallocate(modgath(i)%imp)
        if (allocated(modgath(i)%rho2)) deallocate(modgath(i)%rho2)
 
     end do
@@ -291,12 +298,13 @@ contains
     do i=1,genpar%nthreads
 
        f   =f   +fthread(i)
-       !$OMP PARALLEL DO PRIVATE(m,k,j,l)
+       !$OMP PARALLEL DO PRIVATE(m,k,j,l,index)
        do m=1,invparam%nparam
           do k=1,mod%ny
              do j=1,mod%nx
                 do l=1,mod%nz
-                   grad(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx+(m-1)*mod%nz*mod%nx*mod%ny)=grad(l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx+(m-1)*mod%nz*mod%nx*mod%ny)+invparam%sigma(m)*gradthread(l,j,k,m,i)            
+                   index=l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx+(m-1)*mod%nz*mod%nx*mod%ny
+                   grad(index)=grad(index)+invparam%sigma(m)*gradthread(l,j,k,m,i)            
                 end do
              end do
           end do
@@ -324,11 +332,17 @@ contains
     illu=(illu+maxval(illu)/10000)/sqrt(sum(dprod(illu,illu))/size(illu))
 
     grad(1:mod%nz*mod%nx*mod%ny)=grad(1:mod%nz*mod%nx*mod%ny)/illu
-    grad(1+mod%nz*mod%nx*mod%ny:)=grad(1+mod%nz*mod%nx*mod%ny:)/illu
+    if (invparam%nparam.eq.2) then
+       grad(1+mod%nz*mod%nx*mod%ny:)=grad(1+mod%nz*mod%nx*mod%ny:)/illu
+    end if
 
     call mult_grad_mask(grad,invparam%modmask)
     call triangle2(smoothpar,grad(1:mod%nz*mod%nx*mod%ny))
-    call triangle2(smoothpar,grad(1+mod%nz*mod%nx*mod%ny:))
+    
+    if (invparam%nparam.eq.2) then
+       call triangle2(smoothpar,grad(1+mod%nz*mod%nx*mod%ny:))
+    end if
+
     call mult_grad_mask(grad,invparam%modmask)
 
     deallocate(gradthread,illu,illuthread,fthread)

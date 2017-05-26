@@ -67,7 +67,8 @@ contains
     external :: LB2
     COMMON /LB3/MP,LP,GTOL,STPMIN,STPMAX
 
-    NDIM=size(modin%vel*invparam%nparam)
+    NDIM=size(modin%vel)*invparam%nparam
+
     MSAVE=5
     NWORK=NDIM*(2*MSAVE+1)+2*MSAVE
 
@@ -86,13 +87,13 @@ contains
     allocate(xdsave(NDIM))
     XMIN=dble(invparam%parmin)
     XMAX=dble(invparam%parmax)
-
+!
     allocate(resigath(invparam%ntotaltraces))
     do i=1,invparam%ntotaltraces
        allocate(resigath(i)%trace(invparam%n1,1))
        resigath(i)%trace=0.
     end do
-
+!
     g=0.
     gd=0.
     xd=0.
@@ -104,7 +105,6 @@ contains
     count=0
     cont=.True.
     found=.False.
-
     ! We keep the starting guess in memory
     call mod_to_x(.true.,modin,xsave,invparam)    
     xdsave=xsave
@@ -172,14 +172,19 @@ contains
           cont=.false.
        end if
     end do
-
-    ! We didn't really find a new model vector, the line-search
+!    ! We didn't really find a new model vector, the line-search
     ! was still going. We take the previous best solution.
     if (.not.cont) then
        call mod_to_x(.false.,modin,xsave,invparam)
     end if
 
-    deallocate(xd,xsave,xdsave,g,wd,gd,diagd)
+    if (allocated(xd))     deallocate(xd)
+    if (allocated(xsave))  deallocate(xsave)
+    if (allocated(xdsave)) deallocate(xdsave)
+    if (allocated(g))      deallocate(g)
+    if (allocated(wd))     deallocate(wd)
+    if (allocated(gd))     deallocate(gd)
+    if (allocated(diagd))  deallocate(diagd)
 
     do i=1,invparam%ntotaltraces
        call deallocateTraceSpace(resigath(i))
