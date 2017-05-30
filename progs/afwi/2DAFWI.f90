@@ -89,13 +89,18 @@ program TWODAFWI
 !     end if
 
      ! Freeze velocity model again, and make sure we don't update where we freeze
-     call Freeze(invparam%parmin,invparam%parmax,invparam%nparam,invparam%modmask,invparam%freeze_soft,mod%vel,mod%nx*mod%ny*mod%nz,invparam%modinit)
-     call ApplyMask(mod%nx*mod%ny*mod%nz*invparam%nparam,invparam%modmask,mod%vel,invparam%modinit)
+     call Freeze(invparam%parmin(1),invparam%parmax(1),invparam%modmask(:,1),&
+     &           invparam%freeze_soft,mod%vel,mod%nx*mod%ny*mod%nz,invparam%modinit(:,1))
+     call ApplyMask(mod%nx*mod%ny*mod%nz,invparam%modmask(:,1),mod%vel,invparam%modinit(:,1))
      if (invparam%nparam.eq.2) then
         if (invparam%vprho_param.eq.0) then
-           call ApplyMask(mod%nx*mod%ny*mod%nz*invparam%nparam,invparam%modmask,mod%rho,invparam%modinit)
+           call Freeze(invparam%parmin(2),invparam%parmax(2),invparam%modmask(:,2),&
+           &           invparam%freeze_soft,mod%rho,mod%nx*mod%ny*mod%nz,invparam%modinit(:,2))
+           call ApplyMask(mod%nx*mod%ny*mod%nz,invparam%modmask(:,2),mod%rho,invparam%modinit(:,2))
         else
-           call ApplyMask(mod%nx*mod%ny*mod%nz*invparam%nparam,invparam%modmask,mod%imp,invparam%modinit)
+           call Freeze(invparam%parmin(2),invparam%parmax(2),invparam%modmask(:,2),&
+           &           invparam%freeze_soft,mod%imp,mod%nx*mod%ny*mod%nz,invparam%modinit(:,2))
+           call ApplyMask(mod%nx*mod%ny*mod%nz,invparam%modmask(:,2),mod%imp,invparam%modinit(:,2))
         end if
      end if
 
@@ -231,44 +236,39 @@ subroutine create_header(mod,invparam,genpar,ntotaltraces)
 
 end subroutine create_header
 
-subroutine ApplyMask(nd,mask,vel,velinit)
-  integer ::         nd
-  real,             dimension(nd) :: mask,vel
-  double precision, dimension(nd) :: velinit
+subroutine ApplyMask(m,mask,x,xinit)
+  integer ::         m
+  real,             dimension(m) :: mask,x
+  double precision, dimension(m) :: xinit
 
-  vel=mask*vel+(1-mask)*sngl(velinit)
+  x=mask*x+(1-mask)*sngl(xinit)
 
 end subroutine ApplyMask
 
-subroutine Freeze(xmin,xmax,nparam,mask,type,x,n,xinit)
-  integer :: nparam
-  real ::         xmin(nparam),xmax(nparam)
-  integer ::                            n,m,j,i
+subroutine Freeze(xmin,xmax,mask,type,x,m,xinit)
+  real ::         xmin,xmax
+  integer ::                            m,j,i
   logical ::                     type
-  real, dimension(n) ::     mask,     x
-  double precision, dimension(n) ::       xinit
+  real, dimension(m) ::     mask,     x
+  double precision, dimension(m) ::       xinit
 
-  m=n/nparam
-
-  do j=1,nparam
-     IF (type) THEN
-        do i=1+(J-1)*M,M+(J-1)*M
-           x(i)=max(xmin(j),x(i))
-           x(i)=min(xmax(j),x(i))
-        end do
-     ELSE     
-        do i=1+(J-1)*M,M+(J-1)*M
-           if ((mask(i).ne.0.).and.(mask(i).ne.2.)) then
-              x(i)=max(xmin(j),x(i))
-              x(i)=min(xmax(j),x(i))
-           end if
-        end do
-        do i=1+(J-1)*M,M+(J-1)*M
-           if(mask(i).eq.0.) x(i)=sngl(xinit(i))
-           if(mask(i).eq.2.) x(i)=sngl(xinit(i))
-        end do
-     ENDIF
-  end do
+  IF (type) THEN
+     do i=1,M
+        x(i)=max(xmin,x(i))
+        x(i)=min(xmax,x(i))
+     end do
+  ELSE     
+     do i=1,M
+        if ((mask(i).ne.0.).and.(mask(i).ne.2.)) then
+           x(i)=max(xmin,x(i))
+           x(i)=min(xmax,x(i))
+        end if
+     end do
+     do i=1,M
+        if(mask(i).eq.0.) x(i)=sngl(xinit(i))
+        if(mask(i).eq.2.) x(i)=sngl(xinit(i))
+     end do
+  ENDIF
 
 end subroutine Freeze
 
