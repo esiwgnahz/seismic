@@ -212,7 +212,7 @@ contains
 
     real    :: d1
     integer :: i,j,k,l,m,n1,begi,endi
-    integer :: ntsnap,ntotaltraces,index
+    integer :: ntsnap,ntotaltraces,index,indexp
     double precision :: memory_needed,gist,scaling
 
     real, dimension(:), allocatable          :: illu
@@ -304,7 +304,7 @@ contains
              do j=1,mod%nx
                 do l=1,mod%nz
                    index=l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx+(m-1)*mod%nz*mod%nx*mod%ny
-                   grad(index)=grad(index)+invparam%sigma(m)*gradthread(l,j,k,m,i)            
+                   grad(index)=grad(index)+gradthread(l,j,k,m,i)            
                 end do
              end do
           end do
@@ -323,6 +323,21 @@ contains
 
     end do
 
+    if ((invparam%nparam.eq.2).and.(invparam%vprho_param.eq.1)) then
+       !$OMP PARALLEL DO PRIVATE(k,j,l,index,indexp)
+       do k=1,mod%ny
+          do j=1,mod%nx
+             do l=1,mod%nz
+                index=l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx
+                indexp=index+mod%nz*mod%nx*mod%ny
+                grad(index)=grad(index)-(mod%rho(l,j,k)/mod%vel(l,j,k))*grad(indexp) ! grad(v)=grad(v)-Ip/vp^2*grad(rho)
+                grad(indexp)=(1/mod%vel(l,j,k))*grad(indexp)                            ! grad(Ip)=1/vp*grad(rho)
+             end do
+          end do
+       end do
+       !$OMP END PARALLEL DO 
+    end if
+
     illu=illu**invparam%illupow
 
     ! Scaling
@@ -331,9 +346,9 @@ contains
     grad=2*grad/sngl(scaling)
     illu=(illu+maxval(illu)/10000)/sqrt(sum(dprod(illu,illu))/size(illu))
 
-    grad(1:mod%nz*mod%nx*mod%ny)=grad(1:mod%nz*mod%nx*mod%ny)/illu
+    grad(1:mod%nz*mod%nx*mod%ny)=invparam%sigma(1)*grad(1:mod%nz*mod%nx*mod%ny)/illu
     if (invparam%nparam.eq.2) then
-       grad(1+mod%nz*mod%nx*mod%ny:)=grad(1+mod%nz*mod%nx*mod%ny:)/illu
+       grad(1+mod%nz*mod%nx*mod%ny:)=invparam%sigma(2)*grad(1+mod%nz*mod%nx*mod%ny:)/illu
     end if
 
     call mult_grad_mask(grad,invparam%modmask)

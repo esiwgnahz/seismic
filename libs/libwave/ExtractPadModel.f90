@@ -679,13 +679,7 @@ contains
        end do
     end do
 
-    if (vprho_param.eq.0) then
-       image=image+tmpim
-    else
-       ! Convert grad(vp,rho) into grad(vp,imp)
-       image(:,:,:,1)=image(:,:,:,1)+tmpim(:,:,:,1)-(mod%imp/mod%vel**2)*tmpim(:,:,:,2) ! grad(v)=grad(v)-Ip/vp^2*grad(rho)
-       if (nparam.eq.2) image(:,:,:,2)=image(:,:,:,2)+tmpim(:,:,:,2)/mod%vel            ! grad(Ip)=1/vp*grad(rho)
-    end if   
+    image=image+tmpim
     illum=illum+tmpil
 
     deallocate(tmpim,tmpil) 
