@@ -377,17 +377,20 @@ contains
     integer :: ierr,blocksize,index,indexm1,indexp1
     real    :: taper,tmp,tmp1,dxi,dzi,dyi,dti2
     logical :: Twoparam
+    integer :: ip,im,jp,jm,kp,km
 
     dzi =1./genpar%delta(1)
     dxi =1./genpar%delta(2)
     dyi =1./genpar%delta(3)
     dti2=1./genpar%dt2
 
+    di=1
+    dj=1
+    dk=1
     Twoparam=.false.
     if (size(model%imagesmall_nparam(1,1,1,:)).eq.2) Twoparam=.true.
     if (model%nyw.eq.1) dk=0
-    di=1
-    dj=1
+
     if (genpar%withRho) then
        MODULO:if (mod(it,genpar%snapi).eq.0) then
 
@@ -409,14 +412,18 @@ contains
                    end do
                 end do
              else
-                do k=1,max(1,model%nyw-1)
-                   do j=1,model%nxw-1
+                do k=1,model%nyw
+                   do j=1,model%nxw
                       taper=model%taperx(j)*model%tapery(k)
-                      do i=elev%ielev_z(j,k),model%nz-1
+                      do i=elev%ielev_z(j,k),model%nz
                          
-                         tmp=    dzi*(u(i+di,j,k)-u(i,j,k))*dzi*(model%wvfld%wave(i+di,j,k,index,1)-model%wvfld%wave(i,j,k,index,1))                  ! grad_z
-                         tmp=tmp+dxi*(u(i,j+dj,k)-u(i,j,k))*dxi*(model%wvfld%wave(i,j+dj,k,index,1)-model%wvfld%wave(i,j,k,index,1))                  ! grad_x
-                         tmp=tmp+dyi*(u(i,j,k+dk)-u(i,j,k))*dyi*(model%wvfld%wave(i,j,k+dk,index,1)-model%wvfld%wave(i,j,k,index,1))                  ! grad_y
+                         ip=min(model%nz,i+di);jp=min(j+dj,model%nxw);kp=min(k+dk,model%nyw)
+                         im=ip-di;jm=jp-dj;km=kp-dk
+
+                         tmp=    dzi*(u(ip,jm,km)-u(im,jm,km))*dzi*(model%wvfld%wave(ip,jm,km,index,1)-model%wvfld%wave(im,jm,km,index,1))          ! grad_z
+                         tmp=tmp+dxi*(u(im,jp,km)-u(im,jm,km))*dxi*(model%wvfld%wave(im,jp,km,index,1)-model%wvfld%wave(im,jm,km,index,1))          ! grad_x
+                         tmp=tmp+dyi*(u(im,jm,kp)-u(im,jm,km))*dyi*(model%wvfld%wave(im,jm,kp,index,1)-model%wvfld%wave(im,jm,km,index,1))          ! grad_y
+
                          tmp1=u(i,j,k)*dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1)) ! d/dt^2
                          
                                 model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+2*tmp1*taper/(model%vel(i,j,k)**3*model%rho(i,j,k))
@@ -427,6 +434,7 @@ contains
                       end do
                    end do
                 end do
+             
              end if
           else
              if (.not.Twoparam) then
@@ -441,18 +449,23 @@ contains
                    end do
                 end do
              else
-                do k=1,max(1,model%nyw-1)
-                   do j=1,model%nxw-1
+                do k=1,model%nyw
+                   do j=1,model%nxw
                       taper=model%taperx(j)*model%tapery(k)
-                      do i=1,model%nz-1
-                         tmp=    dzi*(u(i+di,j,k)-u(i,j,k))*dzi*(model%wvfld%wave(i+di,j,k,index,1)-model%wvfld%wave(i,j,k,index,1))                  ! grad_z
-                         tmp=tmp+dxi*(u(i,j+dj,k)-u(i,j,k))*dxi*(model%wvfld%wave(i,j+dj,k,index,1)-model%wvfld%wave(i,j,k,index,1))                  ! grad_x
-                         tmp=tmp+dyi*(u(i,j,k+dk)-u(i,j,k))*dyi*(model%wvfld%wave(i,j,k+dk,index,1)-model%wvfld%wave(i,j,k,index,1))                  ! grad_y
+                      do i=1,model%nz
+
+                         ip=min(model%nz,i+di);jp=min(j+dj,model%nxw);kp=min(k+dk,model%nyw)
+                         im=ip-di;jm=jp-dj;km=kp-dk
+
+                         tmp=    dzi*(u(ip,jm,km)-u(im,jm,km))*dzi*(model%wvfld%wave(ip,jm,km,index,1)-model%wvfld%wave(im,jm,km,index,1))          ! grad_z
+                         tmp=tmp+dxi*(u(im,jp,km)-u(im,jm,km))*dxi*(model%wvfld%wave(im,jp,km,index,1)-model%wvfld%wave(im,jm,km,index,1))          ! grad_x
+                         tmp=tmp+dyi*(u(im,jm,kp)-u(im,jm,km))*dyi*(model%wvfld%wave(im,jm,kp,index,1)-model%wvfld%wave(im,jm,km,index,1))          ! grad_y
+
                          tmp1=u(i,j,k)*dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1)) ! d/dt^2
                          
                          model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+2*tmp1*taper/(model%vel(i,j,k)**3*model%rho(i,j,k))
                          model%imagesmall_nparam(i,j,k,2)= model%imagesmall_nparam(i,j,k,2)+ tmp*taper/(model%rho(i,j,k)**2)+ &
-                         &                                                                  tmp1*taper/(model%rho(i,j,k)**2*model%vel(i,j,k)**2)
+                         &                                                                   tmp1*taper/(model%rho(i,j,k)**2*model%vel(i,j,k)**2)
                          model%illumsmall(i,j,k)=        model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper                        
                       end do
                    end do
@@ -508,10 +521,12 @@ contains
     integer           :: it
     integer :: i,j,k,di,dj,dk,counter
     real, dimension (:,:,:), pointer :: bwd
-    real, dimension(:,:,:), allocatable :: derxf,derzf ! Forward
-    real, dimension(:,:,:), allocatable :: derxb,derzb ! Backward
+    real, dimension(:,:,:), allocatable :: derxf,deryf,derzf ! Forward
+    real, dimension(:,:,:), allocatable :: derxb,deryb,derzb ! Backward
 
     real, dimension(:,:,:), allocatable :: grad
+
+    real, dimension(:,:,:), allocatable :: ubuf
 
     integer :: ierr,blocksize,index,indexm1,indexp1
     real    :: taper,tmp,tmp1,dxi,dzi,dyi,dti2
@@ -522,15 +537,17 @@ contains
     dyi =1./genpar%delta(3)
     dti2=1./genpar%dt2
 
+    di=1
+    dj=1
+    dk=0
     Twoparam=.false.
     if (size(model%imagesmall_nparam(1,1,1,:)).eq.2) Twoparam=.true.
     if (model%nyw.eq.1) dk=0
-    di=1
-    dj=1
     
     if (genpar%withRho) then
        if (Twoparam) then
           allocate(grad(model%nz,model%nxw,model%nyw)); grad=0.
+          allocate(ubuf(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound));ubuf=0.
        end if
     end if
 
@@ -542,19 +559,18 @@ contains
           indexp1=min(index+1,genpar%ntsnap)
           indexm1=max(index-1,1)
 
-!          write(0,*) 'here1'
           if (Twoparam) then
+             call model_pad(model%wvfld%wave(:,:,:,index,1),ubuf,bounds,model%nz,model%nxw,model%nyw,genpar)
              if (model%nyw.eq.1) then
-!          write(0,*) 'here1'
-                call FD_2d_gradient_xz_F(genpar,bounds,u,model,derxf,derzf)
-!          write(0,*) 'here1'
-                call FD_2d_gradient_xz_B(genpar,bounds,model%wvfld%wave(:,:,:,index,1),elev,model,derxb,derzb)
-!          write(0,*) 'here1'
-                grad=derxb*derxf(1:model%nz,1:model%nxw,1:model%nyw)+derzb*derzf(1:model%nz,1:model%nxw,1:model%nyw)
-!          write(0,*) 'here1'
+                call FD_2d_gradient_xz(genpar,bounds,u,   model,derxf,derzf)
+                call FD_2d_gradient_xz(genpar,bounds,ubuf,model,derxb,derzb)
+             else
+                call FD_3d_gradient_xyz(genpar,bounds,u,   model,derxf,deryf,derzf)
+                call FD_3d_gradient_xyz(genpar,bounds,ubuf,model,derxb,deryb,derzb)                
              end if
+             grad=derxb(1:model%nz,1:model%nxw,1:model%nyw)*derxf(1:model%nz,1:model%nxw,1:model%nyw)+ &
+             &    derzb(1:model%nz,1:model%nxw,1:model%nyw)*derzf(1:model%nz,1:model%nxw,1:model%nyw)
           end if
-!          write(0,*) 'here2'
           if (genpar%surf_type.ne.0) then
              if (.not.Twoparam) then
                 do k=1,model%nyw
@@ -568,11 +584,10 @@ contains
                    end do
                 end do
              else
-          write(0,*) 'here3'
-                do k=1,max(1,model%nyw-1)
-                   do j=1,model%nxw-1
+                do k=1,model%nyw
+                   do j=1,model%nxw
                       taper=model%taperx(j)*model%tapery(k)
-                      do i=elev%ielev_z(j,k),model%nz-1
+                      do i=elev%ielev_z(j,k),model%nz
                          
                          tmp1=u(i,j,k)*dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1)) ! d/dt^2
                          
@@ -598,10 +613,10 @@ contains
                    end do
                 end do
              else
-                do k=1,max(1,model%nyw-1)
-                   do j=1,model%nxw-1
+                do k=1,model%nyw
+                   do j=1,model%nxw
                       taper=model%taperx(j)*model%tapery(k)
-                      do i=1,model%nz-1
+                      do i=1,model%nz
                          tmp1=u(i,j,k)*dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1)) ! d/dt^2
                          
                          model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+2*tmp1*taper/(model%vel(i,j,k)**3*model%rho(i,j,k))
@@ -650,9 +665,11 @@ contains
        end if
     end if WITHRHO
 
+    if (allocated(ubuf))  deallocate(ubuf)
     if (allocated(grad))  deallocate(grad)
     if (allocated(derxf)) deallocate(derxf,derzf)
     if (allocated(derxb)) deallocate(derxb,derzb)
+    if (allocated(deryf)) deallocate(deryb,deryf)
 
 
   end subroutine Imaging_condition_AFWI_RHOVP_from_memory_noomp2

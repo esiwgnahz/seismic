@@ -584,13 +584,114 @@ contains
 
   end subroutine FD_2D_derivatives_acoustic_forward
 
-  subroutine FD_2D_gradient_xz_F(genpar,bounds,u,mod,derx,derz)
+  subroutine FD_3D_gradient_xyz(genpar,bounds,u,mod,derx,dery,derz)
+    type(GeneralParam)   ::     genpar
+    type(ModelSpace)     ::                     mod
+    type(FDbounds)       ::            bounds
+    real, dimension(:,:,:), allocatable ::          derx,dery,derz
+    real                 :: u(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    real, dimension(:,:,:), allocatable :: delp
+    real                 :: dxi,dyi,dzi
+    integer              :: i,j,k
+
+    allocate(derx(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))
+    allocate(dery(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))
+    allocate(derz(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))  
+    allocate(delp(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))
+    
+    delp=1./mod%rho2
+    dzi =1./genpar%delta(1)
+    dxi =1./genpar%delta(2)
+    dyi =1./genpar%delta(3)
+
+    derz=0.
+    dery=0.
+    derx=0.
+
+    do k=bounds%nmin3,bounds%nmax3
+       do j=bounds%nmin2,bounds%nmax2
+          do i=bounds%nmin1,bounds%nmax1   
+             derz(i,j,k)=          (coefs%c1z*(u(i+1,j,k)-u(i,j,k))+ &
+             &                      coefs%c2z*(u(i+2,j,k)-u(i-1,j,k))+ &
+             &                      coefs%c3z*(u(i+3,j,k)-u(i-2,j,k))+ &
+             &                      coefs%c4z*(u(i+4,j,k)-u(i-3,j,k)))*delp(i,j,k)
+             derx(i,j,k)=          (coefs%c1x*(u(i,j+1,k)-u(i,j,k))+ &
+             &                      coefs%c2x*(u(i,j+2,k)-u(i,j-1,k))+ &
+             &                      coefs%c3x*(u(i,j+3,k)-u(i,j-2,k))+ &
+             &                      coefs%c4x*(u(i,j+4,k)-u(i,j-3,k)))*delp(i,j,k)
+             dery(i,j,k)=          (coefs%c1y*(u(i,j,k+1)-u(i,j,k))+ &
+             &                      coefs%c2y*(u(i,j,k+2)-u(i,j,k-1))+ &
+             &                      coefs%c3y*(u(i,j,k+3)-u(i,j,k-2))+ &
+             &                      coefs%c4y*(u(i,j,k+4)-u(i,j,k-3)))*delp(i,j,k)
+          end do
+       end do
+    end do
+     
+    do k=bounds%nmin3,bounds%nmax3
+       do j=bounds%nmin2,bounds%nmax2
+          ! Gradient of the p-wave potential in the top operator padding 
+          do i=bounds%nmin1-1,bounds%nmin1-3,-1
+             derz(i,j,k)=dzi*(u(i+1,j,k)-u(i,j,k))*delp(bounds%nmin1,j,k)
+             derx(i,j,k)=dxi*(u(i,j+1,k)-u(i,j,k))*delp(bounds%nmin1,j,k)
+             dery(i,j,k)=dyi*(u(i,j,k+1)-u(i,j,k))*delp(bounds%nmin1,j,k)
+          end do
+          ! Gradient of the p-wave potential in the bottom operator padding
+          do i=bounds%nmax1+1,bounds%nmax1+3
+             derz(i,j,k)=dzi*(u(i+1,j,k)-u(i,j,k))*delp(bounds%nmax1,j,k)
+             derx(i,j,k)=dxi*(u(i,j+1,k)-u(i,j,k))*delp(bounds%nmax1,j,k)
+             dery(i,j,k)=dyi*(u(i,j,k+1)-u(i,j,k))*delp(bounds%nmax1,j,k)
+          end do
+       end do
+       ! Gradient of the p-wave potential in the left side operator padding 
+       do j=bounds%nmin2-1,bounds%nmin2-3,-1
+          do i=bounds%nmin1,bounds%nmax1
+             derz(i,j,k)=dzi*(u(i+1,j,k)-u(i,j,k))*delp(i,bounds%nmin2,k)
+             derx(i,j,k)=dxi*(u(i,j+1,k)-u(i,j,k))*delp(i,bounds%nmin2,k)
+             dery(i,j,k)=dyi*(u(i,j,k+1)-u(i,j,k))*delp(i,bounds%nmin2,k)
+          end do
+       end do
+       ! Gradient of the p-wave potential in the right side operator padding 
+       do j=bounds%nmax2+1,bounds%nmax2+3
+          do i=bounds%nmin1,bounds%nmax1
+             derz(i,j,k)=dzi*(u(i+1,j,k)-u(i,j,k))*delp(i,bounds%nmax2,k)
+             derx(i,j,k)=dxi*(u(i,j+1,k)-u(i,j,k))*delp(i,bounds%nmax2,k)
+             dery(i,j,k)=dyi*(u(i,j,k+1)-u(i,j,k))*delp(i,bounds%nmax2,k)
+          end do
+       end do
+    end do
+    
+    ! Gradient of the p-wave potential in the front side operator padding 
+    do k=bounds%nmin3-1,bounds%nmin3-3,-1
+       do j=bounds%nmin2,bounds%nmax2
+          do i=bounds%nmin1,bounds%nmax1
+             derz(i,j,k)=dzi*(u(i+1,j,k)-u(i,j,k))*delp(i,j,bounds%nmin3)
+             derx(i,j,k)=dxi*(u(i,j+1,k)-u(i,j,k))*delp(i,j,bounds%nmin3)
+             dery(i,j,k)=dyi*(u(i,j,k+1)-u(i,j,k))*delp(i,j,bounds%nmin3)
+          end do
+       end do
+    end do
+    
+    ! Gradient of the p-wave potential in the back side operator padding 
+    do k=bounds%nmax3+1,bounds%nmax3+3
+       do j=bounds%nmin2,bounds%nmax2
+          do i=bounds%nmin1,bounds%nmax1
+             derz(i,j,k)=dzi*(u(i+1,j,k)-u(i,j,k))*delp(i,j,bounds%nmax3)
+             derx(i,j,k)=dxi*(u(i,j+1,k)-u(i,j,k))*delp(i,j,bounds%nmax3)
+             dery(i,j,k)=dyi*(u(i,j,k+1)-u(i,j,k))*delp(i,j,bounds%nmax3)
+          end do
+       end do
+    end do
+
+    deallocate(delp)
+
+  end subroutine FD_3D_gradient_xyz
+  
+  subroutine FD_2D_gradient_xz  (genpar,bounds,u,mod,derx,derz)
     type(GeneralParam)   ::      genpar
     type(FDbounds)       ::             bounds
     type(ModelSpace)     ::                      mod
     real, dimension(:,:,:), allocatable ::           derx,derz
     real                 :: u(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
-    real                 :: tmpzz, tmpxx
     real, dimension(:,:,:), allocatable :: delp
     real                 :: dxi,dzi
     integer              :: i,j
@@ -616,53 +717,38 @@ contains
           &                      coefs%c4x*(u(i,j+4,1)-u(i,j-3,1)))*delp(i,j,1)
        end do
     end do
-     
-    deallocate(delp)
 
-  end subroutine FD_2D_gradient_xz_F
-  
-  subroutine FD_2D_gradient_xz_B(genpar,bounds,u,elev,mod,derx,derz)
-    type(GeneralParam)   ::      genpar
-    type(FDbounds)       ::             bounds
-    type(ModelSpace)     ::                           mod
-    real                 ::                    u(1:mod%nz,1:mod%nxw,1:mod%nyw)
-    type(ModelSpace_elevation) ::                elev
-    real, dimension(:,:,:), allocatable ::                derx,derz,delp
-    real                 :: dxi,dzi
-    integer              :: i,j,minz,maxz
-
-    allocate(derx(1:mod%nz,1:mod%nxw,1:mod%nyw))
-    allocate(derz(1:mod%nz,1:mod%nxw,1:mod%nyw))     
-    allocate(delp(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3:bounds%nmax3))
-    
-    delp=0.
-    delp=1./mod%rho2
-    derx=0.
-    derz=0. 
-
-    maxz=mod%nz-4
-
-    do j=4,mod%nxw-4
-       if (genpar%surf_type.ne.0) then
-          minz=elev%ielev_z(j,1)+4
-       else
-          minz=4
-       end if
-       do i=minz,maxz  
-          derz(i,j,1)=          (coefs%c1z*(u(i+1,j,1)-u(i  ,j,1))+ &
-          &                      coefs%c2z*(u(i+2,j,1)-u(i-1,j,1))+ &
-          &                      coefs%c3z*(u(i+3,j,1)-u(i-2,j,1))+ &
-          &                      coefs%c4z*(u(i+4,j,1)-u(i-3,j,1)))*delp(i,j,1)
-          derx(i,j,1)=          (coefs%c1x*(u(i,j+1,1)-u(i  ,j,1))+ &
-          &                      coefs%c2x*(u(i,j+2,1)-u(i,j-1,1))+ &
-          &                      coefs%c3x*(u(i,j+3,1)-u(i,j-2,1))+ &
-          &                      coefs%c4x*(u(i,j+4,1)-u(i,j-3,1)))*delp(i,j,1)
+    do j=bounds%nmin2,bounds%nmax2
+       ! Gradient of the p-wave potential in the top operator padding 
+       do i=bounds%nmin1-1,bounds%nmin1-3,-1
+          derz(i,j,1)=dzi*(u(i+1,j,1)-u(i,j,1))*delp(bounds%nmin1,j,1)
+          derx(i,j,1)=dxi*(u(i,j+1,1)-u(i,j,1))*delp(bounds%nmin1,j,1)
+       end do
+       ! Gradient of the p-wave potential in the bottom operator padding
+       do i=bounds%nmax1+1,bounds%nmax1+3
+          derz(i,j,1)=dzi*(u(i+1,j,1)-u(i,j,1))*delp(bounds%nmax1,j,1)
+          derx(i,j,1)=dxi*(u(i,j+1,1)-u(i,j,1))*delp(bounds%nmax1,j,1)
        end do
     end do
-     
+    ! Gradient of the p-wave potential in the left side operator padding 
+    do j=bounds%nmin2-1,bounds%nmin2-3,-1
+       do i=bounds%nmin1,bounds%nmax1
+          derz(i,j,1)=dzi*(u(i+1,j,1)-u(i,j,1))*delp(i,bounds%nmin2,1)
+          derx(i,j,1)=dxi*(u(i,j+1,1)-u(i,j,1))*delp(i,bounds%nmin2,1)
+       end do
+    end do
+    
+    ! Gradient of the p-wave potential in the right side operator padding 
+    do j=bounds%nmax2+1,bounds%nmax2+3
+       do i=bounds%nmin1,bounds%nmax1
+          derz(i,j,1)=dzi*(u(i+1,j,1)-u(i,j,1))*delp(i,bounds%nmax2,1)
+          derx(i,j,1)=dxi*(u(i,j+1,1)-u(i,j,1))*delp(i,bounds%nmax2,1)
+       end do
+    end do 
+
     deallocate(delp)
 
-  end subroutine FD_2D_gradient_xz_B
+  end subroutine FD_2D_gradient_xz
   
   subroutine FD_2D_derivatives_acoustic_forward_grid(genpar,bounds,u2,u3,mod)
     type(GeneralParam)   ::                     genpar
