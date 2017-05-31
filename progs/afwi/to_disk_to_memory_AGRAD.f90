@@ -56,7 +56,7 @@ contains
           & FD_2nd_time_derivative_grid_noomp,               &
           & FDswaptime_pointer,                              &
           & bounds,model,elev,genpar,                        &
-          & sou=datavec,ImagingCondition=Imaging_condition_AFWI_RHOVP_from_memory_noomp)
+          & sou=datavec,ImagingCondition=Imaging_condition_AFWI_RHOVP_from_memory_noomp2)
        else
           call propagator_acoustic(                          &
           & FD_acoustic_init_coefs,                          &
@@ -65,7 +65,7 @@ contains
           & FD_2nd_time_derivative_grid_noomp,               &
           & FDswaptime_pointer,                              &
           & bounds,model,elev,genpar,                        &
-          & sou=datavec,ImagingCondition=Imaging_condition_AFWI_RHOVP_from_memory_noomp)
+          & sou=datavec,ImagingCondition=Imaging_condition_AFWI_RHOVP_from_memory_noomp2)
        end if
     else
        if (genpar%withRho) then
@@ -76,7 +76,7 @@ contains
           & FD_2nd_time_derivative_grid_noomp,               &
           & FDswaptime_pointer,                              &
           & bounds,model,elev,genpar,                        &
-          & sou=datavec,ImagingCondition=Imaging_condition_AFWI_RHOVP_from_memory_noomp)
+          & sou=datavec,ImagingCondition=Imaging_condition_AFWI_RHOVP_from_memory_noomp2)
        else
           call propagator_acoustic(                          &
           & FD_acoustic_init_coefs,                          &
@@ -85,7 +85,7 @@ contains
           & FD_2nd_time_derivative_grid_noomp,               &
           & FDswaptime_pointer,                              &
           & bounds,model,elev,genpar,                        &
-          & sou=datavec,ImagingCondition=Imaging_condition_AFWI_RHOVP_from_memory_noomp)
+          & sou=datavec,ImagingCondition=Imaging_condition_AFWI_RHOVP_from_memory_noomp2)
        end if
     end if
     if (genpar%verbose) write(0,*) 'INFO: Done with 2nd forward propagation'

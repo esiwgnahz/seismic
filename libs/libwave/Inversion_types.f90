@@ -108,17 +108,20 @@ contains
     write(0,*) 'INFO:   vpmax      = ',invparam%parmax(1)
     if (withRho) then
        write(0,*) 'INFO:'
-       write(0,*) 'INFO:  Inversion with density '
+       write(0,*) 'INFO:   Inversion with density '
        write(0,*) 'INFO:'
        if (invparam%invert_rho) then
-          write(0,*) 'INFO:   par2min    = ',invparam%parmin(2)
-          write(0,*) 'INFO:   par2max    = ',invparam%parmax(2)
-          write(0,*) 'INFO:   sigma(1,2) = ',invparam%sigma
-          if (invparam%vprho_param.eq.0) then
-             write(0,*) 'INFO: Inversion with Vp/Rho parameterization'
+          write(0,*) 'INFO:   ======================================'
+          if (invparam%vprho_param.eq.0) then            
+             write(0,*) 'INFO:   Inversion with Vp/Rho parameterization'
           else if (invparam%vprho_param.eq.1) then
              write(0,*) 'INFO: Inversion with Vp/Ip parameterization'
           end if
+          write(0,*) 'INFO:   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'
+          write(0,*) 'INFO:'
+          write(0,*) 'INFO:   par2min    = ',invparam%parmin(2)
+          write(0,*) 'INFO:   par2max    = ',invparam%parmax(2)
+          write(0,*) 'INFO:   sigma(1,2) = ',invparam%sigma
        else
           write(0,*) 'INFO:   Density is not changed'
        end if

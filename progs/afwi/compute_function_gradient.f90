@@ -338,13 +338,10 @@ contains
 
     call mult_grad_mask(grad,invparam%modmask)
     call triangle2(smoothpar,grad(1:mod%nz*mod%nx*mod%ny))
-    
     if (invparam%nparam.eq.2) then
        call triangle2(smoothpar,grad(1+mod%nz*mod%nx*mod%ny:))
     end if
-
     call mult_grad_mask(grad,invparam%modmask)
-
     deallocate(gradthread,illu,illuthread,fthread)
     deallocate(elevgath)
 
@@ -364,7 +361,7 @@ contains
           do j=1,mod%nx
              do i=1,mod%nz
                 grad(i+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx+(l-1)*mod%nz*mod%nx*mod%ny)=grad(i+(j-1)*mod%nz+(k-1)* &
-               &             mod%nz*mod%nx+(l-1)*mod%nz*mod%nx*mod%ny)*mask(i+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx+(l-1),l)
+               &             mod%nz*mod%nx+(l-1)*mod%nz*mod%nx*mod%ny)*mask(i+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx,l)
              end do
           end do
        end do
