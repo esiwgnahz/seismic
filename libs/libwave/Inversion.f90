@@ -111,7 +111,8 @@ contains
 
     do while (cont.and.(.not.found))
 
-       stat2=fctgdt(g=g,f=fd,res=resigath)
+      stat2=fctgdt(g=g,f=fd,res=resigath)
+
        if (invparam%eval.eq.0) then
           g0=maxval(xsave)/(100*maxval(abs(g)))
           f0=dble(maxval(xsave)**2)/abs(fd)

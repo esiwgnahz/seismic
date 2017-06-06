@@ -103,7 +103,7 @@ contains
     real, dimension(:), pointer :: gtmp1
     real, dimension(:), pointer :: gtmp2
 
-    allocate(gtmp(mod%nx*mod%ny*mod%nz*invparam%nparam))
+    allocate(gtmp(mod%nx*mod%ny*mod%nz))
 
     gtmp=0.
     ftmp=0.
@@ -331,7 +331,7 @@ contains
                 index=l+(j-1)*mod%nz+(k-1)*mod%nz*mod%nx
                 indexp=index+mod%nz*mod%nx*mod%ny
                 grad(index)=grad(index)-(mod%rho(l,j,k)/mod%vel(l,j,k))*grad(indexp) ! grad(v)=grad(v)-Ip/vp^2*grad(rho)
-                grad(indexp)=(1/mod%vel(l,j,k))*grad(indexp)                            ! grad(Ip)=1/vp*grad(rho)
+                grad(indexp)=(1/mod%vel(l,j,k))*grad(indexp)                         ! grad(Ip)=1/vp*grad(rho)
              end do
           end do
        end do

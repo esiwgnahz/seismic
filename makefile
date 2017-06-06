@@ -53,3 +53,9 @@ all:
 	(cd progs/procs; make)
 	(cd progs/inversion; make)
 
+listfiles='ls */*/*90'
+
+listdo:
+	for files in ${listfiles}; do\
+		echo $$files ;\
+	done	
