@@ -1,3 +1,8 @@
+! 
+! -----------------------------------------------
+! Copyright (c) 2016-2017 Bellevue Geophysics LLC
+! -----------------------------------------------
+! 
 module ncnbound  
   ! mark helix filter outputs where input is off data.
   use nhelix

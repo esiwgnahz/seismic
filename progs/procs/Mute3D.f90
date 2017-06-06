@@ -1,3 +1,8 @@
+! 
+! -----------------------------------------------
+! Copyright (c) 2016-2017 Bellevue Geophysics LLC
+! -----------------------------------------------
+! 
 program Mute3D
 
   use sep
@@ -14,8 +19,9 @@ program Mute3D
 
   real :: vmute,tmute,t0,dt,ot,t
   real :: sx,gx,sy,gy,h
-  integer :: i,nt,it
+  integer :: i,j,nt,it,ntaper
   logical :: verb
+  real :: pi=3.141592654
 
   call sep_init()
 
@@ -31,6 +37,7 @@ program Mute3D
 
   call from_param('tmute',tmute,0.)
   call from_param('vmute',vmute,0.)
+  call from_param('ntaper',ntaper,0)
   call from_param('verb',verb,.true.)
   call from_param('num_threads',genpar%nthreads,4)
   
@@ -50,9 +57,12 @@ program Mute3D
   do i=1,size(datavec)
      h=sqrt((datavec(i)%coord(2)-sourcevec(1)%coord(2))**2+(datavec(i)%coord(3)-sourcevec(1)%coord(3))**2)! Compute offset
      t=sqrt(tmute**2+(h/vmute)**2) ! Tmute as a function of offset
-     it=(t-ot)/dt+1.5              ! NN Mute
+     it=(t-ot)/dt+1.5-ntaper              ! NN Mute
      it=min(max(1,it),nt)          ! Make sure within bounds
      datavec(i)%trace(1:it,1)=0.   ! Mute here
+     do j=it,min(max(1,it+ntaper),nt)
+        datavec(i)%trace(j,1)=sin((j-it)*pi/(2*max(ntaper,1)))**2
+     end do
   end do
   !$OMP END PARALLEL DO
 

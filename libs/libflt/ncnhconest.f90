@@ -1,3 +1,8 @@
+! 
+! -----------------------------------------------
+! Copyright (c) 2016-2017 Bellevue Geophysics LLC
+! -----------------------------------------------
+! 
 module ncnhconest  
 ! non-causal non-stationary convolution, adjoint is the filter.
   use adj_mod

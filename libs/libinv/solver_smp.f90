@@ -1,3 +1,8 @@
+! 
+! -----------------------------------------------
+! Copyright (c) 2016-2017 Bellevue Geophysics LLC
+! -----------------------------------------------
+! 
 module solver_smp_mod2
   ! 0 = W (F J m - d)
   use omp_lib

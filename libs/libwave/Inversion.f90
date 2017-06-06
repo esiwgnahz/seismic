@@ -1,3 +1,8 @@
+! 
+! -----------------------------------------------
+! Copyright (c) 2016-2017 Bellevue Geophysics LLC
+! -----------------------------------------------
+! 
 module Inversion_mod
 
   use sep
@@ -110,7 +115,6 @@ contains
     do while (cont.and.(.not.found))
 
        stat2=fctgdt(g=g,f=fd,res=resigath)
-
        if (invparam%eval.eq.0) then
           g0=maxval(x)/(100*maxval(abs(g)))
           f0=dble(maxval(x)**2)/abs(fd)

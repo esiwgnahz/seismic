@@ -53,3 +53,14 @@ all:
 	(cd progs/procs; make)
 	(cd progs/inversion; make)
 
+listfiles='ls  */*/*90'
+
+listdo:
+	for files in ${listfiles}; do\
+		echo $$files ;\
+		sed -i '1i ! ' $$files ;\
+		sed -i '1i ! -----------------------------------------------' $$files ;\
+		sed -i '1i ! Copyright (c) 2016-2017 Bellevue Geophysics LLC' $$files ;\
+		sed -i '1i ! -----------------------------------------------' $$files ;\
+		sed -i '1i ! ' $$files ;\
+	done

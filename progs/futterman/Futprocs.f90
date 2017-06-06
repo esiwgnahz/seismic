@@ -1,3 +1,8 @@
+! 
+! -----------------------------------------------
+! Copyright (c) 2016-2017 Bellevue Geophysics LLC
+! -----------------------------------------------
+! 
 !! Futprocs.x nt=128 Q=10 > out.H
 program zyxabc
   ! nt must be a power of 2

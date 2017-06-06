@@ -1,3 +1,8 @@
+! 
+! -----------------------------------------------
+! Copyright (c) 2016-2017 Bellevue Geophysics LLC
+! -----------------------------------------------
+! 
 program TWODAFWI
 
   use sep
@@ -50,6 +55,7 @@ program TWODAFWI
 
   call from_aux('coordfile','n2',ntotaltraces)
   call read_3D_params(genpar)
+  if (genpar%withRho) call erexit('Error: Rho not implemented in this version')
   call readsou(source,genpar)
   call readgathercoords(shotgath,sourcegath,genpar)
   if (genpar%task.ne.'MOD') call readgathertraces(shotgath,source)
