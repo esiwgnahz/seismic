@@ -1,3 +1,8 @@
+! 
+! -----------------------------------------------
+! Copyright (c) 2016-2017 Bellevue Geophysics LLC
+! -----------------------------------------------
+! 
 module nhelicon_mod  
   ! Nonstationary convolution, inverse to deconvolution.
   use adj_mod

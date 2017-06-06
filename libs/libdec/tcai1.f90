@@ -1,3 +1,8 @@
+! 
+! -----------------------------------------------
+! Copyright (c) 2016-2017 Bellevue Geophysics LLC
+! -----------------------------------------------
+! 
 module tcai1  
 ! Transient Convolution Adjoint Input 1-D. yy(m1+n1)
   use adj_mod

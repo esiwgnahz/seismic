@@ -1,3 +1,8 @@
+! 
+! -----------------------------------------------
+! Copyright (c) 2016-2017 Bellevue Geophysics LLC
+! -----------------------------------------------
+! 
 module nchconest  
   use omp_lib
 ! non-causal masked helix convolution, adjoint is the filter.

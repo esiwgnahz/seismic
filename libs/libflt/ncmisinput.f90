@@ -1,3 +1,8 @@
+! 
+! -----------------------------------------------
+! Copyright (c) 2016-2017 Bellevue Geophysics LLC
+! -----------------------------------------------
+! 
 module ncnmisinput  
   ! find a mask of missing filter inputs
   use ncnhelicon

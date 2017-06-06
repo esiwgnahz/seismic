@@ -1,3 +1,8 @@
+! 
+! -----------------------------------------------
+! Copyright (c) 2016-2017 Bellevue Geophysics LLC
+! -----------------------------------------------
+! 
 ! <in.H Rickdecon debubl=.06 ricker=.06 tresol=.01 shot=shot.H >out.H
 program zyxabc
   use sep

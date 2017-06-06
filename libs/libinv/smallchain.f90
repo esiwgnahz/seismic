@@ -1,3 +1,8 @@
+! 
+! -----------------------------------------------
+! Copyright (c) 2016-2017 Bellevue Geophysics LLC
+! -----------------------------------------------
+! 
 module chain0_mod  
   implicit none
   logical, parameter, private :: T = .true., F = .false.

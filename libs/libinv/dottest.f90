@@ -1,3 +1,8 @@
+! 
+! -----------------------------------------------
+! Copyright (c) 2016-2017 Bellevue Geophysics LLC
+! -----------------------------------------------
+! 
 !!$=head1 NAME
 !!$
 !!$dottest - Perform a dot product test on an operator
