@@ -15,6 +15,8 @@ program THREEDRTM
   use ModelSpace_types
   use GeneralParam_types
 
+  use THREED_Doc
+
   implicit none
 
   type(GeneralParam) :: genpar
@@ -31,6 +33,7 @@ program THREEDRTM
   double precision :: memory_needed
 
   call sep_init()
+  call RTM_doc()
 
   write(0,*) 'INFO:'
   write(0,*) 'INFO: -- RTM Starting -- '

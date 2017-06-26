@@ -15,6 +15,8 @@ program THREEDBORN
   use ModelSpace_types
   use GeneralParam_types
 
+  use THREED_Doc
+
   implicit none
 
   type(GeneralParam) :: genpar
@@ -31,6 +33,7 @@ program THREEDBORN
   double precision :: memory_needed
 
   call sep_init()
+  call BORNMOD_doc()
 
   write(0,*) 'INFO:'
   write(0,*) 'INFO: -- Born Modeling Starting -- '

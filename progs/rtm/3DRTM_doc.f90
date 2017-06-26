@@ -12,7 +12,7 @@ contains
     call sep_add_doc_line("    3DRTM.x - 3D/2D RTM - 2nd order Time/8th order Space domain FD scheme ")
     call sep_add_doc_line("")
     call sep_add_doc_line("SYNOPSIS")
-    call sep_add_doc_line("    3DRTM.x vel=vel.H traces=traces.H coordfile=coord.H stdin=wavelet.H image=img.H > /dev/null ")
+    call sep_add_doc_line("    3DRTM.x vel=vel.H traces=traces.H  coordfile=coord.H stdin=wavelet.H image=img.H > /dev/null ")
     call sep_add_doc_line("")
     call sep_add_doc_line("INPUT PARAMETERS")
     call Com_doc()
