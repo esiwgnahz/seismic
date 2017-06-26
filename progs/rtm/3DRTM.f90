@@ -67,6 +67,8 @@ program THREEDRTM
   write(0,*) 'INFO:'
   write(0,*) 'INFO: Memory needed to write wavefield =',memory_needed,'Gb'
 
+  call omp_set_num_threads(genpar%nthreads)
+
   if (dble(genpar%max_memory).gt.memory_needed) then
      write(0,*) 'INFO: writing wavefield in memory'
      write(0,*) 'INFO:'
