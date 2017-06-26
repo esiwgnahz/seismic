@@ -627,7 +627,6 @@ contains
     ! check the velocity model for its maximum value
     !
     stab_cond=0.35
-    stab_cond=0.45
     if (genpar%twoD) stab_cond=0.45
 
     vmax=maxval(vel)
