@@ -53,6 +53,7 @@ program Acoustic_modeling
      genpar%nbound=0
   end if
 
+  call from_param('withRho',genpar%withRho,.false.)
   call from_param('rec_type',genpar%rec_type,0)
   call from_param('shot_type',genpar%shot_type,0)
   call from_param('surf_type',genpar%surf_type,0)

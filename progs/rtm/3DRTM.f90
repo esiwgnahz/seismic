@@ -66,7 +66,7 @@ program THREEDRTM
   allocate(elev%elev(bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
   elev%elev=0.
 
-  memory_needed=dble(mod%nxw)*dble(mod%nz)*dble(mod%nyw)*1e-9*4*dble(genpar%ntsnap)
+  memory_needed=dble(mod%nxw)*dble(mod%nz)*dble(mod%nyw)*9.3132257e-10*4*dble(genpar%ntsnap)
   write(0,*) 'INFO:'
   write(0,*) 'INFO: Memory needed to write wavefield =',memory_needed,'Gb'
 

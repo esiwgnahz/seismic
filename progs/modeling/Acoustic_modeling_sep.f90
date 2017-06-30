@@ -53,6 +53,7 @@ program Acoustic_modeling_sep
 
   call from_param('twoD',genpar%twoD,.false.)
 
+  call from_param('withRho',genpar%withRho,.false.)
   if (.not.genpar%twoD) then     
      genpar%nbound=4
   else

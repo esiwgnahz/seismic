@@ -92,6 +92,21 @@ program THREEDBORN
      call srite('data',datavec(i)%trace(:,1),4*sourcevec(1)%dimt%nt)
   end do
 
+!  call to_history('n1',mod%nz,'bornwavefield')
+!  call to_history('n2',mod%nxw,'bornwavefield')
+!  call to_history('d1',mod%dz,'bornwavefield')
+!  call to_history('d2',mod%dx,'bornwavefield')
+!  call to_history('o1',genpar%omodel(1),'bornwavefield')
+!  call to_history('o2',genpar%omodel(2),'bornwavefield')
+!  if (genpar%twoD) then
+!     call to_history('n3',genpar%ntsnap,'bornwavefield')
+!  else
+!     call to_history('n3',mod%nyw,'bornwavefield')
+!     call to_history('d3',mod%dy,'bornwavefield')
+!     call to_history('o3',genpar%omodel(3),'bornwavefield')
+!     call to_history('n4',genpar%ntsnap,'bornwavefield')
+!  end if
+
   call to_history('n1',sourcevec(1)%dimt%nt,'data')
   call to_history('n2',size(datavec),'data')
   call to_history('d1',sourcevec(1)%dimt%dt,'data')
