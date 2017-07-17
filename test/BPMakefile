@@ -1,0 +1,831 @@
+BPVEL=/u/st/by/aguitton/data/BP2004/BP2004vel.rsf
+BPVELNOSALT=/u/st/by/aguitton/data/BP2004/BP2004velnosalt.rsf
+
+BPSfmin=2
+BPSfund=8.
+BPStdelay=1.5
+BPSnt_delay=50
+
+BPSntc=3071
+BPSdtc=0.0013
+
+BPSnt=4000
+BPSdt=0.0018
+BPSot=0.0
+
+BPSnhx=200
+BPSdhx=40
+BPSohx=-8000
+
+BPSdz=20
+BPSnz=150
+BPSoz=25000
+
+BPSstype=1
+
+BPSosx_1=9000
+BPSnsx_1=150
+BPSdsx_1=80.
+
+BPsource.H:
+	Wavelet wavelet=ricker2 n1=${BPSnt} d1=${BPSdt} fund=${BPSfund} tdelay=${BPStdelay} > $@ 
+
+BPvelpint.H:
+	Add scale=1 < ${BPVEL} > junk1.H
+	echo d1=2.5 d2=5 >> junk1.H
+	Interp d1out=${BPSdz} d2out=20 type=0 maxsize=100 < junk1.H > junk.H  
+	< junk.H Window n1=${BPSnz} n2=600 min2=9000 >  $@
+
+BPrhoint.H: BPvelpint.H
+	Math file1=BPvelpint.H exp="0.35*file1^0.25" > $@
+
+BPvelpintnosalt.H:
+	Add scale=1 < ${BPVELNOSALT} > junk1.H
+	echo d1=2.5 d2=5 >> junk1.H
+	Interp d1out=${BPSdz} d2out=${BPSdhx} type=0 maxsize=100 < junk1.H > junk.H  
+	< junk.H Window n1=${BPSnz} n2=600 min2=9000 > $@
+
+BPvpmask.H: BPvelpint.H
+	${CHANGE} value=1487.2 < BPvelpint.H | Window3d n1=30 > junk.H
+	< junk.H Pad extend=1 n1out=150 > $@
+
+BPvpmaskside.H: BPvpmask.H
+	Window3d f2=20 n2=530 n1=145 < BPvpmask.H > 1.H
+	Math file1=1.H exp="1" > 2.H 
+	<2.H Pad beg2=20 end2=50 end1=5 > 3.H
+	Math file1=BPvpmask.H file2=3.H exp="file1*file2" > $@
+	Cat $@ BPvpmask.H | Grey gainpanel=e | Tube 
+
+BPvelsmooth.H: BPvelpintnosalt.H BPvpmask.H BPvelpint.H
+	Smooth rect1=5 rect2=15 repeat=6 < BPvelpintnosalt.H > junk.H
+	Math file1=BPvpmask.H file2=junk.H file3=BPvelpint.H \
+	exp="file1*file2+(1-file1)*file3" > $@
+	Cat $@ BPvelpint.H | Grey color=j newclip=1 | Tube
+
+BPvelvoz.H: BPvpmask.H
+	Math file1=BPvelpint.H exp="1400" > 2.H
+	Math file1=BPvelpint.H exp="0.88" | Tpow tpow=1 > 1.H
+	Add scale=1,1 1.H 2.H > 3.H
+	Math file1=3.H file2=BPvelpint.H file3=BPvpmask.H \
+	exp="file1*file3+(1-file3)*file2" > $@
+	Cat BPvelpint.H $@  |Grey color=j newclip=1 | Tube 
+
+BPvozw.H: BPvpmask.H
+	Math file1=BPvelpint.H exp="1" > 1.H
+	echo d1=1 o1=0. >> 1.H
+	Tpow tpow=1 < 1.H > 2.H
+	Math file1=2.H file2=1.H exp="((200-file1)^3.5/199^3.5+0.1)/1.1" > $@
+#	Math file1=2.H file2=1.H exp="1." > $@
+	Window3d n2=1 < $@ | Graph | Tube &
+
+BPheaderLAND.H:
+	${HEAD} header=$@ survey_type='lan' \
+	ngx=200 \
+	dgx=60. \
+	ogx=9000. \
+	osx=${BPSosx_1} \
+	nsx=${BPSnsx_1} \
+	dsx=${BPSdsx_1} > /dev/null
+
+BPheaderSEA.H:
+	${HEAD} header=$@ survey_type='sea' \
+	nhx=200 \
+	dhx=40. \
+	ohx=-8000. \
+	osx=${BPSosx_1} \
+	nsx=${BPSnsx_1} \
+	dsx=${BPSdsx_1} > /dev/null
+
+BPheaderLAND1shot.H:
+	${HEAD} header=$@ survey_type='lan' \
+	ngx=200 \
+	dgx=60. \
+	ogx=9000. \
+	osx=15000 \
+	nsx=1 \
+	dsx=20 > /dev/null
+
+BPtracesLAND.H:BPheaderLAND.H BPsource.H BPvelpint.H
+	time ${AFWI} stdin=BPsource.H vel=BPvelpint.H twoD=1 \
+	fmax=20 \
+	coordfile=BPheaderLAND.H \
+	fmax=16 aperture_x=10000 aperture_y=1 \
+	keygx=2 \
+	keygy=3 \
+	keysx=1 \
+	keysy=4 \
+	keyselev=3 \
+	keygelev=3 \
+	withRho=0 \
+	surf_type=0 \
+	rec_type=1 \
+	shot_type=1 \
+	snapi=4 ntaper=20 num_threads=8 \
+	data=$@ maxsize=1 > /dev/null
+
+BPtracesSEA.H:BPheaderSEA.H BPsource.H BPvelpint.H
+	time ${AFWI} stdin=BPsource.H vel=BPvelpint.H twoD=1 \
+	fmax=20 \
+	coordfile=BPheaderSEA.H \
+	fmax=16 aperture_x=12000 aperture_y=1 \
+	keygx=2 \
+	keygy=3 \
+	keysx=1 \
+	keysy=4 \
+	keyselev=3 \
+	keygelev=3 \
+	withRho=0 \
+	surf_type=0 \
+	rec_type=1 \
+	shot_type=1 \
+	snapi=4 ntaper=20 num_threads=8 \
+	data=$@ maxsize=1 > /dev/null
+
+BPtracesREF.H:
+	Spike n1=2500 n2=600 > traces.H
+	echo o2=9000 d2=20 o3=15000 d3=20 n3=1 d1=0.0018 >> traces.H
+	Math file1=BPvelpint.H exp="1" > mask.H
+	/u/st/by/aguitton/backup/home/aguitton/backup02_26_2017/work/FWI/Progs/GIS/trunk/WI/WIA/bin/LINUX/WI.x \
+	land=1 \
+	vel=BPvelpint.H \
+	rho=BPrhoint.H \
+	density=1 \
+	traces=traces.H \
+	fmax=20  \
+	task=1 \
+	surf_type=0 \
+	rec_type=1 \
+	shot_type=1 \
+	percx=0 \
+	percz=0 \
+	vel_dens_mask=mask.H \
+	stdin=BPsource.H > $@
+
+BPtracesLANDwithRHO.H:BPheaderLAND.H BPsource.H BPvelpint.H BPrhoint.H
+	time ${AFWI} stdin=BPsource.H vel=BPvelpint.H rho=BPrhoint.H twoD=1 withRho=1 \
+	fmax=20 \
+	coordfile=BPheaderLAND.H \
+	fmax=16 aperture_x=10000 aperture_y=1 \
+	keygx=2 \
+	keygy=3 \
+	keysx=1 \
+	keysy=4 \
+	keyselev=3 \
+	keygelev=3 \
+	surf_type=0 \
+	rec_type=1 \
+	shot_type=1 \
+	snapi=1 ntaper=20 num_threads=8 \
+	data=$@ maxsize=1 > /dev/null
+
+BPmigLANDwithRho.H: BPtracesLANDwithRHO.H BPheaderLAND.H BPsource.H BPvelpint.H BPrhoint.H
+#	Window3d n1=15 < BPsource.H > BPsources.H
+#	Window3d n1=15 < BPtracesLANDwithRHO.H > BPtracesLANDwithRHOs.H
+	time ${AFWI} stdin=BPsource.H vel=BPvelpint.H rho=BPrhoint.H twoD=1 Task="MIG" \
+	fmax=20 traces=BPtracesLANDwithRHO.H \
+	coordfile=BPheaderLAND.H \
+	fmax=16 aperture_x=10000 aperture_y=1 \
+	keygx=2 \
+	keygy=3 \
+	keysx=1 \
+	keysy=4 \
+	keyselev=3 \
+	keygelev=3 \
+	withRho=1 \
+	surf_type=0 \
+	rec_type=1 \
+	shot_type=1 \
+	snapi=4 ntaper=20 num_threads=8 verb=0 \
+	image=$@ maxsize=1 > /dev/null
+
+BPmigLAND.H: BPtracesLAND.H BPheaderLAND.H BPsource.H BPvelpint.H
+#	Window3d n1=1500 < BPsource.H > BPsources.H
+#	Window3d n1=1500 < BPtracesLAND.H > BPtracesLANDs.H
+	time ${AFWI} stdin=BPsource.H vel=BPvelpint.H twoD=1 Task="MIG" \
+	fmax=20 traces=BPtracesLAND.H \
+	coordfile=BPheaderLAND.H \
+	fmax=16 aperture_x=10000 aperture_y=1 \
+	keygx=2 \
+	keygy=3 \
+	keysx=1 \
+	keysy=4 \
+	keyselev=3 \
+	keygelev=3 \
+	withRho=0 \
+	surf_type=0 \
+	rec_type=1 \
+	shot_type=1 \
+	snapi=4 ntaper=20 num_threads=8 verb=0 \
+	image=$@ maxsize=1 > /dev/null
+
+BPFWI_Fmax%.H: BPtracesLAND.H BPheaderLAND.H BPsource.H BPvpmask.H 
+	time ${AFWI} stdin=BPsource.H vel=BPvpFmax$*.H twoD=1 \
+	fmax=20 \
+	Task='INV' \
+	traces=BPtracesLAND.H \
+	vpmask=BPvpmask.H \
+	coordfile=BPheaderLAND.H \
+	aperture_x=9000 aperture_y=1 \
+	keygx=2 keygy=3 keysx=1 keysy=4 keyselev=3 keygelev=3 \
+	withRho=0 \
+	surf_type=1 rec_type=0 shot_type=0 \
+	vpmax=4791. \
+	vpmin=1487. \
+	gradient=grad$@ \
+	residual=res$@ \
+	model=mod$@ \
+	function=fct$@ \
+	mute_out=mute$@ \
+	freeze_soft=1 \
+	fhi=$* nplo=6 nphi=25 phase=1 \
+	t0=0.35 \
+	v0=1800. \
+	percx=0. percz=0. \
+	verb=0 \
+	neval=100 niter=30 \
+	wantreg=0 \
+	snapi=1 ntaper=20 num_threads=10 \
+	inv=$@  maxsize=1 > /dev/null
+
+BPFWI_Fmax${FREQBP}.Eps${BPEPSHINGE}.H: BPtracesLAND.H BPheaderLAND.H BPsource.H BPvpmaskside.H 
+	${AFWI} stdin=BPsource.H vel=BPvelupdate.H twoD=1 \
+	fmax=20 \
+	Task='INV' \
+	traces=BPtracesLAND.H \
+	vpmask=BPvpmask.H \
+	coordfile=BPheaderLAND.H \
+	aperture_x=9000 aperture_y=1 \
+	keygx=2 keygy=3 keysx=1 keysy=4 keyselev=3 keygelev=3 \
+	withRho=0 \
+	surf_type=0 rec_type=1 shot_type=1 \
+	vpmax=4791. \
+	vpmin=1487. \
+	gradient=grad/grad$@ \
+	residual=res/res$@ \
+	model=mod/mod$@ \
+	function=fct/fct$@ \
+	mute_out=mute$@ \
+	freeze_soft=1 \
+	fhi=${FREQBP} nplo=6 nphi=14 phase=0 \
+	t0=0.15 \
+	v0=18000. \
+	t1=7. \
+	v1=18000. \
+	wantreg=1 \
+	wantlog=0 \
+	derivdz=1 \
+	derivdx=1 \
+	eps=1E-4 \
+	model_nrm_type=Cauchy \
+	reg_threshold=40. \
+	percx=0. percz=0. \
+	verb=0 \
+	Z_weights=BPvozw.H \
+	neval=70 niter=50 \
+	snapi=4 ntaper=20 num_threads=10 \
+	inv=$@  maxsize=1 > /dev/null
+
+BPFWI2_Fmax${FREQBP}.Eps${BPEPSHINGE}.H: BPtracesLAND.H BPheaderLAND.H BPsource.H BPvpmaskside.H 
+	${AFWI} stdin=BPsource.H vel=BPvelupdate.H twoD=1 \
+	fmax=20 \
+	Task='INV' \
+	traces=BPtracesLAND.H \
+	vpmask=BPvpmask.H \
+	coordfile=BPheaderLAND.H \
+	aperture_x=9000 aperture_y=1 \
+	keygx=2 keygy=3 keysx=1 keysy=4 keyselev=3 keygelev=3 \
+	withRho=0 \
+	surf_type=0 rec_type=1 shot_type=1 \
+	vpmax=4791. \
+	vpmin=1487. \
+	gradient=grad/grad$@ \
+	residual=res/res$@ \
+	model=mod/mod$@ \
+	function=fct/fct$@ \
+	mute_out=mute$@ \
+	freeze_soft=1 \
+	fhi=${FREQBP} nplo=6 nphi=14 phase=0 \
+	t0=0.15 \
+	v0=18000. \
+	t1=7. \
+	v1=18000. \
+	wantreg=1 \
+	wantlog=0 \
+	derivdz=1 \
+	derivdx=1 \
+	eps=3E-4 \
+	model_nrm_type=Cauchy \
+	reg_threshold=30. \
+	percx=0. percz=0. \
+	verb=0 \
+	Z_weights=BPvozw.H \
+	neval=60 niter=50 \
+	snapi=4 ntaper=20 num_threads=10 \
+	inv=$@  maxsize=1 > /dev/null
+
+BPFWI3_Fmax${FREQBP}.Eps${BPEPSHINGE}.H: BPtracesLAND.H BPheaderLAND.H BPsource.H BPvpmaskside.H 
+	${AFWI} stdin=BPsource.H vel=BPvelupdate.H twoD=1 \
+	fmax=20 \
+	Task='INV' \
+	traces=BPtracesLAND.H \
+	vpmask=BPvpmask.H \
+	coordfile=BPheaderLAND.H \
+	aperture_x=9000 aperture_y=1 \
+	keygx=2 keygy=3 keysx=1 keysy=4 keyselev=3 keygelev=3 \
+	withRho=0 \
+	surf_type=0 rec_type=1 shot_type=1 \
+	vpmax=4791. \
+	vpmin=1487. \
+	gradient=grad/grad$@ \
+	residual=res/res$@ \
+	model=mod/mod$@ \
+	function=fct/fct$@ \
+	mute_out=mute$@ \
+	freeze_soft=1 \
+	fhi=${FREQBP} nplo=6 nphi=14 phase=0 \
+	t0=0.15 \
+	v0=18000. \
+	t1=7. \
+	v1=18000. \
+	wantreg=1 \
+	wantlog=0 \
+	derivdz=1 \
+	derivdx=1 \
+	eps=3E-5 \
+	model_nrm_type=Cauchy \
+	reg_threshold=30. \
+	percx=0. percz=0. \
+	verb=0 \
+	Z_weights=BPvozw.H \
+	neval=60 niter=50 \
+	snapi=4 ntaper=20 num_threads=10 \
+	inv=$@  maxsize=1 > /dev/null
+
+BPFWI3NOLOWFREQ_Fmax${FREQBP}.Eps${BPEPSHINGE}.H: BPtracesLAND.H BPheaderLAND.H BPsource.H BPvpmaskside.H 
+	${AFWI} stdin=BPsource.H vel=BPnlfvelupdate.H twoD=1 \
+	fmax=20 \
+	Task='INV' \
+	traces=BPtracesLAND.H \
+	vpmask=BPvpmask.H \
+	coordfile=BPheaderLAND.H \
+	aperture_x=9000 aperture_y=1 \
+	keygx=2 keygy=3 keysx=1 keysy=4 keyselev=3 keygelev=3 \
+	withRho=0 \
+	surf_type=0 rec_type=1 shot_type=1 \
+	vpmax=4791. \
+	vpmin=1487. \
+	gradient=grad/grad$@ \
+	residual=res/res$@ \
+	model=mod/mod$@ \
+	function=fct/fct$@ \
+	mute_out=mute$@ \
+	freeze_soft=1 \
+	fhi=${FREQBP} nplo=10 flo=3.5 nphi=14 phase=0 \
+	t0=0.15 \
+	v0=18000. \
+	t1=7. \
+	v1=18000. \
+	wantreg=1 \
+	wantlog=0 \
+	derivdz=1 \
+	derivdx=1 \
+	eps=3E-5 \
+	model_nrm_type=Cauchy \
+	reg_threshold=30. \
+	percx=0. percz=0. \
+	verb=0 \
+	Z_weights=BPvozw.H \
+	neval=60 niter=50 \
+	snapi=4 ntaper=20 num_threads=10 \
+	inv=$@  maxsize=1 > /dev/null
+
+BPFWI3NOLOWFREQNOBLOCKY_Fmax${FREQBP}.Eps${BPEPSHINGE}.H: BPtracesLAND.H BPheaderLAND.H BPsource.H BPvpmaskside.H 
+	${AFWI} stdin=BPsource.H vel=BPnlfnbvelupdate.H twoD=1 \
+	fmax=20 \
+	Task='INV' \
+	traces=BPtracesLAND.H \
+	vpmask=BPvpmask.H \
+	coordfile=BPheaderLAND.H \
+	aperture_x=9000 aperture_y=1 \
+	keygx=2 keygy=3 keysx=1 keysy=4 keyselev=3 keygelev=3 \
+	withRho=0 \
+	surf_type=0 rec_type=1 shot_type=1 \
+	vpmax=4791. \
+	vpmin=1487. \
+	gradient=grad/grad$@ \
+	residual=res/res$@ \
+	model=mod/mod$@ \
+	function=fct/fct$@ \
+	mute_out=mute$@ \
+	freeze_soft=1 \
+	fhi=${FREQBP} nplo=10 flo=3.5 nphi=14 phase=0 \
+	t0=0.15 \
+	v0=18000. \
+	t1=7. \
+	v1=18000. \
+	wantreg=0 \
+	wantlog=0 \
+	derivdz=1 \
+	derivdx=1 \
+	eps=3E-5 \
+	model_nrm_type=Cauchy \
+	reg_threshold=30. \
+	percx=0. percz=0. \
+	verb=0 \
+	Z_weights=BPvozw.H \
+	neval=60 niter=50 \
+	snapi=4 ntaper=20 num_threads=10 \
+	inv=$@  maxsize=1 > /dev/null
+
+BPFWI3SMALLFREQ_Fmax${FREQBP}.Eps${BPEPSHINGE}.H: BPtracesLAND.H BPheaderLAND.H BPsource.H BPvpmaskside.H 
+	${AFWI} stdin=BPsource.H vel=BPnlfvelupdate.H twoD=1 \
+	fmax=20 \
+	Task='INV' \
+	traces=BPtracesLAND.H \
+	vpmask=BPvpmask.H \
+	coordfile=BPheaderLAND.H \
+	aperture_x=9000 aperture_y=1 \
+	keygx=2 keygy=3 keysx=1 keysy=4 keyselev=3 keygelev=3 \
+	withRho=0 \
+	surf_type=0 rec_type=1 shot_type=1 \
+	vpmax=4791. \
+	vpmin=1487. \
+	gradient=grad/grad$@ \
+	residual=res/res$@ \
+	model=mod/mod$@ \
+	function=fct/fct$@ \
+	mute_out=mute$@ \
+	freeze_soft=1 \
+	fhi=${FREQBP} nphi=14 phase=0 \
+	t0=0.15 \
+	v0=18000. \
+	t1=7. \
+	v1=18000. \
+	wantreg=1 \
+	wantlog=0 \
+	derivdz=1 \
+	derivdx=1 \
+	eps=3E-5 \
+	model_nrm_type=Cauchy \
+	reg_threshold=30. \
+	percx=0. percz=0. \
+	verb=0 \
+	Z_weights=BPvozw.H \
+	neval=60 niter=50 \
+	snapi=4 ntaper=20 num_threads=10 \
+	inv=$@  maxsize=1 > /dev/null
+
+BPFWISEA_Fmax${FREQBP}.Eps${BPEPSHINGE}.H: BPtracesLAND.H BPheaderLAND.H BPsource.H BPvpmaskside.H 
+	${AFWI} stdin=BPsource.H vel=BPseavelupdate.H twoD=1 \
+	fmax=20 \
+	Task='INV' \
+	traces=BPtracesSEA.H \
+	vpmask=BPvpmask.H \
+	coordfile=BPheaderSEA.H \
+	aperture_x=10000 aperture_y=1 \
+	keygx=2 keygy=3 keysx=1 keysy=4 keyselev=3 keygelev=3 \
+	withRho=0 \
+	surf_type=0 rec_type=1 shot_type=1 \
+	vpmax=4791. \
+	vpmin=1487. \
+	gradient=grad/grad$@ \
+	residual=res/res$@ \
+	model=mod/mod$@ \
+	function=fct/fct$@ \
+	mute_out=mute$@ \
+	freeze_soft=1 \
+	fhi=${FREQBP} nplo=10 flo=3.5 nphi=14 phase=0 \
+	t0=0.15 \
+	v0=18000. \
+	t1=7. \
+	v1=18000. \
+	wantreg=1 \
+	wantlog=0 \
+	derivdz=1 \
+	derivdx=1 \
+	eps=3E-5 \
+	model_nrm_type=Cauchy \
+	reg_threshold=30. \
+	percx=0. percz=0. \
+	verb=0 \
+	Z_weights=BPvozw.H \
+	neval=60 niter=50 \
+	snapi=4 ntaper=20 num_threads=10 \
+	inv=$@  maxsize=1 > /dev/null
+
+BPFWI4_Fmax${FREQBP}.Eps${BPEPSHINGE}.H: BPtracesLAND.H BPheaderLAND.H BPsource.H BPvpmaskside.H 
+	${AFWI} stdin=BPsource.H vel=BPvelupdate.H twoD=1 \
+	fmax=20 \
+	Task='INV' \
+	traces=BPtracesLAND.H \
+	vpmask=BPvpmask.H \
+	coordfile=BPheaderLAND.H \
+	aperture_x=9000 aperture_y=1 \
+	keygx=2 keygy=3 keysx=1 keysy=4 keyselev=3 keygelev=3 \
+	withRho=0 \
+	surf_type=0 rec_type=1 shot_type=1 \
+	vpmax=4791. \
+	vpmin=1487. \
+	gradient=grad/grad$@ \
+	residual=res/res$@ \
+	model=mod/mod$@ \
+	function=fct/fct$@ \
+	mute_out=mute$@ \
+	freeze_soft=1 \
+	fhi=${FREQBP} nplo=6 nphi=14 phase=0 \
+	t0=0.15 \
+	v0=18000. \
+	t1=7. \
+	v1=18000. \
+	wantreg=1 \
+	wantlog=0 \
+	derivdz=1 \
+	derivdx=1 \
+	eps=3E-5 \
+	model_nrm_type=Cauchy \
+	reg_threshold=30. \
+	percx=0. percz=0. \
+	verb=0 \
+	neval=60 niter=50 \
+	snapi=4 ntaper=20 num_threads=10 \
+	inv=$@  maxsize=1 > /dev/null
+
+BPFWINEW_Fmax${FREQBP2}.Eps${BPEPSHINGE2}.H: BPtracesLAND.H BPheaderLAND.H BPsource.H BPvpmaskside.H 
+	${AFWI} stdin=BPsource.H vel=BPvelupdate2.H twoD=1 \
+	fmax=20 \
+	Task='INV' \
+	traces=BPtracesLAND.H \
+	vpmask=BPvpmask.H \
+	coordfile=BPheaderLAND.H \
+	aperture_x=9000 aperture_y=1 \
+	keygx=2 keygy=3 keysx=1 keysy=4 keyselev=3 keygelev=3 \
+	withRho=0 \
+	surf_type=0 rec_type=1 shot_type=1 \
+	vpmax=4791. \
+	vpmin=1487. \
+	gradient=grad/grad$@ \
+	residual=res/res$@ \
+	model=mod/mod$@ \
+	function=fct/fct$@ \
+	mute_out=mute$@ \
+	freeze_soft=1 \
+	fhi=${FREQBP2} nplo=6 nphi=14 phase=0 \
+	t0=0.15 \
+	v0=18000. \
+	t1=7. \
+	v1=18000. \
+	compute_eps=0 \
+	compute_eps_log=0 \
+	wantreg=1 \
+	wantlog=1 \
+	derivdz=1 \
+	derivdx=1 \
+	log_z_plus=0 \
+	eps_log=${BPEPSHINGE2} \
+	eps=1E-4 \
+	model_nrm_type=Cauchy \
+	reg_threshold=40. \
+	percx=0. percz=0. \
+	verb=0 \
+	Z_weights=BPvozw.H \
+	neval=300 niter=200 \
+	snapi=4 ntaper=20 num_threads=5 \
+	inv=$@  maxsize=1 > /dev/null
+
+niter3=200
+neval3=300
+niter4=200
+neval4=300
+niter5=200
+neval5=300
+niter6=75
+neval6=100
+niter7=75
+neval7=100
+niter9=75
+neval9=100
+niter11=25
+neval11=50
+niter13=25
+neval13=50
+niter15=25
+neval15=50
+
+BPFWINEW2_Fmax${FREQBP2}.Eps${BPEPSHINGE2}.H: BPtracesLAND.H BPheaderLAND.H BPsource.H BPvpmaskside.H 
+	${AFWI} stdin=BPsource.H vel=BPvelupdate2.H twoD=1 \
+	fmax=20 \
+	Task='INV' \
+	traces=BPtracesLAND.H \
+	vpmask=BPvpmask.H \
+	coordfile=BPheaderLAND.H \
+	aperture_x=9000 aperture_y=1 \
+	keygx=2 keygy=3 keysx=1 keysy=4 keyselev=3 keygelev=3 \
+	withRho=0 \
+	surf_type=0 rec_type=1 shot_type=1 \
+	vpmax=4791. \
+	vpmin=1487. \
+	gradient=grad/grad$@ \
+	residual=res/res$@ \
+	model=mod/mod$@ \
+	function=fct/fct$@ \
+	mute_out=mute$@ \
+	freeze_soft=1 \
+	fhi=${FREQBP2} nplo=6 nphi=14 phase=0 \
+	t0=0.15 \
+	v0=18000. \
+	t1=7. \
+	v1=18000. \
+	compute_eps=0 \
+	compute_eps_log=0 \
+	wantreg=1 \
+	wantlog=1 \
+	derivdz=1 \
+	derivdx=1 \
+	log_z_plus=0 \
+	eps_log=${BPEPSHINGE2} \
+	eps=1E-4 \
+	model_nrm_type=Cauchy \
+	reg_threshold=80. \
+	percx=0. percz=0. \
+	verb=0 \
+	Z_weights=BPvozw.H \
+	neval=${neval${FREQBP2}} niter=${niter${FREQBP2}} \
+	snapi=4 ntaper=20 num_threads=5 \
+	inv=$@  maxsize=1 > /dev/null
+
+maxfreqlistlow= 3 5 7 9 11 13 15 17
+BPfwi:
+	Rm *BPFWI*H
+	Cp BPvelsmooth.H BPvelptmp.H
+	for fmax in ${maxfreqlist}; do\
+		echo processing frequency=$$fmax Hz;\
+		Cp BPvelptmp.H BPvpFmax$$fmax.H;\
+		make BPFWI_Fmax$$fmax.H;\
+		Cp BPFWI_Fmax$$fmax.H BPvelptmp.H;\
+	done
+
+bpfreqlist= 3 4 5 6 7 8 9 10 11 13 15 17
+#bpfreqlist= 5 6 7 8 9 10 11 13 15 17
+bpfreqlist2= 3 4 5 6 7 9 11 13 15
+#bpfreqlist2= 13 15
+#bpfreqlist2= 11 13 15
+#bphingeeps=100000 50000 10000 5000 1000 500 100 50 10 5 0
+bphingeeps=100000 50000 10000 5000 1000 500 100 50 10 5 0
+#bphingeeps=500 100 50 10 5 0
+bphingeeps2= 5E-7 1E-7 1E-8 1E-9 1E-10
+bphingeeps2= 1E-8 1E-9 1E-10  
+#bphingeeps2= 5E-4 1E-4 5E-5 1E-5 5E-6 1E-6 5E-7 1E-7
+
+bphingeeps2= 5E-6 4E-6 3E-6 2E-6 1E-6
+
+BPvozwmask.H:
+	Math file1=BPvozw.H file2=BPvpmask.H exp="file1*file2" > BPvozwmask.H
+
+BPMakeHinge%.H: 
+	../bin/LINUX/TestRegularization.x task=1 neval=3000 niter=3000 epszm=${BPEPSHINGE} epszp=0. epsx=0. weight=BPvozwmask.H \
+	regtypem=2 threshm=0.1 regtypep=3 threshp=500. num_threads=12 grad=grad/grad$@ < $*.H > $@
+
+bphingeepsredo=100 50 10 5 0
+bphingeloop:
+	#Cp BPvelvoz.H BPveltmp.H
+	for loopi in ${bphingeepsredo}; do\
+		Cp BPveltmp.H BPvelupdate.H ;\
+		make bpfreqloop$$loopi ;\
+	done
+
+bpfreqlistredo= 5 6 7 8 9 10 11 13 15 17
+bpfreqloop%:
+	for fmax in ${bpfreqlistredo}; do\
+		echo processing frequency=$$fmax Hz;\
+		make BPFWI4_Fmax$$fmax.Eps$*.H FREQBP=$$fmax BPEPSHINGE=$*  ;\
+		make BPMakeHingeBPFWI4_Fmax$$fmax.Eps$*.H BPEPSHINGE=$*  ;\
+		Cp  BPMakeHingeBPFWI4_Fmax$$fmax.Eps$*.H BPvelupdate.H ;\
+	done
+	Cp BPvelupdate.H BPveltmp.H 
+
+bpseahingeloop:
+	Cp BPvelvoz.H BPveltmp.H
+	for loopi in ${bphingeeps}; do\
+		Cp BPveltmp.H BPseavelupdate.H ;\
+		make bpseafreqloop$$loopi ;\
+	done
+
+bpseafreqloop%:
+	for fmax in ${bpfreqlist}; do\
+		echo processing frequency=$$fmax Hz;\
+		make BPFWISEA_Fmax$$fmax.Eps$*.H FREQBP=$$fmax BPEPSHINGE=$*  ;\
+		make BPMakeHingeBPFWISEA_Fmax$$fmax.Eps$*.H BPEPSHINGE=$*  ;\
+		Cp  BPMakeHingeBPFWISEA_Fmax$$fmax.Eps$*.H BPseavelupdate.H ;\
+	done
+	Cp BPseavelupdate.H BPveltmp.H 
+
+bpnolowfreqnoblockyfreqlist= 4 5 6 7 8 9 10 11 13 15 17
+bpnolowfreqnoblockyhingeloop:
+	Cp BPvelvoz.H BPveltmp.H
+	for loopi in ${bphingeeps}; do\
+		Cp BPveltmp.H BPnlfnbvelupdate.H ;\
+		make bpnolowfreqnoblockyfreqloop$$loopi ;\
+	done
+
+bpnolowfreqnoblockyfreqloop%:
+	for fmax in ${bpnolowfreqnoblockyfreqlist}; do\
+		echo processing frequency=$$fmax Hz;\
+		make BPFWI3NOLOWFREQNOBLOCKY_Fmax$$fmax.Eps$*.H FREQBP=$$fmax BPEPSHINGE=$*  ;\
+		make BPMakeHingeBPFWI3NOLOWFREQNOBLOCKY_Fmax$$fmax.Eps$*.H BPEPSHINGE=$*  ;\
+		Cp  BPMakeHingeBPFWI3NOLOWFREQNOBLOCKY_Fmax$$fmax.Eps$*.H BPnlfnbvelupdate.H ;\
+	done
+	Cp BPnlfnbvelupdate.H BPveltmp.H 
+
+bpsmallfreqfreqlist= 3 4 5 6 7 
+bphingeepsrestart= 500 100 50 10 5 0
+bpsmallfreqhingeloop:
+	Cp BPvelvoz.H BPveltmp2.H
+	Cp BPMakeHingeBPFWI3SMALLFREQ_Fmax7.Eps1000.H BPveltmp2.H
+	for loopi in ${bphingeepsrestart}; do\
+		Cp BPveltmp2.H BPnlfvelupdate.H ;\
+		make bpsmallfreqfreqloop$$loopi ;\
+	done
+
+bpsmallfreqfreqloop%:
+	for fmax in ${bpsmallfreqfreqlist}; do\
+		echo processing frequency=$$fmax Hz;\
+		make BPFWI3SMALLFREQ_Fmax$$fmax.Eps$*.H FREQBP=$$fmax BPEPSHINGE=$*  ;\
+		make BPMakeHingeBPFWI3SMALLFREQ_Fmax$$fmax.Eps$*.H BPEPSHINGE=$*  ;\
+		Cp  BPMakeHingeBPFWI3SMALLFREQ_Fmax$$fmax.Eps$*.H BPnlfvelupdate.H ;\
+	done
+	Cp BPnlfvelupdate.H BPveltmp2.H 
+
+newbphingeloop:
+	Cp BPvelvoz.H BPvelupdate2.H
+	for loopi in ${bphingeeps2}; do\
+		make newbpfreqloop$$loopi ;\
+	done
+
+newbpfreqloop%:
+	for fmax2 in ${bpfreqlist2}; do\
+		echo processing frequency=$$fmax2 Hz;\
+		make BPFWINEW2_Fmax$$fmax2.Eps$*.H FREQBP2=$$fmax2 BPEPSHINGE2=$*  ;\
+		Cp BPFWINEW2_Fmax$$fmax2.Eps$*.H BPvelupdate2.H ;\
+	done
+#	Cp BPvelupdate2.H BPveltmp2.H 
+#		Cp  BPFWINEW_Fmax$$fmax2.Eps$*.H BPvelupdate2.H ;\
+#	done
+
+blockymodelCauchyxz.H:
+	../bin/LINUX/TestRegularization.x neval=8000 niter=8000 regtype=3 thresh=15 epsx=0 epsz=20000. epsx=20000. < BPvelsmooth.H > $@
+
+blockymodelCauchyz.H:
+	../bin/LINUX/TestRegularization.x neval=8000 niter=8000 regtype=3 thresh=15 epsx=0 epsz=20000. epsx=0. < BPvelsmooth.H > $@
+
+blockymodelCauchyx.H:
+	../bin/LINUX/TestRegularization.x neval=8000 niter=8000 regtype=3 thresh=15 epsx=0 epsx=20000. epsx=0. < BPvelsmooth.H > $@
+
+blockymodelCauchyvelpint.H:
+	../bin/LINUX/TestRegularization.x neval=8000 niter=8000  epsz=8000 regtype=3 thresh=15 num_threads=12 < BPvelpint.H > $@
+
+BlockModel.H:
+	Spike n1=50 n2=50 > 1.H
+	Math file1=1.H exp="200" > 2.H
+	Pad extend=0 beg1=50 end1=50 beg2=50 end2=50 < 2.H > 3.H
+	Math file1=3.H exp="file1+200" > 4.H
+	Pad extend=0 beg1=150 end1=150 beg2=150 end2=150 < 4.H > 5.H
+	Math file1=5.H exp="file1+200" > $@
+	Smooth rect1=10 rect2=10 repeat=2 tridiag=0 < $@ > Smooth$@
+	Spike n1=350 n2=350 > 1.H
+	Math file1=1.H exp="1" > 2.H
+	Pad extend=0 beg1=50 end1=50 beg2=50 end2=50 < 2.H | Smooth rect1=5 rect2=5 > Mask$@
+	Cat Smooth$@ $@ Mask$@ | Grey  gainpanel=e | Tube & 
+
+CauchyzxBlockModel.H:
+	../bin/LINUX/TestRegularization.x neval=8000 niter=8000 epszp=28000 regtypep=3 thresh=3.1 num_threads=12 weight=MaskBlockModel.H grad=grad$@ < SmoothBlockModel.H > $@
+
+L1zxBlockModel.H:
+	../bin/LINUX/TestRegularization.x neval=2800 niter=2800 epszp=900. regtype=1 num_threads=12 weight=MaskBlockModel.H < SmoothBlockModel.H > $@
+
+HUzxBlockModel.H:
+	../bin/LINUX/TestRegularization.x neval=3000 niter=3000 epszp=800. regtype=12 thresh=0.1 num_threads=12 weight=MaskBlockModel.H < SmoothBlockModel.H > $@
+
+HUzxBlockModelTask%.H:
+	../bin/LINUX/TestRegularization.x task=$* neval=5500 niter=5500 epszm=160000. epszp=80000. epsx=0. regtype=1 thresh=0.1 num_threads=12 weight=MaskBlockModel.H grad=grad$@ < SmoothBlockModel.H > $@
+
+CAzxBlockModelTask1Epsm%.H:
+	../bin/LINUX/TestRegularization.x task=1 neval=5500 niter=5500 epszm=$* epszp=000. epsx=23000. regtype=3 thresh=3.1 num_threads=12 weight=MaskBlockModel.H grad=grad$@ < SmoothBlockModel.H > $@
+
+CAzxBlockModelTask1Epsm%.H:
+	../bin/LINUX/TestRegularization.x task=1 neval=5500 niter=5500 epszm=$* epszp=1000. epsx=1000. regtypem=12 threshm=0.1 regtypep=3 threshp=3.1 num_threads=12 weight=MaskBlockModel.H grad=grad$@ < SmoothBlockModel.H > $@
+
+CauchyL2BlockModelTask1Epsm%.H:
+	../bin/LINUX/TestRegularization.x task=1 neval=5500 niter=5500 epszm=$* epszp=1000. epsx=1000. regtypem=2 threshm=0.1 regtypep=3 threshp=3.1 num_threads=12 weight=MaskBlockModel.H grad=grad$@ < SmoothBlockModel.H > $@
+
+CAUzxBlockModelTask1Epsm%.H:
+	../bin/LINUX/TestRegularization.x task=1 neval=5500 niter=5500 epszm=$* epszp=1000. epsx=1000. regtypem=3 threshm=0.2 regtypep=3 threshp=3.1 num_threads=12 weight=MaskBlockModel.H grad=grad$@ < SmoothBlockModel.H > $@
+
+L2zxBlockModel.H:
+	../bin/LINUX/TestRegularization.x neval=8000 niter=8000 epszp=18000. regtypep=2 num_threads=12 weight=MaskBlockModel.H grad=grad$@ < SmoothBlockModel.H > $@
+
+eps=160000 140000 120000 100000 80000 60000 40000 20000 10000 5000 2000 1000 500 100  
+
+BlockModTest:	
+	for i in ${eps}; do\
+		make CAzxBlockModelTask1Epsm$$i.H ;\
+	done
