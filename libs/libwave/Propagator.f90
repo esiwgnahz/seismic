@@ -223,20 +223,12 @@ contains
 
        !       write(0,*) 'here8'
        if (verb) call system_clock(counting(8),count_rate,count_max)
-       if (genpar%shot_type.eq.0) then
-          if (optim) then
-             call Boundary0_opt_grid(genpar,bounds,grid,model,hig)
-          else
-             call Boundary0_opt_grid_noomp(genpar,bounds,grid,model,hig)
-          end if
+       if (optim) then
+          call Boundary_3d(genpar,bounds,grid,model,hig)
        else
-          if (optim) then
-             call Boundary1_opt_grid(genpar,bounds,grid,model,hig)
-          else
-             call Boundary1_opt_grid_noomp(genpar,bounds,grid,model,hig)
-          end if
+          call Boundary_3d_noomp(genpar,bounds,grid,model,hig)
        end if
-
+    
        !       write(0,*) 'here9'
        if (verb) call system_clock(counting(9),count_rate,count_max)
        call TimeSwap(grid)

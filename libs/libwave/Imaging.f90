@@ -181,6 +181,8 @@ contains
     real    :: taper
 
     MODULO:if (mod(it,genpar%snapi).eq.0) then
+
+!       call srite('backwave',u,4*size(u))
        model%counter=model%counter+1
        ! First read the source wavefield from disk
        allocate(fwd(model%nz,model%nxw,model%nyw))

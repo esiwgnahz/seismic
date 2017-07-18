@@ -86,15 +86,304 @@ contains
     !
   end subroutine Higdon_coeff
 
-  subroutine Boundary0(genpar,bounds,u,mod,hig)
+ subroutine Boundary_3d(genpar,bounds,grid,mod,hig)
     !
     type(GeneralParam) :: genpar
     type(ModelSpace)   :: mod
     type(FDbounds)     :: bounds
     type(HigdonParam)  :: hig
+    type(USpace)       :: grid
 
-    real :: u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
-    &         bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
+    !--------------------------------------------------------------------
+    !
+    integer :: i, j, k, nx, ny, nz, nz0, nstencil
+    real :: factor
+    real, parameter :: fscale0 = 2.
+    real :: scale0, scale1
+    !
+    if (genpar%surf_type.gt.0) then
+       nz0 = 1
+    else
+       nz0 = bounds%nmin1
+    endif
+
+    nstencil=3
+
+    !
+    ! Update the taper zone and update the regions used for operator padding
+    ! Since everything is outside the main grid, constant density applies
+    !
+    ! Axis 1 ----------------------
+    !
+    scale0=1/float(nz0+nstencil-1-bounds%nmin1+4)/fscale0
+    scale1=1/float(3+nstencil)/fscale0
+
+    !$OMP PARALLEL DO PRIVATE(factor)
+    do k=bounds%nmin3,bounds%nmax3
+       do j=bounds%nmin2,bounds%nmax2
+          ! Update the top
+          if (genpar%surf_type.le.0) then
+             do i=nz0+nstencil-1,bounds%nmin1-4,-1
+                factor=float(nz0+nstencil-i)*scale0
+                call Higdon_factor(genpar,bounds,hig,factor,&
+                &                  grid%u1,grid%u2,grid%u3,i,j,k,-1)
+             end do
+          endif
+          ! Update the bottom operator pad
+          do i=bounds%nmax1-nstencil+1,bounds%nmax1+4
+             factor=float(i-bounds%nmax1+nstencil)*scale1
+             call Higdon_factor(genpar,bounds,hig,factor,&
+             &                  grid%u1,grid%u2,grid%u3,i,j,k,+1)
+          end do
+       end do
+       !
+       ! Axis 2 ----------------------
+       !
+       ! Update the left side operator pad
+       do j=bounds%nmin2+nstencil-1,bounds%nmin2-4,-1
+          factor=float(bounds%nmin2+nstencil-j)*scale1
+          do i=nz0,bounds%nmax1
+             call Higdon_factor(genpar,bounds,hig,factor,&
+             &                  grid%u1,grid%u2,grid%u3,i,j,k,-2)
+          end do
+       end do
+       ! Update the right side operator pad
+       do j=bounds%nmax2-nstencil+1,bounds%nmax2+4
+          factor=float(j-bounds%nmax2+nstencil)*scale1
+          do i=nz0,bounds%nmax1
+             call Higdon_factor(genpar,bounds,hig,factor,&
+             &                  grid%u1,grid%u2,grid%u3,i,j,k,+2)
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    !
+    ! Axis 3 ----------------------
+    !
+    ! Update the front side operator pad
+
+    ! nbound=0 if 2D
+    ! nbound=4 if 3D
+    if (genpar%nbound.gt.0) then
+
+       !$OMP PARALLEL DO PRIVATE(factor)
+       do j=bounds%nmin2,bounds%nmax2
+          do k=bounds%nmin3+nstencil-1,bounds%nmin3-4,-1
+             factor=float(bounds%nmin3+nstencil-k)*scale1
+             do i=nz0,bounds%nmax1
+                call Higdon_factor(genpar,bounds,hig,factor,&
+                &                  grid%u1,grid%u2,grid%u3,i,j,k,-3)
+             end do
+          end do
+          ! Update the back side operator pad
+          do k=bounds%nmax3-nstencil+1,bounds%nmax3+4
+             factor=float(k-bounds%nmax3+nstencil)*scale1
+             do i=nz0,bounds%nmax1
+                call Higdon_factor(genpar,bounds,hig,factor,&
+                &                  grid%u1,grid%u2,grid%u3,i,j,k,+3)
+             end do
+          end do
+       end do
+       !$OMP END PARALLEL DO
+       
+    end if
+
+  end subroutine Boundary_3d
+
+  subroutine Boundary_3d_noomp(genpar,bounds,grid,mod,hig)
+    !
+    type(GeneralParam) :: genpar
+    type(ModelSpace)   :: mod
+    type(FDbounds)     :: bounds
+    type(HigdonParam)  :: hig
+    type(USpace)       :: grid
+
+    !--------------------------------------------------------------------
+    !
+    integer :: i, j, k, nx, ny, nz, nz0, nstencil
+    real :: factor
+    real, parameter :: fscale0 = 2.
+    real :: scale0, scale1
+    !
+    if (genpar%surf_type.gt.0) then
+       nz0 = 1
+    else
+       nz0 = bounds%nmin1
+    endif
+
+    nstencil=3
+
+    !
+    ! Update the taper zone and update the regions used for operator padding
+    ! Since everything is outside the main grid, constant density applies
+    !
+    ! Axis 1 ----------------------
+    !
+    scale0=1/float(nz0+nstencil-1-bounds%nmin1+4)/fscale0
+    scale1=1/float(3+nstencil)/fscale0
+
+    do k=bounds%nmin3,bounds%nmax3
+       do j=bounds%nmin2,bounds%nmax2
+          ! Update the top
+          if (genpar%surf_type.le.0) then
+             do i=nz0+nstencil-1,bounds%nmin1-4,-1
+                factor=float(nz0+nstencil-i)*scale0
+                call Higdon_factor(genpar,bounds,hig,factor,&
+                &                  grid%u1,grid%u2,grid%u3,i,j,k,-1)
+             end do
+          endif
+          ! Update the bottom operator pad
+          do i=bounds%nmax1-nstencil+1,bounds%nmax1+4
+             factor=float(i-bounds%nmax1+nstencil)*scale1
+             call Higdon_factor(genpar,bounds,hig,factor,&
+             &                  grid%u1,grid%u2,grid%u3,i,j,k,+1)
+          end do
+       end do
+       !
+       ! Axis 2 ----------------------
+       !
+       ! Update the left side operator pad
+       do j=bounds%nmin2+nstencil-1,bounds%nmin2-4,-1
+          factor=float(bounds%nmin2+nstencil-j)*scale1
+          do i=nz0,bounds%nmax1
+             call Higdon_factor(genpar,bounds,hig,factor,&
+             &                  grid%u1,grid%u2,grid%u3,i,j,k,-2)
+          end do
+       end do
+       ! Update the right side operator pad
+       do j=bounds%nmax2-nstencil+1,bounds%nmax2+4
+          factor=float(j-bounds%nmax2+nstencil)*scale1
+          do i=nz0,bounds%nmax1
+             call Higdon_factor(genpar,bounds,hig,factor,&
+             &                  grid%u1,grid%u2,grid%u3,i,j,k,+2)
+          end do
+       end do
+    end do
+
+    !
+    ! Axis 3 ----------------------
+    !
+    ! Update the front side operator pad
+
+    ! nbound=0 if 2D
+    ! nbound=4 if 3D
+    if (genpar%nbound.gt.0) then
+       do j=bounds%nmin2,bounds%nmax2
+          do k=bounds%nmin3+nstencil-1,bounds%nmin3-4,-1
+             factor=float(bounds%nmin3+nstencil-k)*scale1
+             do i=nz0,bounds%nmax1
+                call Higdon_factor(genpar,bounds,hig,factor,&
+                &                  grid%u1,grid%u2,grid%u3,i,j,k,-3)
+             end do
+          end do
+          ! Update the back side operator pad
+          do k=bounds%nmax3-nstencil+1,bounds%nmax3+4
+             factor=float(k-bounds%nmax3+nstencil)*scale1
+             do i=nz0,bounds%nmax1
+                call Higdon_factor(genpar,bounds,hig,factor,&
+                &                  grid%u1,grid%u2,grid%u3,i,j,k,+3)
+             end do
+          end do
+       end do
+    endif
+
+  end subroutine Boundary_3d_noomp
+
+  subroutine Higdon_factor(genpar,bounds,hig,factor,u0,u1,u2,i,j,k,naxis)
+    !--------------------------------------------------------------------
+    implicit none
+
+    type(GeneralParam) :: genpar
+    type(FDbounds)     :: bounds
+    type(HigdonParam)  :: hig
+    integer            :: i, j, k, naxis
+    real :: factor,fdum
+    real :: u0(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4, &
+    &       bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    real :: u1(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4, &
+    &       bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    real :: u2(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4, &
+    &       bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    !
+  select case(naxis)
+    case(-1)
+       fdum = hig%gz(1,j,k)*u2(i+1,j,k)+ &
+       &      hig%gz(2,j,k)*u2(i+2,j,k)+ &
+       &      hig%gz(3,j,k)*u1(i  ,j,k)+ &
+       &      hig%gz(4,j,k)*u1(i+1,j,k)+ &
+       &      hig%gz(5,j,k)*u1(i+2,j,k)+ &
+       &      hig%gz(6,j,k)*u0(i  ,j,k)+ &
+       &      hig%gz(7,j,k)*u0(i+1,j,k)+ &
+       &      hig%gz(8,j,k)*u0(i+2,j,k)
+       u2(i,j,k) = u2(i,j,k)*(1.-factor) - fdum*factor
+
+    case(1)
+       fdum = hig%gz( 9,j,k)*u2(i-1,j,k)+ &
+       &      hig%gz(10,j,k)*u2(i-2,j,k)+ &
+       &      hig%gz(11,j,k)*u1(i  ,j,k)+ &
+       &      hig%gz(12,j,k)*u1(i-1,j,k)+ &
+       &      hig%gz(13,j,k)*u1(i-2,j,k)+ &
+       &      hig%gz(14,j,k)*u0(i  ,j,k)+ &
+       &      hig%gz(15,j,k)*u0(i-1,j,k)+ &
+       &      hig%gz(16,j,k)*u0(i-2,j,k)
+       u2(i,j,k) = u2(i,j,k)*(1.-factor) - fdum*factor
+
+    case(-2)
+       fdum = hig%gx(1,i,k)*u2(i,j+1,k)+ &
+       &      hig%gx(2,i,k)*u2(i,j+2,k)+ &
+       &      hig%gx(3,i,k)*u1(i,j  ,k)+ &
+       &      hig%gx(4,i,k)*u1(i,j+1,k)+ &
+       &      hig%gx(5,i,k)*u1(i,j+2,k)+ &
+       &      hig%gx(6,i,k)*u0(i,j  ,k)+ &
+       &      hig%gx(7,i,k)*u0(i,j+1,k)+ &
+       &      hig%gx(8,i,k)*u0(i,j+2,k)
+       u2(i,j,k) = u2(i,j,k)*(1.-factor) - fdum*factor
+
+    case(2)
+       fdum = hig%gx( 9,i,k)*u2(i,j-1,k)+ &
+       &      hig%gx(10,i,k)*u2(i,j-2,k)+ &
+       &      hig%gx(11,i,k)*u1(i,j  ,k)+ &
+       &      hig%gx(12,i,k)*u1(i,j-1,k)+ &
+       &      hig%gx(13,i,k)*u1(i,j-2,k)+ &
+       &      hig%gx(14,i,k)*u0(i,j  ,k)+ &
+       &      hig%gx(15,i,k)*u0(i,j-1,k)+ &
+       &      hig%gx(16,i,k)*u0(i,j-2,k)
+       u2(i,j,k) = u2(i,j,k)*(1.-factor) - fdum*factor
+
+    case(-3)
+       fdum = hig%gy(1,i,j)*u2(i,j,k+1)+ &
+       &      hig%gy(2,i,j)*u2(i,j,k+2)+ &
+       &      hig%gy(3,i,j)*u1(i,j,k  )+ &
+       &      hig%gy(4,i,j)*u1(i,j,k+1)+ &
+       &      hig%gy(5,i,j)*u1(i,j,k+2)+ &
+       &      hig%gy(6,i,j)*u0(i,j,k)+ &
+       &      hig%gy(7,i,j)*u0(i,j,k+1)+ &
+       &      hig%gy(8,i,j)*u0(i,j,k+2)
+       u2(i,j,k) = u2(i,j,k)*(1.-factor) - fdum*factor
+
+    case(3)
+       fdum = hig%gy( 9,i,j)*u2(i,j,k-1)+ &
+       &      hig%gy(10,i,j)*u2(i,j,k-2)+ &
+       &      hig%gy(11,i,j)*u1(i,j,k)+ &
+       &      hig%gy(12,i,j)*u1(i,j,k-1)+ &
+       &      hig%gy(13,i,j)*u1(i,j,k-2)+ &
+       &      hig%gy(14,i,j)*u0(i,j,k)+ &
+       &      hig%gy(15,i,j)*u0(i,j,k-1)+ &
+       &      hig%gy(16,i,j)*u0(i,j,k-2)
+       u2(i,j,k) = u2(i,j,k)*(1.-factor) - fdum*factor
+
+    end select
+
+  end subroutine Higdon_factor
+
+  subroutine Boundary0_grid(genpar,bounds,grid,mod,hig)
+    !
+    type(GeneralParam) :: genpar
+    type(ModelSpace)   :: mod
+    type(FDbounds)     :: bounds
+    type(HigdonParam)  :: hig
+    type(USpace)       :: grid
 
     integer :: i, j, k, nz0
     integer :: fscale0
@@ -115,27 +404,27 @@ contains
           if (genpar%surf_type.le.0) then
              do i=nz0-1,bounds%nmin1,-1
                 fscale = float(nz0-i)/float(nz0-1-bounds%nmin1)/fscale0
-                fdum = hig%gz(1,j,k)*u(i+1,j,k,3)+ &
-                &   hig%gz(2,j,k)*u(i+2,j,k,3)+ &
-                &   hig%gz(3,j,k)*u(i  ,j,k,2)+ &
-                &   hig%gz(4,j,k)*u(i+1,j,k,2)+ &
-                &   hig%gz(5,j,k)*u(i+2,j,k,2)+ &
-                &   hig%gz(6,j,k)*u(i  ,j,k,1)+ &
-                &   hig%gz(7,j,k)*u(i+1,j,k,1)+ &
-                &   hig%gz(8,j,k)*u(i+2,j,k,1)
-                u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
+                fdum = hig%gz(1,j,k)*grid%u3(i+1,j,k)+ &
+                &      hig%gz(2,j,k)*grid%u3(i+2,j,k)+ &
+                &      hig%gz(3,j,k)*grid%u2(i  ,j,k)+ &
+                &      hig%gz(4,j,k)*grid%u2(i+1,j,k)+ &
+                &      hig%gz(5,j,k)*grid%u2(i+2,j,k)+ &
+                &      hig%gz(6,j,k)*grid%u1(i  ,j,k)+ &
+                &      hig%gz(7,j,k)*grid%u1(i+1,j,k)+ &
+                &      hig%gz(8,j,k)*grid%u1(i+2,j,k)
+                grid%u3(i,j,k) = grid%u3(i,j,k)*(1.-fscale) - fdum*fscale
              end do
              ! Operator padding
              do i=bounds%nmin1-1,bounds%nmin1-4,-1
-                fdum = hig%gz(1,j,k)*u(i+1,j,k,3)+ &
-                &   hig%gz(2,j,k)*u(i+2,j,k,3)+ &
-                &   hig%gz(3,j,k)*u(i  ,j,k,2)+ &
-                &   hig%gz(4,j,k)*u(i+1,j,k,2)+ &
-                &   hig%gz(5,j,k)*u(i+2,j,k,2)+ &
-                &   hig%gz(6,j,k)*u(i  ,j,k,1)+ &
-                &   hig%gz(7,j,k)*u(i+1,j,k,1)+ &
-                &   hig%gz(8,j,k)*u(i+2,j,k,1)
-                u(i,j,k,3) = -fdum
+                fdum = hig%gz(1,j,k)*grid%u3(i+1,j,k)+ &
+                &      hig%gz(2,j,k)*grid%u3(i+2,j,k)+ &
+                &      hig%gz(3,j,k)*grid%u2(i  ,j,k)+ &
+                &      hig%gz(4,j,k)*grid%u2(i+1,j,k)+ &
+                &      hig%gz(5,j,k)*grid%u2(i+2,j,k)+ &
+                &      hig%gz(6,j,k)*grid%u1(i  ,j,k)+ &
+                &      hig%gz(7,j,k)*grid%u1(i+1,j,k)+ &
+                &      hig%gz(8,j,k)*grid%u1(i+2,j,k)
+                grid%u3(i,j,k) = -fdum
              end do
           end if
           !
@@ -143,27 +432,27 @@ contains
           ! Taper
           do i=mod%nz+1,bounds%nmax1
              fscale = float(i-mod%nz)/float(bounds%nmax1-mod%nz-1)/fscale0
-             fdum = hig%gz( 9,j,k)*u(i-1,j,k,3)+ &
-             &   hig%gz(10,j,k)*u(i-2,j,k,3)+ &
-             &   hig%gz(11,j,k)*u(i  ,j,k,2)+ &
-             &   hig%gz(12,j,k)*u(i-1,j,k,2)+ &
-             &   hig%gz(13,j,k)*u(i-2,j,k,2)+ &
-             &   hig%gz(14,j,k)*u(i  ,j,k,1)+ &
-             &   hig%gz(15,j,k)*u(i-1,j,k,1)+ &
-             &   hig%gz(16,j,k)*u(i-2,j,k,1)
-             u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
+             fdum = hig%gz( 9,j,k)*grid%u3(i-1,j,k)+ &
+             &      hig%gz(10,j,k)*grid%u3(i-2,j,k)+ &
+             &      hig%gz(11,j,k)*grid%u2(i  ,j,k)+ &
+             &      hig%gz(12,j,k)*grid%u2(i-1,j,k)+ &
+             &      hig%gz(13,j,k)*grid%u2(i-2,j,k)+ &
+             &      hig%gz(14,j,k)*grid%u1(i  ,j,k)+ &
+             &      hig%gz(15,j,k)*grid%u1(i-1,j,k)+ &
+             &      hig%gz(16,j,k)*grid%u1(i-2,j,k)
+             grid%u3(i,j,k) = grid%u3(i,j,k)*(1.-fscale) - fdum*fscale
           end do
           ! Operator padding
           do i=bounds%nmax1+1,bounds%nmax1+4
-             fdum = hig%gz( 9,j,k)*u(i-1,j,k,3)+ &
-             &   hig%gz(10,j,k)*u(i-2,j,k,3)+ &
-             &   hig%gz(11,j,k)*u(i  ,j,k,2)+ &
-             &   hig%gz(12,j,k)*u(i-1,j,k,2)+ &
-             &   hig%gz(13,j,k)*u(i-2,j,k,2)+ &
-             &   hig%gz(14,j,k)*u(i  ,j,k,1)+ &
-             &   hig%gz(15,j,k)*u(i-1,j,k,1)+ &
-             &   hig%gz(16,j,k)*u(i-2,j,k,1)
-             u(i,j,k,3) = -fdum
+             fdum = hig%gz( 9,j,k)*grid%u3(i-1,j,k)+ &
+             &      hig%gz(10,j,k)*grid%u3(i-2,j,k)+ &
+             &      hig%gz(11,j,k)*grid%u2(i  ,j,k)+ &
+             &      hig%gz(12,j,k)*grid%u2(i-1,j,k)+ &
+             &      hig%gz(13,j,k)*grid%u2(i-2,j,k)+ &
+             &      hig%gz(14,j,k)*grid%u1(i  ,j,k)+ &
+             &      hig%gz(15,j,k)*grid%u1(i-1,j,k)+ &
+             &      hig%gz(16,j,k)*grid%u1(i-2,j,k)
+             grid%u3(i,j,k) = -fdum
           end do
        end do
     end do
@@ -177,29 +466,29 @@ contains
        do j=0,bounds%nmin2,-1
           fscale = float(1-j)/float(-bounds%nmin2)/fscale0
           do i=bounds%nmin1,bounds%nmax1
-             fdum = hig%gx(1,i,k)*u(i,j+1,k,3)+ &
-             &   hig%gx(2,i,k)*u(i,j+2,k,3)+ &
-             &   hig%gx(3,i,k)*u(i,j  ,k,2)+ &
-             &   hig%gx(4,i,k)*u(i,j+1,k,2)+ &
-             &   hig%gx(5,i,k)*u(i,j+2,k,2)+ &
-             &   hig%gx(6,i,k)*u(i,j  ,k,1)+ &
-             &   hig%gx(7,i,k)*u(i,j+1,k,1)+ &
-             &   hig%gx(8,i,k)*u(i,j+2,k,1)
-             u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
+             fdum = hig%gx(1,i,k)*grid%u3(i,j+1,k)+ &
+             &      hig%gx(2,i,k)*grid%u3(i,j+2,k)+ &
+             &      hig%gx(3,i,k)*grid%u2(i,j  ,k)+ &
+             &      hig%gx(4,i,k)*grid%u2(i,j+1,k)+ &
+             &      hig%gx(5,i,k)*grid%u2(i,j+2,k)+ &
+             &      hig%gx(6,i,k)*grid%u1(i,j  ,k)+ &
+             &      hig%gx(7,i,k)*grid%u1(i,j+1,k)+ &
+             &      hig%gx(8,i,k)*grid%u1(i,j+2,k)
+             grid%u3(i,j,k) = grid%u3(i,j,k)*(1.-fscale) - fdum*fscale
           end do
        end do
        ! Operator padding
        do j=bounds%nmin2-1,bounds%nmin2-4,-1
           do i=bounds%nmin1,bounds%nmax1
-             fdum = hig%gx(1,i,k)*u(i,j+1,k,3)+ &
-             &   hig%gx(2,i,k)*u(i,j+2,k,3)+ &
-             &   hig%gx(3,i,k)*u(i,j  ,k,2)+ &
-             &   hig%gx(4,i,k)*u(i,j+1,k,2)+ &
-             &   hig%gx(5,i,k)*u(i,j+2,k,2)+ &
-             &   hig%gx(6,i,k)*u(i,j  ,k,1)+ &
-             &   hig%gx(7,i,k)*u(i,j+1,k,1)+ &
-             &   hig%gx(8,i,k)*u(i,j+2,k,1)
-             u(i,j,k,3) = -fdum
+             fdum = hig%gx(1,i,k)*grid%u3(i,j+1,k)+ &
+             &      hig%gx(2,i,k)*grid%u3(i,j+2,k)+ &
+             &      hig%gx(3,i,k)*grid%u2(i,j  ,k)+ &
+             &      hig%gx(4,i,k)*grid%u2(i,j+1,k)+ &
+             &      hig%gx(5,i,k)*grid%u2(i,j+2,k)+ &
+             &      hig%gx(6,i,k)*grid%u1(i,j  ,k)+ &
+             &      hig%gx(7,i,k)*grid%u1(i,j+1,k)+ &
+             &      hig%gx(8,i,k)*grid%u1(i,j+2,k)
+             grid%u3(i,j,k) = -fdum
           end do
        end do
        !
@@ -208,28 +497,28 @@ contains
        do j=mod%nxw+1,bounds%nmax2
           fscale = float(j-mod%nxw)/float(bounds%nmax2-mod%nxw-1)/fscale0
           do i=bounds%nmin1,bounds%nmax1
-             fdum = hig%gx( 9,i,k)*u(i,j-1,k,3)+ &
-             &   hig%gx(10,i,k)*u(i,j-2,k,3)+ &
-             &   hig%gx(11,i,k)*u(i,j  ,k,2)+ &
-             &   hig%gx(12,i,k)*u(i,j-1,k,2)+ &
-             &   hig%gx(13,i,k)*u(i,j-2,k,2)+ &
-             &   hig%gx(14,i,k)*u(i,j  ,k,1)+ &
-             &   hig%gx(15,i,k)*u(i,j-1,k,1)+ &
-             &   hig%gx(16,i,k)*u(i,j-2,k,1)
-             u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
+             fdum = hig%gx( 9,i,k)*grid%u3(i,j-1,k)+ &
+             &      hig%gx(10,i,k)*grid%u3(i,j-2,k)+ &
+             &      hig%gx(11,i,k)*grid%u2(i,j  ,k)+ &
+             &      hig%gx(12,i,k)*grid%u2(i,j-1,k)+ &
+             &      hig%gx(13,i,k)*grid%u2(i,j-2,k)+ &
+             &      hig%gx(14,i,k)*grid%u1(i,j  ,k)+ &
+             &      hig%gx(15,i,k)*grid%u1(i,j-1,k)+ &
+             &      hig%gx(16,i,k)*grid%u1(i,j-2,k)
+             grid%u3(i,j,k) = grid%u3(i,j,k)*(1.-fscale) - fdum*fscale
           end do
        end do
        do j=bounds%nmax2+1,bounds%nmax2+4
           do i=bounds%nmin1,bounds%nmax1
-             fdum = hig%gx( 9,i,k)*u(i,j-1,k,3)+ &
-             &   hig%gx(10,i,k)*u(i,j-2,k,3)+ &
-             &   hig%gx(11,i,k)*u(i,j  ,k,2)+ &
-             &   hig%gx(12,i,k)*u(i,j-1,k,2)+ &
-             &   hig%gx(13,i,k)*u(i,j-2,k,2)+ &
-             &   hig%gx(14,i,k)*u(i,j  ,k,1)+ &
-             &   hig%gx(15,i,k)*u(i,j-1,k,1)+ &
-             &   hig%gx(16,i,k)*u(i,j-2,k,1)
-             u(i,j,k,3) = -fdum
+             fdum = hig%gx( 9,i,k)*grid%u3(i,j-1,k)+ &
+             &      hig%gx(10,i,k)*grid%u3(i,j-2,k)+ &
+             &      hig%gx(11,i,k)*grid%u2(i,j  ,k)+ &
+             &      hig%gx(12,i,k)*grid%u2(i,j-1,k)+ &
+             &      hig%gx(13,i,k)*grid%u2(i,j-2,k)+ &
+             &      hig%gx(14,i,k)*grid%u1(i,j  ,k)+ &
+             &      hig%gx(15,i,k)*grid%u1(i,j-1,k)+ &
+             &      hig%gx(16,i,k)*grid%u1(i,j-2,k)
+             grid%u3(i,j,k) = -fdum
           end do
        end do
     end do
@@ -244,15 +533,15 @@ contains
           fscale = float(1-k)/float(-bounds%nmin3)/fscale0
           do j=bounds%nmin2,bounds%nmax2
              do i=bounds%nmin1,bounds%nmax1
-                fdum = hig%gy(1,i,j)*u(i,j,k+1,3)+ &
-                &   hig%gy(2,i,j)*u(i,j,k+2,3)+ &
-                &   hig%gy(3,i,j)*u(i,j,k  ,2)+ &
-                &   hig%gy(4,i,j)*u(i,j,k+1,2)+ &
-                &   hig%gy(5,i,j)*u(i,j,k+2,2)+ &
-                &   hig%gy(6,i,j)*u(i,j,k  ,1)+ &
-                &   hig%gy(7,i,j)*u(i,j,k+1,1)+ &
-                &   hig%gy(8,i,j)*u(i,j,k+2,1)
-                u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
+                fdum = hig%gy(1,i,j)*grid%u3(i,j,k+1)+ &
+                &      hig%gy(2,i,j)*grid%u3(i,j,k+2)+ &
+                &      hig%gy(3,i,j)*grid%u2(i,j,k  )+ &
+                &      hig%gy(4,i,j)*grid%u2(i,j,k+1)+ &
+                &      hig%gy(5,i,j)*grid%u2(i,j,k+2)+ &
+                &      hig%gy(6,i,j)*grid%u1(i,j,k  )+ &
+                &      hig%gy(7,i,j)*grid%u1(i,j,k+1)+ &
+                &      hig%gy(8,i,j)*grid%u1(i,j,k+2)
+                grid%u3(i,j,k) = grid%u3(i,j,k)*(1.-fscale) - fdum*fscale
              end do
           end do
        end do
@@ -260,15 +549,15 @@ contains
        do k=bounds%nmin3-1,bounds%nmin3-4,-1
           do j=bounds%nmin2,bounds%nmax2
              do i=bounds%nmin1,bounds%nmax1
-                fdum = hig%gy(1,i,j)*u(i,j,k+1,3)+ &
-                &   hig%gy(2,i,j)*u(i,j,k+2,3)+ &
-                &   hig%gy(3,i,j)*u(i,j,k  ,2)+ &
-                &   hig%gy(4,i,j)*u(i,j,k+1,2)+ &
-                &   hig%gy(5,i,j)*u(i,j,k+2,2)+ &
-                &   hig%gy(6,i,j)*u(i,j,k  ,1)+ &
-                &   hig%gy(7,i,j)*u(i,j,k+1,1)+ &
-                &   hig%gy(8,i,j)*u(i,j,k+2,1)
-                u(i,j,k,3) = -fdum
+                fdum = hig%gy(1,i,j)*grid%u3(i,j,k+1)+ &
+                &      hig%gy(2,i,j)*grid%u3(i,j,k+2)+ &
+                &      hig%gy(3,i,j)*grid%u2(i,j,k  )+ &
+                &      hig%gy(4,i,j)*grid%u2(i,j,k+1)+ &
+                &      hig%gy(5,i,j)*grid%u2(i,j,k+2)+ &
+                &      hig%gy(6,i,j)*grid%u1(i,j,k  )+ &
+                &      hig%gy(7,i,j)*grid%u1(i,j,k+1)+ &
+                &      hig%gy(8,i,j)*grid%u1(i,j,k+2)
+                grid%u3(i,j,k) = -fdum
              end do
           end do
        end do
@@ -279,15 +568,15 @@ contains
           fscale = float(k-mod%nyw)/float(bounds%nmax3-mod%nyw-1)/fscale0
           do j=bounds%nmin2,bounds%nmax2
              do i=bounds%nmin1,bounds%nmax1
-                fdum = hig%gy( 9,i,j)*u(i,j,k-1,3)+ &
-                &   hig%gy(10,i,j)*u(i,j,k-2,3)+ &
-                &   hig%gy(11,i,j)*u(i,j,k  ,2)+ &
-                &   hig%gy(12,i,j)*u(i,j,k-1,2)+ &
-                &   hig%gy(13,i,j)*u(i,j,k-2,2)+ &
-                &   hig%gy(14,i,j)*u(i,j,k  ,1)+ &
-                &   hig%gy(15,i,j)*u(i,j,k-1,1)+ &
-                &   hig%gy(16,i,j)*u(i,j,k-2,1)
-                u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
+                fdum = hig%gy( 9,i,j)*grid%u3(i,j,k-1)+ &
+                &      hig%gy(10,i,j)*grid%u3(i,j,k-2)+ &
+                &      hig%gy(11,i,j)*grid%u2(i,j,k  )+ &
+                &      hig%gy(12,i,j)*grid%u2(i,j,k-1)+ &
+                &      hig%gy(13,i,j)*grid%u2(i,j,k-2)+ &
+                &      hig%gy(14,i,j)*grid%u1(i,j,k  )+ &
+                &      hig%gy(15,i,j)*grid%u1(i,j,k-1)+ &
+                &      hig%gy(16,i,j)*grid%u1(i,j,k-2)
+                grid%u3(i,j,k) = grid%u3(i,j,k)*(1.-fscale) - fdum*fscale
              end do
           end do
        end do
@@ -295,294 +584,22 @@ contains
        do k=bounds%nmax3+1,bounds%nmax3+4
           do j=bounds%nmin2,bounds%nmax2
              do i=bounds%nmin1,bounds%nmax1
-                fdum = hig%gy( 9,i,j)*u(i,j,k-1,3)+ &
-                &   hig%gy(10,i,j)*u(i,j,k-2,3)+ &
-                &   hig%gy(11,i,j)*u(i,j,k  ,2)+ &
-                &   hig%gy(12,i,j)*u(i,j,k-1,2)+ &
-                &   hig%gy(13,i,j)*u(i,j,k-2,2)+ &
-                &   hig%gy(14,i,j)*u(i,j,k  ,1)+ &
-                &   hig%gy(15,i,j)*u(i,j,k-1,1)+ &
-                &   hig%gy(16,i,j)*u(i,j,k-2,1)
-                u(i,j,k,3) = -fdum
+                fdum = hig%gy( 9,i,j)*grid%u3(i,j,k-1)+ &
+                &      hig%gy(10,i,j)*grid%u3(i,j,k-2)+ &
+                &      hig%gy(11,i,j)*grid%u2(i,j,k  )+ &
+                &      hig%gy(12,i,j)*grid%u2(i,j,k-1)+ &
+                &      hig%gy(13,i,j)*grid%u2(i,j,k-2)+ &
+                &      hig%gy(14,i,j)*grid%u1(i,j,k  )+ &
+                &      hig%gy(15,i,j)*grid%u1(i,j,k-1)+ &
+                &      hig%gy(16,i,j)*grid%u1(i,j,k-2)
+                grid%u3(i,j,k) = -fdum
              end do
           end do
        end do
     endif
     !
-  end subroutine Boundary0
- 
-  subroutine Boundary0_opt(genpar,bounds,u,mod,hig)
-    !
-    type(GeneralParam) :: genpar
-    type(ModelSpace)   :: mod
-    type(FDbounds)     :: bounds
-    type(HigdonParam)  :: hig
+  end subroutine Boundary0_grid
 
-    real :: u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
-    &         bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
-
-    integer :: i, j, k, nz0
-    integer :: fscale0
-    real    :: fscale, fdum,f1
-
-    nz0 = 1
-    fscale0 = 3.
-    f1=1./float(nz0-1-bounds%nmin1)/fscale0
-    !
-    ! Update the taper zone and update the regions used for operator padding
-    ! Since everything is outside the main grid, constant density applies
-    !
-    ! Axis 1 ----------------------
-    !
-    if (genpar%surf_type.le.0) then
-       !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) 
-       do k=bounds%nmin3,bounds%nmax3
-          do j=bounds%nmin2,bounds%nmax2
-             ! Update the top
-             ! Taper
-             do i=nz0-1,bounds%nmin1,-1
-!                fscale = float(nz0-i)/float(nz0-1-bounds%nmin1)/fscale0
-                fscale = float(nz0-i)*f1
-                fdum = hig%gz(1,j,k)*u(i+1,j,k,3)+ &
-                &   hig%gz(2,j,k)*u(i+2,j,k,3)+ &
-                &   hig%gz(3,j,k)*u(i  ,j,k,2)+ &
-                &   hig%gz(4,j,k)*u(i+1,j,k,2)+ &
-                &   hig%gz(5,j,k)*u(i+2,j,k,2)+ &
-                &   hig%gz(6,j,k)*u(i  ,j,k,1)+ &
-                &   hig%gz(7,j,k)*u(i+1,j,k,1)+ &
-                &   hig%gz(8,j,k)*u(i+2,j,k,1)
-                u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
-             end do
-          end do
-       end do      
-       !$OMP END PARALLEL DO
-       !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum)
-       do k=bounds%nmin3,bounds%nmax3
-          do j=bounds%nmin2,bounds%nmax2
-             ! Operator padding
-             do i=bounds%nmin1-1,bounds%nmin1-4,-1
-                fdum = hig%gz(1,j,k)*u(i+1,j,k,3)+ &
-                &   hig%gz(2,j,k)*u(i+2,j,k,3)+ &
-                &   hig%gz(3,j,k)*u(i  ,j,k,2)+ &
-                &   hig%gz(4,j,k)*u(i+1,j,k,2)+ &
-                &   hig%gz(5,j,k)*u(i+2,j,k,2)+ &
-                &   hig%gz(6,j,k)*u(i  ,j,k,1)+ &
-                &   hig%gz(7,j,k)*u(i+1,j,k,1)+ &
-                &   hig%gz(8,j,k)*u(i+2,j,k,1)
-                u(i,j,k,3) = -fdum
-             end do
-          end do
-       end do
-       !$OMP END PARALLEL DO
-    end if
-    f1=1./float(bounds%nmax1-mod%nz-1)/fscale0
-    !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) 
-    do k=bounds%nmin3,bounds%nmax3
-       do j=bounds%nmin2,bounds%nmax2
-          do i=mod%nz+1,bounds%nmax1
-!             fscale = float(i-mod%nz)/float(bounds%nmax1-mod%nz-1)/fscale0
-             fscale = float(i-mod%nz)*f1
-             fdum = hig%gz( 9,j,k)*u(i-1,j,k,3)+ &
-             &   hig%gz(10,j,k)*u(i-2,j,k,3)+ &
-             &   hig%gz(11,j,k)*u(i  ,j,k,2)+ &
-             &   hig%gz(12,j,k)*u(i-1,j,k,2)+ &
-             &   hig%gz(13,j,k)*u(i-2,j,k,2)+ &
-             &   hig%gz(14,j,k)*u(i  ,j,k,1)+ &
-             &   hig%gz(15,j,k)*u(i-1,j,k,1)+ &
-             &   hig%gz(16,j,k)*u(i-2,j,k,1)
-             u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-    !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) 
-    do k=bounds%nmin3,bounds%nmax3
-       do j=bounds%nmin2,bounds%nmax2
-          do i=bounds%nmax1+1,bounds%nmax1+4
-             fdum = hig%gz( 9,j,k)*u(i-1,j,k,3)+ &
-             &   hig%gz(10,j,k)*u(i-2,j,k,3)+ &
-             &   hig%gz(11,j,k)*u(i  ,j,k,2)+ &
-             &   hig%gz(12,j,k)*u(i-1,j,k,2)+ &
-             &   hig%gz(13,j,k)*u(i-2,j,k,2)+ &
-             &   hig%gz(14,j,k)*u(i  ,j,k,1)+ &
-             &   hig%gz(15,j,k)*u(i-1,j,k,1)+ &
-             &   hig%gz(16,j,k)*u(i-2,j,k,1)
-             u(i,j,k,3) = -fdum
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-    !
-    ! Axis 2 ----------------------
-    !
-    f1=1./float(-bounds%nmin2)/fscale0
-    !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) 
-    do k=bounds%nmin3,bounds%nmax3
-       do j=0,bounds%nmin2,-1
-!          fscale = float(1-j)/float(-bounds%nmin2)/fscale0
-          fscale = float(1-j)*f1
-          do i=bounds%nmin1,bounds%nmax1
-             fdum = hig%gx(1,i,k)*u(i,j+1,k,3)+ &
-             &   hig%gx(2,i,k)*u(i,j+2,k,3)+ &
-             &   hig%gx(3,i,k)*u(i,j  ,k,2)+ &
-             &   hig%gx(4,i,k)*u(i,j+1,k,2)+ &
-             &   hig%gx(5,i,k)*u(i,j+2,k,2)+ &
-             &   hig%gx(6,i,k)*u(i,j  ,k,1)+ &
-             &   hig%gx(7,i,k)*u(i,j+1,k,1)+ &
-             &   hig%gx(8,i,k)*u(i,j+2,k,1)
-             u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-    !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) 
-    do k=bounds%nmin3,bounds%nmax3
-       do j=bounds%nmin2-1,bounds%nmin2-4,-1
-          do i=bounds%nmin1,bounds%nmax1
-             fdum = hig%gx(1,i,k)*u(i,j+1,k,3)+ &
-             &   hig%gx(2,i,k)*u(i,j+2,k,3)+ &
-             &   hig%gx(3,i,k)*u(i,j  ,k,2)+ &
-             &   hig%gx(4,i,k)*u(i,j+1,k,2)+ &
-             &   hig%gx(5,i,k)*u(i,j+2,k,2)+ &
-             &   hig%gx(6,i,k)*u(i,j  ,k,1)+ &
-             &   hig%gx(7,i,k)*u(i,j+1,k,1)+ &
-             &   hig%gx(8,i,k)*u(i,j+2,k,1)
-             u(i,j,k,3) = -fdum
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-    f1=1./float(bounds%nmax2-mod%nxw-1)/fscale0
-    !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) 
-    do k=bounds%nmin3,bounds%nmax3
-       do j=mod%nxw+1,bounds%nmax2
-!          fscale = float(j-mod%nxw)/float(bounds%nmax2-mod%nxw-1)/fscale0
-          fscale = float(j-mod%nxw)*f1
-          do i=bounds%nmin1,bounds%nmax1
-             fdum = hig%gx( 9,i,k)*u(i,j-1,k,3)+ &
-             &   hig%gx(10,i,k)*u(i,j-2,k,3)+ &
-             &   hig%gx(11,i,k)*u(i,j  ,k,2)+ &
-             &   hig%gx(12,i,k)*u(i,j-1,k,2)+ &
-             &   hig%gx(13,i,k)*u(i,j-2,k,2)+ &
-             &   hig%gx(14,i,k)*u(i,j  ,k,1)+ &
-             &   hig%gx(15,i,k)*u(i,j-1,k,1)+ &
-             &   hig%gx(16,i,k)*u(i,j-2,k,1)
-             u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-    
-    !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) 
-    do k=bounds%nmin3,bounds%nmax3
-       do j=bounds%nmax2+1,bounds%nmax2+4
-          do i=bounds%nmin1,bounds%nmax1
-             fdum = hig%gx( 9,i,k)*u(i,j-1,k,3)+ &
-             &   hig%gx(10,i,k)*u(i,j-2,k,3)+ &
-             &   hig%gx(11,i,k)*u(i,j  ,k,2)+ &
-             &   hig%gx(12,i,k)*u(i,j-1,k,2)+ &
-             &   hig%gx(13,i,k)*u(i,j-2,k,2)+ &
-             &   hig%gx(14,i,k)*u(i,j  ,k,1)+ &
-             &   hig%gx(15,i,k)*u(i,j-1,k,1)+ &
-             &   hig%gx(16,i,k)*u(i,j-2,k,1)
-             u(i,j,k,3) = -fdum
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-    !
-    ! Axis 3 ----------------------
-    !
-    if (genpar%nbound.gt.0) then
-       !
-       ! Update the front side operator pad
-       ! Taper
-       f1=1./float(-bounds%nmin3)/fscale0
-       !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) 
-       do k=0,bounds%nmin3,-1
-!          fscale = float(1-k)/float(-bounds%nmin3)/fscale0
-          fscale = float(1-k)*f1
-          do j=bounds%nmin2,bounds%nmax2
-             do i=bounds%nmin1,bounds%nmax1
-                fdum = hig%gy(1,i,j)*u(i,j,k+1,3)+ &
-                &   hig%gy(2,i,j)*u(i,j,k+2,3)+ &
-                &   hig%gy(3,i,j)*u(i,j,k  ,2)+ &
-                &   hig%gy(4,i,j)*u(i,j,k+1,2)+ &
-                &   hig%gy(5,i,j)*u(i,j,k+2,2)+ &
-                &   hig%gy(6,i,j)*u(i,j,k  ,1)+ &
-                &   hig%gy(7,i,j)*u(i,j,k+1,1)+ &
-                &   hig%gy(8,i,j)*u(i,j,k+2,1)
-                u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
-             end do
-          end do
-       end do
-       !$OMP END PARALLEL DO
-       ! Operator padding
-       !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) 
-       do k=bounds%nmin3-1,bounds%nmin3-4,-1
-          do j=bounds%nmin2,bounds%nmax2
-             do i=bounds%nmin1,bounds%nmax1
-                fdum = hig%gy(1,i,j)*u(i,j,k+1,3)+ &
-                &   hig%gy(2,i,j)*u(i,j,k+2,3)+ &
-                &   hig%gy(3,i,j)*u(i,j,k  ,2)+ &
-                &   hig%gy(4,i,j)*u(i,j,k+1,2)+ &
-                &   hig%gy(5,i,j)*u(i,j,k+2,2)+ &
-                &   hig%gy(6,i,j)*u(i,j,k  ,1)+ &
-                &   hig%gy(7,i,j)*u(i,j,k+1,1)+ &
-                &   hig%gy(8,i,j)*u(i,j,k+2,1)
-                u(i,j,k,3) = -fdum
-             end do
-          end do
-       end do
-       !$OMP END PARALLEL DO
-       !
-       ! Update the back side operator pad
-       ! Taper
-       f1=1./float(bounds%nmax3-mod%nyw-1)/fscale0
-       !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) 
-       do k=mod%nyw+1,bounds%nmax3
-!          fscale = float(k-mod%nyw)/float(bounds%nmax3-mod%nyw-1)/fscale0
-          fscale = float(k-mod%nyw)*f1
-          do j=bounds%nmin2,bounds%nmax2
-             do i=bounds%nmin1,bounds%nmax1
-                fdum = hig%gy( 9,i,j)*u(i,j,k-1,3)+ &
-                &   hig%gy(10,i,j)*u(i,j,k-2,3)+ &
-                &   hig%gy(11,i,j)*u(i,j,k  ,2)+ &
-                &   hig%gy(12,i,j)*u(i,j,k-1,2)+ &
-                &   hig%gy(13,i,j)*u(i,j,k-2,2)+ &
-                &   hig%gy(14,i,j)*u(i,j,k  ,1)+ &
-                &   hig%gy(15,i,j)*u(i,j,k-1,1)+ &
-                &   hig%gy(16,i,j)*u(i,j,k-2,1)
-                u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
-             end do
-          end do
-       end do
-       !$OMP END PARALLEL DO
-       ! Operator padding
-       !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) 
-       do k=bounds%nmax3+1,bounds%nmax3+4
-          do j=bounds%nmin2,bounds%nmax2
-             do i=bounds%nmin1,bounds%nmax1
-                fdum = hig%gy( 9,i,j)*u(i,j,k-1,3)+ &
-                &   hig%gy(10,i,j)*u(i,j,k-2,3)+ &
-                &   hig%gy(11,i,j)*u(i,j,k  ,2)+ &
-                &   hig%gy(12,i,j)*u(i,j,k-1,2)+ &
-                &   hig%gy(13,i,j)*u(i,j,k-2,2)+ &
-                &   hig%gy(14,i,j)*u(i,j,k  ,1)+ &
-                &   hig%gy(15,i,j)*u(i,j,k-1,1)+ &
-                &   hig%gy(16,i,j)*u(i,j,k-2,1)
-                u(i,j,k,3) = -fdum
-             end do
-          end do
-       end do
-       !$OMP END PARALLEL DO
-    endif
-    !
-  end subroutine Boundary0_opt
-!
   subroutine Boundary0_opt_grid(genpar,bounds,grid,mod,hig)
     !
     type(GeneralParam) :: genpar
@@ -1124,317 +1141,6 @@ contains
     endif
     !
   end subroutine Boundary0_opt_grid_noomp
-
-!--------------------------------------------------------------------
-  subroutine Boundary1(genpar,bounds,u,mod,hig)
-    !
-    type(GeneralParam) :: genpar
-    type(ModelSpace)   :: mod
-    type(FDbounds)     :: bounds
-    type(HigdonParam)  :: hig
-
-    real :: u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
-    &         bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
-
-    integer :: i, j, k, nz0,  ntaper
-    real :: fscale0, fscale, fdum
-    !
-
-    ntaper = bounds%nmax2 - mod%nxw
-    if (ntaper.lt.genpar%lsinc/2+2) then
-       nz0 = -(genpar%lsinc/2+2)+1
-    else
-       nz0 = 1
-    endif
-    fscale0 = 2.
-    !
-    !
-    ! Update the taper zone and update the regions used for operator padding
-    ! Since everything is outside the main grid, constant density applies
-    !
-    ! Axis 1 ----------------------
-    !
-    do k=bounds%nmin3,bounds%nmax3
-       do j=bounds%nmin2,bounds%nmax2
-          ! Update the top
-          if (genpar%surf_type.le.0) then
-             do i=nz0-1,bounds%nmin1-4,-1
-                fscale = float(nz0-i)/float(nz0-1-bounds%nmin1+4)/fscale0
-                fdum = hig%gz(1,j,k)*u(i+1,j,k,3)+ &
-                &   hig%gz(2,j,k)*u(i+2,j,k,3)+ &
-                &   hig%gz(3,j,k)*u(i  ,j,k,2)+ &
-                &   hig%gz(4,j,k)*u(i+1,j,k,2)+ &
-                &   hig%gz(5,j,k)*u(i+2,j,k,2)+ &
-                &   hig%gz(6,j,k)*u(i  ,j,k,1)+ &
-                &   hig%gz(7,j,k)*u(i+1,j,k,1)+ &
-                &   hig%gz(8,j,k)*u(i+2,j,k,1)
-                u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
-             end do
-          endif
-          ! Update the bottom operator pad
-          do i=mod%nz+1,bounds%nmax1+4
-             fscale = float(i-mod%nz)/float(bounds%nmax1+4-mod%nz-1)/fscale0
-             fdum = hig%gz( 9,j,k)*u(i-1,j,k,3)+ &
-             &   hig%gz(10,j,k)*u(i-2,j,k,3)+ &
-             &   hig%gz(11,j,k)*u(i  ,j,k,2)+ &
-             &   hig%gz(12,j,k)*u(i-1,j,k,2)+ &
-             &   hig%gz(13,j,k)*u(i-2,j,k,2)+ &
-             &   hig%gz(14,j,k)*u(i  ,j,k,1)+ &
-             &   hig%gz(15,j,k)*u(i-1,j,k,1)+ &
-             &   hig%gz(16,j,k)*u(i-2,j,k,1)
-             u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
-          end do
-       end do
-    end do
-    !
-    ! Axis 2 ----------------------
-    !
-    do k=bounds%nmin3,bounds%nmax3
-       ! Update the left side operator pad
-       do j=0,bounds%nmin2-4,-1
-          fscale = float(1-j)/float(-(bounds%nmin2-4))/fscale0
-          do i=bounds%nmin1,bounds%nmax1
-             fdum = hig%gx(1,i,k)*u(i,j+1,k,3)+ &
-             &   hig%gx(2,i,k)*u(i,j+2,k,3)+ &
-             &   hig%gx(3,i,k)*u(i,j  ,k,2)+ &
-             &   hig%gx(4,i,k)*u(i,j+1,k,2)+ &
-             &   hig%gx(5,i,k)*u(i,j+2,k,2)+ &
-             &   hig%gx(6,i,k)*u(i,j  ,k,1)+ &
-             &   hig%gx(7,i,k)*u(i,j+1,k,1)+ &
-             &   hig%gx(8,i,k)*u(i,j+2,k,1)
-             u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
-          end do
-       end do
-       ! Update the right side operator pad
-       do j=mod%nxw+1,bounds%nmax2+4
-          fscale = float(j-mod%nxw)/float(bounds%nmax2+4-mod%nxw-1)/fscale0
-          do i=bounds%nmin1,bounds%nmax1
-             fdum = hig%gx( 9,i,k)*u(i,j-1,k,3)+ &
-             &   hig%gx(10,i,k)*u(i,j-2,k,3)+ &
-             &   hig%gx(11,i,k)*u(i,j  ,k,2)+ &
-             &   hig%gx(12,i,k)*u(i,j-1,k,2)+ &
-             &   hig%gx(13,i,k)*u(i,j-2,k,2)+ &
-             &   hig%gx(14,i,k)*u(i,j  ,k,1)+ &
-             &   hig%gx(15,i,k)*u(i,j-1,k,1)+ &
-             &   hig%gx(16,i,k)*u(i,j-2,k,1)
-             u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
-          end do
-       end do
-    end do
-    !
-    ! Axis 3 ----------------------
-    !
-    if (genpar%nbound.gt.0) then
-       ! Update the front side operator pad
-       do k=0,bounds%nmin3-4,-1
-          fscale = float(1-k)/float(-(bounds%nmin3-4))/fscale0
-          do j=bounds%nmin2,bounds%nmax2
-             do i=bounds%nmin1,bounds%nmax1
-                fdum = hig%gy(1,i,j)*u(i,j,k+1,3)+ &
-                &   hig%gy(2,i,j)*u(i,j,k+2,3)+ &
-                &   hig%gy(3,i,j)*u(i,j,k  ,2)+ &
-                &   hig%gy(4,i,j)*u(i,j,k+1,2)+ &
-                &   hig%gy(5,i,j)*u(i,j,k+2,2)+ &
-                &   hig%gy(6,i,j)*u(i,j,k  ,1)+ &
-                &   hig%gy(7,i,j)*u(i,j,k+1,1)+ &
-                &   hig%gy(8,i,j)*u(i,j,k+2,1)
-                u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
-             end do
-          end do
-       end do
-       ! Update the back side operator pad
-       do k=mod%nyw+1,bounds%nmax3+4
-          fscale = float(k-mod%nyw)/float(bounds%nmax3+4-mod%nyw-1)/fscale0
-          do j=bounds%nmin2,bounds%nmax2
-             do i=bounds%nmin1,bounds%nmax1
-                fdum = hig%gy( 9,i,j)*u(i,j,k-1,3)+ &
-                &   hig%gy(10,i,j)*u(i,j,k-2,3)+ &
-                &   hig%gy(11,i,j)*u(i,j,k  ,2)+ &
-                &   hig%gy(12,i,j)*u(i,j,k-1,2)+ &
-                &   hig%gy(13,i,j)*u(i,j,k-2,2)+ &
-                &   hig%gy(14,i,j)*u(i,j,k  ,1)+ &
-                &   hig%gy(15,i,j)*u(i,j,k-1,1)+ &
-                &   hig%gy(16,i,j)*u(i,j,k-2,1)
-                u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
-             end do
-          end do
-       end do
-    endif
-    !
-  end subroutine Boundary1
-
-  !--------------------------------------------------------------------
-  subroutine Boundary1_opt(genpar,bounds,u,mod,hig)
-    !
-    type(GeneralParam) :: genpar
-    type(ModelSpace)   :: mod
-    type(FDbounds)     :: bounds
-    type(HigdonParam)  :: hig
-
-    real :: u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
-    &         bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3)
-
-    integer :: i, j, k, nz0,  ntaper
-    real :: fscale0, fscale, fdum,f1
-    !
-
-    ntaper = bounds%nmax2 - mod%nxw
-    if (ntaper.lt.genpar%lsinc/2+2) then
-       nz0 = -(genpar%lsinc/2+2)+1
-    else
-       nz0 = 1
-    endif
-    fscale0 = 2.
-    !
-    !
-    ! Update the taper zone and update the regions used for operator padding
-    ! Since everything is outside the main grid, constant density applies
-    !
-    ! Axis 1 ----------------------
-    !
-    if (genpar%surf_type.le.0) then
-
-       f1=1./float(nz0-1-bounds%nmin1+4)/fscale0
-       !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) 
-       do k=bounds%nmin3,bounds%nmax3
-          do j=bounds%nmin2,bounds%nmax2           
-             do i=nz0-1,bounds%nmin1-4,-1
-                fscale = float(nz0-i)*f1
-!                fscale = float(nz0-i)/float(nz0-1-bounds%nmin1+4)/fscale0
-                fdum = hig%gz(1,j,k)*u(i+1,j,k,3)+ &
-                &   hig%gz(2,j,k)*u(i+2,j,k,3)+ &
-                &   hig%gz(3,j,k)*u(i  ,j,k,2)+ &
-                &   hig%gz(4,j,k)*u(i+1,j,k,2)+ &
-                &   hig%gz(5,j,k)*u(i+2,j,k,2)+ &
-                &   hig%gz(6,j,k)*u(i  ,j,k,1)+ &
-                &   hig%gz(7,j,k)*u(i+1,j,k,1)+ &
-                &   hig%gz(8,j,k)*u(i+2,j,k,1)
-                u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
-             end do
-          end do
-       end do
-    !$OMP END PARALLEL DO
-    end if
-
-    f1=1./float(bounds%nmax1+4-mod%nz-1)/fscale0
-    !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) 
-    do k=bounds%nmin3,bounds%nmax3
-       do j=bounds%nmin2,bounds%nmax2         
-          ! Update the bottom operator pad
-          do i=mod%nz+1,bounds%nmax1+4
-             fscale = float(i-mod%nz)*f1
-!             fscale = float(i-mod%nz)/float(bounds%nmax1+4-mod%nz-1)/fscale0
-             fdum = hig%gz( 9,j,k)*u(i-1,j,k,3)+ &
-             &   hig%gz(10,j,k)*u(i-2,j,k,3)+ &
-             &   hig%gz(11,j,k)*u(i  ,j,k,2)+ &
-             &   hig%gz(12,j,k)*u(i-1,j,k,2)+ &
-             &   hig%gz(13,j,k)*u(i-2,j,k,2)+ &
-             &   hig%gz(14,j,k)*u(i  ,j,k,1)+ &
-             &   hig%gz(15,j,k)*u(i-1,j,k,1)+ &
-             &   hig%gz(16,j,k)*u(i-2,j,k,1)
-             u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-    !
-    ! Axis 2 ----------------------
-    !
-
-    f1=1./float(-(bounds%nmin2-4))/fscale0
-    !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) 
-    do k=bounds%nmin3,bounds%nmax3
-       ! Update the left side operator pad
-       do j=0,bounds%nmin2-4,-1
-          fscale = float(1-j)*f1
-!          fscale = float(1-j)/float(-(bounds%nmin2-4))/fscale0
-          do i=bounds%nmin1,bounds%nmax1
-             fdum = hig%gx(1,i,k)*u(i,j+1,k,3)+ &
-             &   hig%gx(2,i,k)*u(i,j+2,k,3)+ &
-             &   hig%gx(3,i,k)*u(i,j  ,k,2)+ &
-             &   hig%gx(4,i,k)*u(i,j+1,k,2)+ &
-             &   hig%gx(5,i,k)*u(i,j+2,k,2)+ &
-             &   hig%gx(6,i,k)*u(i,j  ,k,1)+ &
-             &   hig%gx(7,i,k)*u(i,j+1,k,1)+ &
-             &   hig%gx(8,i,k)*u(i,j+2,k,1)
-             u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-    
-    f1=1./float(bounds%nmax2+4-mod%nxw-1)/fscale0
-    !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) 
-    do k=bounds%nmin3,bounds%nmax3
-       ! Update the right side operator pad
-       do j=mod%nxw+1,bounds%nmax2+4
-          fscale = float(j-mod%nxw)*f1
-!          fscale = float(j-mod%nxw)/float(bounds%nmax2+4-mod%nxw-1)/fscale0
-          do i=bounds%nmin1,bounds%nmax1
-             fdum = hig%gx( 9,i,k)*u(i,j-1,k,3)+ &
-             &   hig%gx(10,i,k)*u(i,j-2,k,3)+ &
-             &   hig%gx(11,i,k)*u(i,j  ,k,2)+ &
-             &   hig%gx(12,i,k)*u(i,j-1,k,2)+ &
-             &   hig%gx(13,i,k)*u(i,j-2,k,2)+ &
-             &   hig%gx(14,i,k)*u(i,j  ,k,1)+ &
-             &   hig%gx(15,i,k)*u(i,j-1,k,1)+ &
-             &   hig%gx(16,i,k)*u(i,j-2,k,1)
-             u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-    !
-    ! Axis 3 ----------------------
-    !
-    f1=1./float(-(bounds%nmin3-4))/fscale0
-    if (genpar%nbound.gt.0) then
-       ! Update the front side operator pad
-       !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) 
-       do k=0,bounds%nmin3-4,-1
-          fscale = float(1-k)*f1
-!          fscale = float(1-k)/float(-(bounds%nmin3-4))/fscale0
-          do j=bounds%nmin2,bounds%nmax2
-             do i=bounds%nmin1,bounds%nmax1
-                fdum = hig%gy(1,i,j)*u(i,j,k+1,3)+ &
-                &   hig%gy(2,i,j)*u(i,j,k+2,3)+ &
-                &   hig%gy(3,i,j)*u(i,j,k  ,2)+ &
-                &   hig%gy(4,i,j)*u(i,j,k+1,2)+ &
-                &   hig%gy(5,i,j)*u(i,j,k+2,2)+ &
-                &   hig%gy(6,i,j)*u(i,j,k  ,1)+ &
-                &   hig%gy(7,i,j)*u(i,j,k+1,1)+ &
-                &   hig%gy(8,i,j)*u(i,j,k+2,1)
-                u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
-             end do
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       f1=1./float(bounds%nmax3+4-mod%nyw-1)/fscale0
-       ! Update the back side operator pad
-       !$OMP PARALLEL DO PRIVATE(k,j,i,fscale,fdum) 
-       do k=mod%nyw+1,bounds%nmax3+4
-          fscale = float(k-mod%nyw)*f1
-!          fscale = float(k-mod%nyw)/float(bounds%nmax3+4-mod%nyw-1)/fscale0
-          do j=bounds%nmin2,bounds%nmax2
-             do i=bounds%nmin1,bounds%nmax1
-                fdum = hig%gy( 9,i,j)*u(i,j,k-1,3)+ &
-                &   hig%gy(10,i,j)*u(i,j,k-2,3)+ &
-                &   hig%gy(11,i,j)*u(i,j,k  ,2)+ &
-                &   hig%gy(12,i,j)*u(i,j,k-1,2)+ &
-                &   hig%gy(13,i,j)*u(i,j,k-2,2)+ &
-                &   hig%gy(14,i,j)*u(i,j,k  ,1)+ &
-                &   hig%gy(15,i,j)*u(i,j,k-1,1)+ &
-                &   hig%gy(16,i,j)*u(i,j,k-2,1)
-                u(i,j,k,3) = u(i,j,k,3)*(1.-fscale) - fdum*fscale
-             end do
-          end do
-       end do
-       !$OMP END PARALLEL DO
-    endif
-    !
-  end subroutine Boundary1_opt
 
  !--------------------------------------------------------------------
   subroutine Boundary1_opt_grid(genpar,bounds,grid,mod,hig)

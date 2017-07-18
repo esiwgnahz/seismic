@@ -237,7 +237,7 @@ BPFWI_Fmax%.H: BPtracesLAND.H BPheaderLAND.H BPsource.H BPvpmask.H
 	function=fct$@ \
 	mute_out=mute$@ \
 	freeze_soft=1 \
-	fhi=$* nplo=6 nphi=25 phase=1 \
+ 	fhi=$* nplo=6 nphi=25 phase=1 \
 	t0=0.35 \
 	v0=1800. \
 	percx=0. percz=0. \
@@ -687,19 +687,19 @@ BPMakeHinge%.H:
 
 bphingeepsredo=100 50 10 5 0
 bphingeloop:
-	#Cp BPvelvoz.H BPveltmp.H
-	for loopi in ${bphingeepsredo}; do\
+	Cp BPvelvoz.H BPveltmp.H
+	for loopi in ${bphingeeps}; do\
 		Cp BPveltmp.H BPvelupdate.H ;\
 		make bpfreqloop$$loopi ;\
 	done
 
 bpfreqlistredo= 5 6 7 8 9 10 11 13 15 17
 bpfreqloop%:
-	for fmax in ${bpfreqlistredo}; do\
+	for fmax in ${bpfreqlist}; do\
 		echo processing frequency=$$fmax Hz;\
-		make BPFWI4_Fmax$$fmax.Eps$*.H FREQBP=$$fmax BPEPSHINGE=$*  ;\
-		make BPMakeHingeBPFWI4_Fmax$$fmax.Eps$*.H BPEPSHINGE=$*  ;\
-		Cp  BPMakeHingeBPFWI4_Fmax$$fmax.Eps$*.H BPvelupdate.H ;\
+		make BPFWI3_Fmax$$fmax.Eps$*.H FREQBP=$$fmax BPEPSHINGE=$*  ;\
+		make BPMakeHingeBPFWI3_Fmax$$fmax.Eps$*.H BPEPSHINGE=$*  ;\
+		Cp  BPMakeHingeBPFWI3_Fmax$$fmax.Eps$*.H BPvelupdate.H ;\
 	done
 	Cp BPvelupdate.H BPveltmp.H 
 
