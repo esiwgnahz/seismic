@@ -323,7 +323,7 @@ C     CIRCULAR ORDER CONTROLLED BY THE PARAMETER POINT.
 C
       ISPT= N+2*M
       IYPT= ISPT+N*M     
-       DO 50 I=1,N
+      DO 50 I=1,N
  50   W(ISPT+I)= -G(I)*DIAG(I)
       GNORM= DSQRT(DDOT(N,G,1,G,1))
 C      STP1= ONE/GNORM
@@ -333,9 +333,9 @@ C     AS IT WAS IN LBFGS CODE BY DEFAULT
       IF (BOUNDT.EQ.0) THEN
          STP1= ONE/GNORM
       ELSE
-c         STP1= XNORM2/GNORM/100
+         STP1= XNORM2/GNORM/100
 c         STP1= F/2
-         STP1=ONE
+c         STP1=ONE
       ENDIF
 c      write(0,*) 'STP1=',STP1
 C
