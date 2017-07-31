@@ -333,9 +333,9 @@ C     AS IT WAS IN LBFGS CODE BY DEFAULT
       IF (BOUNDT.EQ.0) THEN
          STP1= ONE/GNORM
       ELSE
-         STP1= XNORM2/GNORM/100
+c         STP1= XNORM2/GNORM/100
 c         STP1= F/2
-c         STP1=ONE
+         STP1=ONE
       ENDIF
 c      write(0,*) 'STP1=',STP1
 C
