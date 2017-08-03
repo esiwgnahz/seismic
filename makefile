@@ -4,6 +4,12 @@ UF90INCLUDES= -I/${MKLROOT}/include/intel64/lp64/ -qopenmp
 UF90LIBS= -L/u/st/by/aguitton/bins/fftw/lib/ -qopenmp  -lbei -lsepfft -lsep2df90 -lsep3df90 -lsep3d -lsepf90 -lsep -lsupersetf90 -lsuperset  -lfftw3f  -L/${MKLROOT}/lib/intel64 -qopenmp -lmkl_intel_lp64 -lmkl_lapack95_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm -ldl -lsepgeef90 -lAdec -lAfut -lAwave -lAflt -lAinv -lsepgeef90
 UF77LIBS:= ${UF77LIBS} -qopenmp -lbei
 
+###########################################
+# Add -g 2 lines below if debugger needed
+OF90FLAGS:= -axCOMMON-AVX512 -qopenmp -fPIC -FR  -D_GNU_SOURCE -I${SEPINCDIR} -c
+OF77FLAGS:= -axCOMMON-AVX512 -qopenmp -fPIC -FR                               -c 
+###########################################
+
 LIBDIR  = ${ADIR}/lib/$(MTYPE)
 INCDIR  = ${ADIR}/inc/$(MTYPE)
 BINDIR  = ${ADIR}/bin/${MTYPE}
