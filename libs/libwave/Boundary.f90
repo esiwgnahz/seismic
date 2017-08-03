@@ -115,24 +115,20 @@ contains
     !
     ! Axis 1 ----------------------
     !
-    scale0=1/float(nz0+nstencil-1-bounds%nmin1+4)/fscale0
-    scale1=1/float(3+nstencil)/fscale0
 
-    !$OMP PARALLEL DO PRIVATE(factor)
+    !$OMP PARALLEL DO PRIVATE(k,j,i)
     do k=bounds%nmin3,bounds%nmax3
        do j=bounds%nmin2,bounds%nmax2
           ! Update the top
           if (genpar%surf_type.le.0) then
-             do i=nz0+nstencil-1,bounds%nmin1-4,-1
-                factor=float(nz0+nstencil-i)*scale0
-                call Higdon_factor(genpar,bounds,hig,factor,&
+             do i=nz0+nstencil,bounds%nmin1-4,-1
+                call Higdon_factor(genpar,bounds,hig,&
                 &                  grid%u1,grid%u2,grid%u3,i,j,k,-1)
              end do
           endif
           ! Update the bottom operator pad
-          do i=bounds%nmax1-nstencil+1,bounds%nmax1+4
-             factor=float(i-bounds%nmax1+nstencil)*scale1
-             call Higdon_factor(genpar,bounds,hig,factor,&
+          do i=bounds%nmax1-nstencil,bounds%nmax1+4
+             call Higdon_factor(genpar,bounds,hig,&
              &                  grid%u1,grid%u2,grid%u3,i,j,k,+1)
           end do
        end do
@@ -140,18 +136,16 @@ contains
        ! Axis 2 ----------------------
        !
        ! Update the left side operator pad
-       do j=bounds%nmin2+nstencil-1,bounds%nmin2-4,-1
-          factor=float(bounds%nmin2+nstencil-j)*scale1
+       do j=bounds%nmin2+nstencil,bounds%nmin2-4,-1
           do i=nz0,bounds%nmax1
-             call Higdon_factor(genpar,bounds,hig,factor,&
+             call Higdon_factor(genpar,bounds,hig,&
              &                  grid%u1,grid%u2,grid%u3,i,j,k,-2)
           end do
        end do
        ! Update the right side operator pad
-       do j=bounds%nmax2-nstencil+1,bounds%nmax2+4
-          factor=float(j-bounds%nmax2+nstencil)*scale1
+       do j=bounds%nmax2-nstencil,bounds%nmax2+4
           do i=nz0,bounds%nmax1
-             call Higdon_factor(genpar,bounds,hig,factor,&
+             call Higdon_factor(genpar,bounds,hig,&
              &                  grid%u1,grid%u2,grid%u3,i,j,k,+2)
           end do
        end do
@@ -167,20 +161,18 @@ contains
     ! nbound=4 if 3D
     if (genpar%nbound.gt.0) then
 
-       !$OMP PARALLEL DO PRIVATE(factor)
+       !$OMP PARALLEL DO PRIVATE(k,j,i)
        do j=bounds%nmin2,bounds%nmax2
-          do k=bounds%nmin3+nstencil-1,bounds%nmin3-4,-1
-             factor=float(bounds%nmin3+nstencil-k)*scale1
+          do k=bounds%nmin3+nstencil,bounds%nmin3-4,-1
              do i=nz0,bounds%nmax1
-                call Higdon_factor(genpar,bounds,hig,factor,&
+                call Higdon_factor(genpar,bounds,hig,&
                 &                  grid%u1,grid%u2,grid%u3,i,j,k,-3)
              end do
           end do
           ! Update the back side operator pad
-          do k=bounds%nmax3-nstencil+1,bounds%nmax3+4
-             factor=float(k-bounds%nmax3+nstencil)*scale1
+          do k=bounds%nmax3-nstencil,bounds%nmax3+4
              do i=nz0,bounds%nmax1
-                call Higdon_factor(genpar,bounds,hig,factor,&
+                call Higdon_factor(genpar,bounds,hig,&
                 &                  grid%u1,grid%u2,grid%u3,i,j,k,+3)
              end do
           end do
@@ -205,6 +197,7 @@ contains
     real :: factor
     real, parameter :: fscale0 = 2.
     real :: scale0, scale1
+
     !
     if (genpar%surf_type.gt.0) then
        nz0 = 1
@@ -217,26 +210,22 @@ contains
     !
     ! Update the taper zone and update the regions used for operator padding
     ! Since everything is outside the main grid, constant density applies
-    !
+    ! 
     ! Axis 1 ----------------------
     !
-    scale0=1/float(nz0+nstencil-1-bounds%nmin1+4)/fscale0
-    scale1=1/float(3+nstencil)/fscale0
 
     do k=bounds%nmin3,bounds%nmax3
        do j=bounds%nmin2,bounds%nmax2
           ! Update the top
           if (genpar%surf_type.le.0) then
-             do i=nz0+nstencil-1,bounds%nmin1-4,-1
-                factor=float(nz0+nstencil-i)*scale0
-                call Higdon_factor(genpar,bounds,hig,factor,&
+             do i=nz0+nstencil,bounds%nmin1-4,-1
+                call Higdon_factor(genpar,bounds,hig,&
                 &                  grid%u1,grid%u2,grid%u3,i,j,k,-1)
              end do
           endif
           ! Update the bottom operator pad
-          do i=bounds%nmax1-nstencil+1,bounds%nmax1+4
-             factor=float(i-bounds%nmax1+nstencil)*scale1
-             call Higdon_factor(genpar,bounds,hig,factor,&
+          do i=bounds%nmax1-nstencil,bounds%nmax1+4
+             call Higdon_factor(genpar,bounds,hig,&
              &                  grid%u1,grid%u2,grid%u3,i,j,k,+1)
           end do
        end do
@@ -244,18 +233,17 @@ contains
        ! Axis 2 ----------------------
        !
        ! Update the left side operator pad
-       do j=bounds%nmin2+nstencil-1,bounds%nmin2-4,-1
-          factor=float(bounds%nmin2+nstencil-j)*scale1
+       do j=bounds%nmin2+nstencil,bounds%nmin2-4,-1
+!          write(0,*) factor,j,bounds%nmin2,scale1
           do i=nz0,bounds%nmax1
-             call Higdon_factor(genpar,bounds,hig,factor,&
+             call Higdon_factor(genpar,bounds,hig,&
              &                  grid%u1,grid%u2,grid%u3,i,j,k,-2)
           end do
        end do
        ! Update the right side operator pad
-       do j=bounds%nmax2-nstencil+1,bounds%nmax2+4
-          factor=float(j-bounds%nmax2+nstencil)*scale1
+       do j=bounds%nmax2-nstencil,bounds%nmax2+4
           do i=nz0,bounds%nmax1
-             call Higdon_factor(genpar,bounds,hig,factor,&
+             call Higdon_factor(genpar,bounds,hig,&
              &                  grid%u1,grid%u2,grid%u3,i,j,k,+2)
           end do
        end do
@@ -270,18 +258,16 @@ contains
     ! nbound=4 if 3D
     if (genpar%nbound.gt.0) then
        do j=bounds%nmin2,bounds%nmax2
-          do k=bounds%nmin3+nstencil-1,bounds%nmin3-4,-1
-             factor=float(bounds%nmin3+nstencil-k)*scale1
+          do k=bounds%nmin3+nstencil,bounds%nmin3-4,-1
              do i=nz0,bounds%nmax1
-                call Higdon_factor(genpar,bounds,hig,factor,&
+                call Higdon_factor(genpar,bounds,hig,&
                 &                  grid%u1,grid%u2,grid%u3,i,j,k,-3)
              end do
           end do
           ! Update the back side operator pad
-          do k=bounds%nmax3-nstencil+1,bounds%nmax3+4
-             factor=float(k-bounds%nmax3+nstencil)*scale1
+          do k=bounds%nmax3-nstencil,bounds%nmax3+4
              do i=nz0,bounds%nmax1
-                call Higdon_factor(genpar,bounds,hig,factor,&
+                call Higdon_factor(genpar,bounds,hig,&
                 &                  grid%u1,grid%u2,grid%u3,i,j,k,+3)
              end do
           end do
@@ -290,7 +276,7 @@ contains
 
   end subroutine Boundary_3d_noomp
 
-  subroutine Higdon_factor(genpar,bounds,hig,factor,u0,u1,u2,i,j,k,naxis)
+  subroutine Higdon_factor_old(genpar,bounds,hig,factor,u0,u1,u2,i,j,k,naxis)
     !--------------------------------------------------------------------
     implicit none
 
@@ -374,6 +360,89 @@ contains
        u2(i,j,k) = u2(i,j,k)*(1.-factor) - fdum*factor
 
     end select
+
+  end subroutine Higdon_factor_old
+
+  subroutine Higdon_factor(genpar,bounds,hig,u0,u1,u2,i,j,k,naxis)
+    !--------------------------------------------------------------------
+    implicit none
+
+    type(GeneralParam) :: genpar
+    type(FDbounds)     :: bounds
+    type(HigdonParam)  :: hig
+    integer            :: i, j, k, naxis
+    real :: fdum
+    real :: u0(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4, &
+    &       bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    real :: u1(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4, &
+    &       bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    real :: u2(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4, &
+    &       bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    !
+  select case(naxis)
+    case(-1)
+       fdum = hig%gz(1,j,k)*u2(i+1,j,k)+ &
+       &      hig%gz(2,j,k)*u2(i+2,j,k)+ &
+       &      hig%gz(3,j,k)*u1(i  ,j,k)+ &
+       &      hig%gz(4,j,k)*u1(i+1,j,k)+ &
+       &      hig%gz(5,j,k)*u1(i+2,j,k)+ &
+       &      hig%gz(6,j,k)*u0(i  ,j,k)+ &
+       &      hig%gz(7,j,k)*u0(i+1,j,k)+ &
+       &      hig%gz(8,j,k)*u0(i+2,j,k)
+
+    case(1)
+       fdum = hig%gz( 9,j,k)*u2(i-1,j,k)+ &
+       &      hig%gz(10,j,k)*u2(i-2,j,k)+ &
+       &      hig%gz(11,j,k)*u1(i  ,j,k)+ &
+       &      hig%gz(12,j,k)*u1(i-1,j,k)+ &
+       &      hig%gz(13,j,k)*u1(i-2,j,k)+ &
+       &      hig%gz(14,j,k)*u0(i  ,j,k)+ &
+       &      hig%gz(15,j,k)*u0(i-1,j,k)+ &
+       &      hig%gz(16,j,k)*u0(i-2,j,k)
+
+    case(-2)
+       fdum = hig%gx(1,i,k)*u2(i,j+1,k)+ &
+       &      hig%gx(2,i,k)*u2(i,j+2,k)+ &
+       &      hig%gx(3,i,k)*u1(i,j  ,k)+ &
+       &      hig%gx(4,i,k)*u1(i,j+1,k)+ &
+       &      hig%gx(5,i,k)*u1(i,j+2,k)+ &
+       &      hig%gx(6,i,k)*u0(i,j  ,k)+ &
+       &      hig%gx(7,i,k)*u0(i,j+1,k)+ &
+       &      hig%gx(8,i,k)*u0(i,j+2,k)
+
+    case(2)
+       fdum = hig%gx( 9,i,k)*u2(i,j-1,k)+ &
+       &      hig%gx(10,i,k)*u2(i,j-2,k)+ &
+       &      hig%gx(11,i,k)*u1(i,j  ,k)+ &
+       &      hig%gx(12,i,k)*u1(i,j-1,k)+ &
+       &      hig%gx(13,i,k)*u1(i,j-2,k)+ &
+       &      hig%gx(14,i,k)*u0(i,j  ,k)+ &
+       &      hig%gx(15,i,k)*u0(i,j-1,k)+ &
+       &      hig%gx(16,i,k)*u0(i,j-2,k)
+
+    case(-3)
+       fdum = hig%gy(1,i,j)*u2(i,j,k+1)+ &
+       &      hig%gy(2,i,j)*u2(i,j,k+2)+ &
+       &      hig%gy(3,i,j)*u1(i,j,k  )+ &
+       &      hig%gy(4,i,j)*u1(i,j,k+1)+ &
+       &      hig%gy(5,i,j)*u1(i,j,k+2)+ &
+       &      hig%gy(6,i,j)*u0(i,j,k)+ &
+       &      hig%gy(7,i,j)*u0(i,j,k+1)+ &
+       &      hig%gy(8,i,j)*u0(i,j,k+2)
+
+    case(3)
+       fdum = hig%gy( 9,i,j)*u2(i,j,k-1)+ &
+       &      hig%gy(10,i,j)*u2(i,j,k-2)+ &
+       &      hig%gy(11,i,j)*u1(i,j,k)+ &
+       &      hig%gy(12,i,j)*u1(i,j,k-1)+ &
+       &      hig%gy(13,i,j)*u1(i,j,k-2)+ &
+       &      hig%gy(14,i,j)*u0(i,j,k)+ &
+       &      hig%gy(15,i,j)*u0(i,j,k-1)+ &
+       &      hig%gy(16,i,j)*u0(i,j,k-2)
+
+    end select
+
+    u2(i,j,k) = - fdum
 
   end subroutine Higdon_factor
 
@@ -981,6 +1050,7 @@ contains
        do j=0,bounds%nmin2,-1
           fscale = float(1-j)*f1
 !          fscale = float(1-j)/float(-bounds%nmin2)/fscale0
+          write(0,*) fscale,j,bounds%nmin2,f1
           do i=bounds%nmin1,bounds%nmax1
              fdum = hig%gx(1,i,k)*grid%u3(i,j+1,k)+ &
              &   hig%gx(2,i,k)*grid%u3(i,j+2,k)+ &

@@ -536,6 +536,12 @@ contains
        ! Forward: modeling
        call AMOD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,sourcegath,wfld_fwd,i) 
 
+!       call srite('wave',wfld_fwd%wave,4*size(wfld_fwd%wave))
+!
+!       call to_history('n1',modgath(i)%nz,'wave')
+!       call to_history('n2',modgath(i)%nxw,'wave')
+!       call to_history('n3',genpar%ntsnap,'wave')
+
        call deallocateWaveSpace(wfld_fwd)
        call deallocateModelSpace_elev(elevgath(i))
        begi=shotgath(i)%begi
@@ -555,6 +561,7 @@ contains
 
     end do
     !$OMP END PARALLEL DO
+
 
     write(0,*) 'INFO: Done with Processing'
     write(0,*) 'INFO:'
