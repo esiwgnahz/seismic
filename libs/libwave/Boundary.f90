@@ -116,7 +116,7 @@ contains
     ! Axis 1 ----------------------
     !
 
-    !$OMP PARALLEL DO 
+    !$OMP PARALLEL DO PRIVATE(k,j,i)
     do k=bounds%nmin3,bounds%nmax3
        do j=bounds%nmin2,bounds%nmax2
           ! Update the top
@@ -161,7 +161,7 @@ contains
     ! nbound=4 if 3D
     if (genpar%nbound.gt.0) then
 
-       !$OMP PARALLEL DO
+       !$OMP PARALLEL DO PRIVATE(k,j,i)
        do j=bounds%nmin2,bounds%nmax2
           do k=bounds%nmin3+nstencil,bounds%nmin3-4,-1
              do i=nz0,bounds%nmax1

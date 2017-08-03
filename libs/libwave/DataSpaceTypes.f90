@@ -83,11 +83,16 @@ contains
 
   subroutine deallocateUSpace(grid)
     type(USpace) :: grid
-    if (allocated(grid%u_1))  deallocate(grid%u_1)
-    if (allocated(grid%u0))   deallocate(grid%u0)
-    if (allocated(grid%u1))   deallocate(grid%u1)
-    if (allocated(grid%u2))   deallocate(grid%u2)
-    if (allocated(grid%u3))   deallocate(grid%u3)
+!    if (allocated(grid%u_1))  deallocate(grid%u_1)
+!    if (allocated(grid%u0))   deallocate(grid%u0)
+!    if (allocated(grid%u1))   deallocate(grid%u1)
+!    if (allocated(grid%u2))   deallocate(grid%u2)
+!    if (allocated(grid%u3))   deallocate(grid%u3)
+    deallocate(grid%u_1)
+    deallocate(grid%u0)
+    deallocate(grid%u1)
+    deallocate(grid%u2)
+    deallocate(grid%u3)
     if (associated(grid%utmp)) nullify(grid%utmp)
   end subroutine deallocateUSpace
 

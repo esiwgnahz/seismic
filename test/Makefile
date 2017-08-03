@@ -2,11 +2,11 @@ include ${SEPINC}/SEP.top
 
 RESDIR=Fig
 include EXEMakefile
-include VOLVEMakefile
+#include VOLVEMakefile
 include MARMMakefile
-include BPMakefile
-include 1DMakefile
-include FIGMakefile
+#include BPMakefile
+#include 1DMakefile
+#include FIGMakefile
 #include MATCHMakefile
 
 OPSTEXFLAGS= color=y fat=1 fatmult=1.5 invras=n force= 
