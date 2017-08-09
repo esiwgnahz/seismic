@@ -77,12 +77,14 @@ contains
   subroutine ReadData_cube(tag,data)
     character(len=*)  ::   tag
     type(cube)        ::       data
-    integer           :: i
+    integer           :: i,beg,end,size
 
     allocate(data%dat(data%n(1)*data%n(2)*data%n(3)))
-
+    size=4*data%n(1)*data%n(2)
     do i=1,data%n(3)
-       call sreed(tag,data%dat(1+(i-1)*data%n(1)*data%n(2):i*data%n(1)*data%n(2)),4*data%n(1)*data%n(2))
+       beg=1+(i-1)*data%n(1)*data%n(2)
+       end=i*data%n(1)*data%n(2)
+       call sreed(tag,data%dat(beg:end),size)
     end do
     
   end subroutine ReadData_cube
@@ -90,10 +92,13 @@ contains
   subroutine WriteData_cube(tag,data)
     character(len=*)  ::   tag
     type(cube)        ::       data
-    integer           :: i
+    integer           :: i,beg,end,size
 
+    size=4*data%n(1)*data%n(2)
     do i=1,data%n(3)
-       call srite(tag,data%dat(1+(i-1)*data%n(1)*data%n(2):i*data%n(1)*data%n(2)),4*data%n(1)*data%n(2))
+       beg=1+(i-1)*data%n(1)*data%n(2)
+       end=i*data%n(1)*data%n(2)
+       call srite(tag,data%dat(beg:end),size)
     end do
     
   end subroutine WriteData_cube

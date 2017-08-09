@@ -169,10 +169,17 @@ contains
 
     write(0,*) 'INFO:'
     if (genpar%WriteFwdWvfld) then
-       do i=1,genpar%ntsnap
-          if (mod(i,20).eq.0) write(0,*) 'INFO: Writing forward wavefield',i,'/',genpar%ntsnap         
-          call srite('wave_fwd',model%wvfld%wave(1:model%nz,1:model%nxw,1:model%nyw,i,1),4*model%nxw*model%nyw*model%nz)
-       end do
+       if (genpar%twoD) then
+          do i=1,genpar%ntsnap
+             if (mod(i,20).eq.0) write(0,*) 'INFO: Writing forward wavefield',i,'/',genpar%ntsnap         
+             call srite('wave_fwd',model%wvfld%wave(1:model%nz,1:model%nxw,1:model%nyw,i,1),4*model%nxw*model%nyw*model%nz)
+          end do
+       else
+          do i=1,int(genpar%ntsnap/8),genpar%ntsnap
+             write(0,*) 'INFO: Writing forward wavefield',i,'/',genpar%ntsnap         
+             call srite('wave_fwd',model%wvfld%wave(1:model%nz,1:model%nxw,1:model%nyw,i,1),4*model%nxw*model%nyw*model%nz)
+          end do
+       end if
     end if
     write(0,*) 'INFO:'
 
