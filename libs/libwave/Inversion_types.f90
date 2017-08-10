@@ -67,10 +67,10 @@ contains
     call from_param('data_nrm_type',invparam%dat_nrm_type_char,'L2norm')
     call from_param('data_threshold',invparam%dat_thresh,0.)
 
-    if(invparam%dat_nrm_type_char(1:5).eq.'Cauch') invparam%dat_nrm_type=3
-    if(invparam%dat_nrm_type_char(1:5).eq.'Huber') invparam%dat_nrm_type=12
-    if(invparam%dat_nrm_type_char(1:5).eq.'L1nor') invparam%dat_nrm_type=1
-    if(invparam%dat_nrm_type_char(1:5).eq.'L2nor') invparam%dat_nrm_type=2
+    if(invparam%dat_nrm_type_char(1:2).eq.'Ca') invparam%dat_nrm_type=3
+    if(invparam%dat_nrm_type_char(1:2).eq.'Hu') invparam%dat_nrm_type=12
+    if(invparam%dat_nrm_type_char(1:2).eq.'L1') invparam%dat_nrm_type=1
+    if(invparam%dat_nrm_type_char(1:2).eq.'L2') invparam%dat_nrm_type=2
 
     call from_param('withRho',withRho,.false.)
     invparam%nparam=1
