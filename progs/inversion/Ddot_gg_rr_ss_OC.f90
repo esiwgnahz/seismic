@@ -65,6 +65,14 @@ program Ddot_gg_rr_ss_OC
   gds=gds+sum(dprod(gg%dat,ss%dat))
   sdr=sdr-sum(dprod(ss%dat,rr%dat))
 
+  write(0,*) 'INFO: Ddot info'
+  write(0,*) 'INFO: gdg=',sngl(gdg)
+  write(0,*) 'INFO: sds=',sngl(sds)
+  write(0,*) 'INFO: sdr=',sngl(sdr)
+  write(0,*) 'INFO: gdr=',sngl(gdr)
+  write(0,*) 'INFO: gds=',sngl(gds)
+  write(0,*) 'INFO: ---------'
+
   call srite('dot_product',gdg,8)
   call srite('dot_product',sds,8)
   call srite('dot_product',gdr,8)

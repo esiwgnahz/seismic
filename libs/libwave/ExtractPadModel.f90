@@ -252,10 +252,10 @@ contains
    
     tmpsmall=0.
     tmpbig=0.
-    call srite('tmpvel',mod%vel,4*(bounds%nmax1-bounds%nmin1+9)*(bounds%nmax2-bounds%nmin2+9)*(bounds%nmax3-bounds%nmin3+2*genpar%nbound+1))
-    call to_history('n1',bounds%nmax1-bounds%nmin1+9,'tmpvel')
-    call to_history('n2',bounds%nmax2-bounds%nmin2+9,'tmpvel')
-    call to_history('n3',bounds%nmax3-bounds%nmin3+2*genpar%nbound+1,'tmpvel')
+    !call srite('tmpvel',mod%vel,4*(bounds%nmax1-bounds%nmin1+9)*(bounds%nmax2-bounds%nmin2+9)*(bounds%nmax3-bounds%nmin3+2*genpar%nbound+1))
+    !call to_history('n1',bounds%nmax1-bounds%nmin1+9,'tmpvel')
+    !call to_history('n2',bounds%nmax2-bounds%nmin2+9,'tmpvel')
+    !call to_history('n3',bounds%nmax3-bounds%nmin3+2*genpar%nbound+1,'tmpvel')
     if(genpar%withRho) then
        if (.not.exist_file(mod%rhotag)) then
           call erexit('ERROR: Need rho file, exit now')

@@ -497,10 +497,10 @@ contains
        call model_pad(tmp,mod%vel,bounds,mod%nz,mod%nx,mod%ny,genpar)
     end if
 
-    call srite('tmpvel',mod%vel,4*(bounds%nmax1-bounds%nmin1+1)*(bounds%nmax2-bounds%nmin2+1)*(bounds%nmax3-bounds%nmin3+1))
-    call to_history('n1',bounds%nmax1-bounds%nmin1+1,'tmpvel')
-    call to_history('n2',bounds%nmax2-bounds%nmin2+1,'tmpvel')
-    call to_history('n3',bounds%nmax3-bounds%nmin3+1,'tmpvel')
+    !call srite('tmpvel',mod%vel,4*(bounds%nmax1-bounds%nmin1+1)*(bounds%nmax2-bounds%nmin2+1)*(bounds%nmax3-bounds%nmin3+1))
+    !call to_history('n1',bounds%nmax1-bounds%nmin1+1,'tmpvel')
+    !call to_history('n2',bounds%nmax2-bounds%nmin2+1,'tmpvel')
+    !call to_history('n3',bounds%nmax3-bounds%nmin3+1,'tmpvel')
     if(genpar%withRho) then
        if (.not.exist_file(mod%rhotag)) then
           call erexit('ERROR: Need rho file, exit now')
