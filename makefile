@@ -18,6 +18,11 @@ UF90INCLUDES := ${UF90INCLUDES} ${F90INCFLAG}${INCDIR}
 UF90LIBDIRS  := ${UF90LIBDIRS} ${LIBDIR}
 F90MODSUFFIX = mod
 
+default: 
+	echo "type make clean to clean everything"
+	echo "type make all to build the codes"
+	echo "type make dirstruct to build the directory structure"
+
 dirstruct:
 	\rm -rf bin lib inc
 	mkdir bin
