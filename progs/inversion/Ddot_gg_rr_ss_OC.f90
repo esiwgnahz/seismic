@@ -41,13 +41,14 @@ program Ddot_gg_rr_ss_OC
 
   if(.not.exist_file('dot_product')) call erexit('ERROR: need dot_product file to save value')
 
+  call auxinout('dot_product')
+
   if (add) then
      call sreed('dot_product',gdg,8)
      call sreed('dot_product',sds,8)
      call sreed('dot_product',gdr,8)
      call sreed('dot_product',gds,8)
      call sreed('dot_product',sdr,8)
-     call auxclose('dot_product')
   else
      gdg=0.d0
      sds=0.d0
@@ -74,6 +75,7 @@ program Ddot_gg_rr_ss_OC
   write(0,*) 'INFO: gds=',sngl(gds)
   write(0,*) 'INFO: ---------'
 
+  call sseek('dot_product',0,0)
   call srite('dot_product',gdg,8)
   call srite('dot_product',sds,8)
   call srite('dot_product',gdr,8)
