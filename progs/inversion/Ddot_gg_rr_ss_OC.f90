@@ -13,7 +13,7 @@ program Ddot_gg_rr_ss_OC
   implicit none
 
   type(cube)       :: gg,rr,ss
-  double precision :: gdg,sds,gdr,gds,sdr,rdr
+  double precision :: gdg,sds,gdr,gds,sdr
   logical          :: add
   integer :: ndim,iter
   call sep_init(SOURCE)
@@ -54,10 +54,11 @@ program Ddot_gg_rr_ss_OC
      gdr=0.d0
      gds=0.d0
      sdr=0.d0
-     rdr=0.d0
-     call to_history('n1',6,'dot_product')
+     call to_history('n1',5,'dot_product')
      call to_history('esize',8,'dot_product')
   end if
+
+  write(0,*) 'INFO: computing dot products'
 
   gdg=gdg+sum(dprod(gg%dat,gg%dat))
   sds=sds+sum(dprod(ss%dat,ss%dat))
