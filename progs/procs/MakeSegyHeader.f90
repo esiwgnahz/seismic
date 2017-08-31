@@ -30,7 +30,7 @@ program MakeSegyHeader
   
   n23=product(n(2:))
 
-  allocate(header(n23,ndim-1))
+  allocate(header(n23,2*(ndim-1)))
 
   write(0,*) 'INFO: There are ',n23,' traces in this file'
 
@@ -43,15 +43,15 @@ program MakeSegyHeader
            if (i==2) indexarray=k
            index=index+1
            header(index,i)=(dble(scaling)*dble((o(i+1)+(indexarray-1)*d(i+1))))
-           !write(0,*) index,i,header(index,i)
+           header(index,i+ndim-1)=dble(indexarray)
         end do
      end do
   end do
   
   call to_history('n1',n23,'header')
-  call to_history('n2',ndim-1,'header')
+  call to_history('n2',2*(ndim-1),'header')
   call to_history('n3',1,'header')
-  call srite('header',sngl(header),4*n23*(ndim-1))
+  call srite('header',sngl(header),4*n23*2*(ndim-1))
 
 end program MakeSegyHeader
 
