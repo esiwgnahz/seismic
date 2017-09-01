@@ -222,14 +222,30 @@ contains
   subroutine readgathertraces(shotgath,source)
     type(GatherSpace), dimension(:):: shotgath
     type(TraceSpace),  dimension(:):: source
-    integer                        :: nshots,ntraces,nfiletraces,nreadtraces,n1,j,i
-    real                           :: d1,o1
+    integer                        :: nshots,ntraces,nfiletraces,nreadtraces,n1,j,i,n1w,nfiletracesw
+    real                           :: d1,o1,d1w,o1w
+    logical                        :: exist_traces_weight
 
     if (.not.exist_file('traces')) call erexit('ERROR: need traces file')
     call from_aux('traces','n1',n1)
     call from_aux('traces','d1',d1)
     call from_aux('traces','o1',o1)
     call from_aux('traces','n2',nfiletraces)
+    if (n1.ne.source(1)%dimt%nt) then
+       call erexit('ERROR: nt traces and sources are different, exit now')
+    end if
+
+    exist_traces_weight=.false.
+    if (exist_file('traces_weight')) then
+       call from_aux('traces_weight','n1',n1w)
+       call from_aux('traces_weight','d1',d1w)
+       call from_aux('traces_weight','o1',o1w)
+       call from_aux('traces_weight','n2',nfiletracesw)
+
+       if((n1.ne.n1w).or.(d1w.ne.d1).or.(o1w.ne.o1).or.(nfiletracesw.ne.nfiletraces)) call erexit('ERROR: traces_weight and traces have different sizes, exit now')
+       exist_traces_weight=.true.
+    end if
+
     if (n1.ne.source(1)%dimt%nt) then
        call erexit('ERROR: nt traces and sources are different, exit now')
     end if
@@ -245,7 +261,9 @@ contains
        do j=1,ntraces
           nreadtraces=nreadtraces+1
           allocate(shotgath(i)%gathtrace(j)%trace(n1,1))
+          if (exist_traces_weight) allocate(shotgath(i)%gathtrace(j)%weight(n1,1))
           call sreed('traces',shotgath(i)%gathtrace(j)%trace(:,1),4*n1)
+          if (exist_traces_weight) call sreed('traces_weight',shotgath(i)%gathtrace(j)%weight(:,1),4*n1)
           shotgath(i)%gathtrace(j)%dimt%nt=n1
           shotgath(i)%gathtrace(j)%dimt%ot=o1
           shotgath(i)%gathtrace(j)%dimt%dt=d1     

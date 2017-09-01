@@ -490,7 +490,7 @@ contains
     end do
 
     illu=(illu+maxval(illu)/10000)/sqrt(sum(dprod(illu,illu))/size(illu))
-    imag=imag/(illu)
+    imag=imag
 
     write(0,*) 'INFO:'
     write(0,*) 'INFO: RTM'
@@ -498,9 +498,11 @@ contains
     write(0,*) 'INFO: copying image to disk'
     write(0,*) 'INFO:'
     call srite('image',imag,4*size(imag))
+    call srite('image',illu,4*size(imag))
     call to_history('n1',mod%nz,'image')
     call to_history('n2',mod%nx,'image')
     call to_history('n3',mod%ny,'image')
+    call to_history('n4',2,'image')
 
     deallocate(imagthread,illu,imag,illuthread)
     deallocate(elevgath)

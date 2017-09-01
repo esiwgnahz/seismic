@@ -87,7 +87,11 @@ contains
           
           call compute_top_mute(mutepar,dt,t0,hx,hy,tmp)
           call compute_bottom_mute(mutepar,dt,t0,hx,hy,tmp1)
-          mutepar%maskgath(i)%gathtrace(j)%trace(:,1)=tmp*tmp1
+          if (allocated(shotgath(i)%gathtrace(j)%weight)) then
+             mutepar%maskgath(i)%gathtrace(j)%trace(:,1)=tmp*tmp1*shotgath(i)%gathtrace(j)%weight(:,1)
+          else
+             mutepar%maskgath(i)%gathtrace(j)%trace(:,1)=tmp*tmp1
+          end if
           if (exist_file('mute_out')) call srite('mute',mutepar%maskgath(i)%gathtrace(j)%trace,4*nt)
        end do
 

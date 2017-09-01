@@ -45,6 +45,7 @@ module DataSpace_types
   type TraceSpace
      type(DataSpace)      :: dimt
      real, allocatable    :: trace(:,:) ! value per component
+     real, allocatable    :: weight(:,:) ! value per component
      real,    dimension(3):: coord      ! physical coordinate 
      real,    dimension(3):: dcoord     ! delta for extraction 
      integer, dimension(3):: icoord     ! index
@@ -68,6 +69,7 @@ contains
   subroutine deallocateTraceSpace(dat)
     type(TraceSpace) :: dat
     if (allocated(dat%trace)) deallocate(dat%trace)
+    if (allocated(dat%weight)) deallocate(dat%weight)
   end subroutine deallocateTraceSpace
 
   subroutine deallocateGatherSpace(gath)

@@ -519,6 +519,11 @@ contains
 
     call model_pad(tmpsmall,modgath%vel,boundsgath,mod%nz,modgath%nxw,modgath%nyw,genpar)
 
+!    call srite('tmpvel',modgath%vel,4*(boundsgath%nmax1-boundsgath%nmin1+9)*(boundsgath%nmax2-boundsgath%nmin2+9)*(boundsgath%nmax3-boundsgath%nmin3+2*genpar%nbound+1))
+!    call to_history('n1',boundsgath%nmax1-boundsgath%nmin1+9,'tmpvel')
+!    call to_history('n2',boundsgath%nmax2-boundsgath%nmin2+9,'tmpvel')
+!    call to_history('n3',boundsgath%nmax3-boundsgath%nmin3+2*genpar%nbound+1,'tmpvel')
+
     if(genpar%withRho) then
        allocate(modgath%rho(boundsgath%nmin1-4:boundsgath%nmax1+4, boundsgath%nmin2-4:boundsgath%nmax2+4, boundsgath%nmin3-genpar%nbound:boundsgath%nmax3+genpar%nbound))
        allocate(modgath%rho2(boundsgath%nmin1-4:boundsgath%nmax1+4, boundsgath%nmin2-4:boundsgath%nmax2+4, boundsgath%nmin3-genpar%nbound:boundsgath%nmax3+genpar%nbound)) 

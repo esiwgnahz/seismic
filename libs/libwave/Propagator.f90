@@ -225,8 +225,10 @@ contains
        if (verb) call system_clock(counting(8),count_rate,count_max)
        if (optim) then
           call Boundary_3d(genpar,bounds,grid,model,hig)
+          !call Boundary0_opt_grid(genpar,bounds,grid,model,hig)
        else
           call Boundary_3d_noomp(genpar,bounds,grid,model,hig)
+          !call Boundary0_opt_grid_noomp(genpar,bounds,grid,model,hig)
        end if
     
        !       write(0,*) 'here9'
