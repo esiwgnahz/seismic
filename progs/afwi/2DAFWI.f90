@@ -123,7 +123,7 @@ program TWODAFWI
      deallocate(invparam%modmask,invparam%modinit)
      deallocate(invparam%parmin,invparam%parmax)
   else if ((genpar%task.eq.'MOD').or.(genpar%task.eq.'mod')) then
-     stat=compute_mod()
+     stat=compute_mod()  
   else if ((genpar%task.eq.'MIG').or.(genpar%task.eq.'mig')) then
      stat=compute_mig()
   end if

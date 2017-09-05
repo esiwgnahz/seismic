@@ -45,7 +45,7 @@ module DataSpace_types
   type TraceSpace
      type(DataSpace)      :: dimt
      real, allocatable    :: trace(:,:) ! value per component
-     real, allocatable    :: weight(:,:) ! value per component
+     real, allocatable    :: weight(:,:) ! weigth per component
      real,    dimension(3):: coord      ! physical coordinate 
      real,    dimension(3):: dcoord     ! delta for extraction 
      integer, dimension(3):: icoord     ! index

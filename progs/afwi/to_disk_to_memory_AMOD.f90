@@ -7,6 +7,7 @@ module to_disk_to_memory_AMOD_mod
 
   use sep
 
+  use omp_lib
   use Readsouvelrho_mod
   use ExtractPadModel_mod
   use FDcoefs_assign

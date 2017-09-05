@@ -558,12 +558,16 @@ contains
     !$OMP PARALLEL DO PRIVATE(i,k,j,dmodgath,begi,endi,wfld_fwd)
     do i=1,size(shotgath)
 
+!       write(0,*) omp_get_thread_num(), 'is here before copy'
        call copy_window_vel_gath(mod,modgath(i),genpar,genpargath(i),boundsgath(i),i)
        genpargath(i)%ntsnap=int(genpargath(i)%nt/genpargath(i)%snapi)
 
+!       write(0,*) omp_get_thread_num(), 'is here before allocate'
        allocate(elevgath(i)%elev(boundsgath(i)%nmin2:boundsgath(i)%nmax2, boundsgath(i)%nmin3:boundsgath(i)%nmax3))
        elevgath(i)%elev=0.
 
+       
+!       write(0,*) omp_get_thread_num(), 'is here before dmodgath'
        allocate(dmodgath(shotgath(i)%ntraces))
        do j=1,shotgath(i)%ntraces
           allocate(dmodgath(j)%trace(n1,1))
@@ -575,19 +579,24 @@ contains
           dmodgath(j)%trace=0.
        end do
 
+!       write(0,*) omp_get_thread_num(), 'is here before AMOD'
        ! Forward: modeling
        call AMOD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,sourcegath,wfld_fwd,i) 
 
+!       write(0,*) omp_get_thread_num(), 'is here before deallocate'
        call deallocateWaveSpace(wfld_fwd)
        call deallocateModelSpace_elev(elevgath(i))
+!       write(0,*) omp_get_thread_num(), 'is here after deallocate'
        begi=shotgath(i)%begi
        endi=begi+shotgath(i)%ntraces-1
        k=0
+!       write(0,*) omp_get_thread_num(), 'is here before deallocate 2'
        do j=begi,endi
           k=k+1
           resigath(j)%trace=dmodgath(k)%trace
           call deallocateTraceSpace(dmodgath(k))
        end do
+!       write(0,*) omp_get_thread_num(), 'is here after deallocate 2'
        deallocate(modgath(i)%vel)
        deallocate(dmodgath)
        !$OMP CRITICAL
