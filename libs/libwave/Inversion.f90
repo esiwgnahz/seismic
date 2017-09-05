@@ -119,9 +119,10 @@ contains
       stat2=fctgdt(g=g,f=fd,res=resigath)
 
        if (invparam%eval.eq.0) then
-          g0=maxval(xsave)/(100*maxval(abs(g)))
-          f0=dble(maxval(xsave)**2)/abs(fd)
+          g0=maxval(sngl(xsave))/(100*maxval(abs(g)))
+          f0=dble(maxval(sngl(xsave))**2/abs(fd))
           if(exist_file('function')) call srite('function',sngl(f0*fd),4)
+ 
        end if
 
        g=g0*g 

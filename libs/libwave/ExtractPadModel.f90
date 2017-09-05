@@ -524,6 +524,8 @@ contains
 !    call to_history('n2',boundsgath%nmax2-boundsgath%nmin2+9,'tmpvel')
 !    call to_history('n3',boundsgath%nmax3-boundsgath%nmin3+2*genpar%nbound+1,'tmpvel')
 
+!    write(0,*) 'n1',boundsgath%nmax1-boundsgath%nmin1+9
+!    write(0,*) 'n2',boundsgath%nmax2-boundsgath%nmin2+9
     if(genpar%withRho) then
        allocate(modgath%rho(boundsgath%nmin1-4:boundsgath%nmax1+4, boundsgath%nmin2-4:boundsgath%nmax2+4, boundsgath%nmin3-genpar%nbound:boundsgath%nmax3+genpar%nbound))
        allocate(modgath%rho2(boundsgath%nmin1-4:boundsgath%nmax1+4, boundsgath%nmin2-4:boundsgath%nmax2+4, boundsgath%nmin3-genpar%nbound:boundsgath%nmax3+genpar%nbound)) 

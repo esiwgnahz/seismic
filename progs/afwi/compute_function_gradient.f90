@@ -222,6 +222,8 @@ contains
 
     real, dimension(:), allocatable          :: illu
 
+    logical :: file_has_nans
+
     ntotaltraces=invparam%ntotaltraces
     allocate(elevgath(size(shotgath)))  ! Each shot has an elevation file
 
@@ -251,7 +253,7 @@ contains
     ! Convert impedances back to density for propagator
     if ((invparam%nparam.eq.2).and.(invparam%vprho_param.eq.1)) mod%rho=mod%imp/mod%vel
 
-    !$OMP PARALLEL DO PRIVATE(i,k,j,dmodgath,begi,endi,wfld_fwd)
+    !$OMP PARALLEL DO PRIVATE(i,k,j,dmodgath,begi,endi,wfld_fwd,file_has_nans)
     do i=1,size(shotgath)
 !
        call copy_window_vel_gath(mod,modgath(i),genpar,genpargath(i),boundsgath(i),i)
@@ -270,8 +272,22 @@ contains
        end do
 
        ! Forward: modeling
-        call AMOD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,sourcegath,wfld_fwd,i) 
+       
+       call AMOD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,sourcegath,wfld_fwd,i) 
 
+!       !$OMP CRITICAL
+        file_has_nans=there_is_nan_in_array(size(wfld_fwd%wave),wfld_fwd%wave)
+        if (file_has_nans) then
+           write(0,*) file_has_nans,'thread=',omp_get_thread_num()+1
+!
+!           write(0,*) 'vel:', minval(modgath(i)%vel),maxval(modgath(i)%vel),there_is_nan_in_array(size(modgath(i)%vel),modgath(i)%vel)
+!           write(0,*) 'rho:', minval(modgath(i)%rho),maxval(modgath(i)%rho),there_is_nan_in_array(size(modgath(i)%rho),modgath(i)%rho)
+!           
+!           call srite('velisnan',modgath(i)%vel,4*size(modgath(i)%vel))
+!           call srite('rhoisnan',modgath(i)%rho,4*size(modgath(i)%rho))
+!           call srite('rho2isnan',modgath(i)%rho2,4*size(modgath(i)%rho2))
+        end if
+!        !$OMP END CRITICAL
        begi=shotgath(i)%begi
 
        call Compute_OF_RES_ADJ(begi,invparam,shotgath(i)%gathtrace,dmodgath,mutepar%maskgath(i)%gathtrace,resigath,fthread(omp_get_thread_num ()+1))
@@ -286,7 +302,7 @@ contains
        deallocate(modgath(i)%imagesmall_nparam)
        deallocate(modgath(i)%illumsmall)
        call deallocateModelSpace_elev(elevgath(i))       
-       do k=1,shotgath(i)%ntraces
+       do k=1,size(shotgath(i)%gathtrace)
           call deallocateTraceSpace(dmodgath(k))
        end do
        deallocate(modgath(i)%vel)
@@ -297,7 +313,7 @@ contains
 
     end do
     !$OMP END PARALLEL DO
-    
+
     allocate(illu(mod%nz*mod%nx*mod%ny)); illu=0.
     ! Add all images for each thread to final image
     do i=1,genpar%nthreads
@@ -457,7 +473,7 @@ contains
        deallocate(modgath(i)%imagesmall_nparam)
        deallocate(modgath(i)%illumsmall)
        call deallocateModelSpace_elev(elevgath(i))       
-       do k=1,shotgath(i)%ntraces
+       do k=1,size(shotgath(i)%gathtrace)
           call deallocateTraceSpace(dmodgath(k))
        end do
        deallocate(modgath(i)%vel)
@@ -630,5 +646,19 @@ contains
     stat=0
 
   end function compute_mod
+
+  function there_is_nan_in_array(n,array) result(log)
+    logical :: log
+    integer :: n,j
+    real, dimension(n) :: array
+
+    log=.false.
+    do j=1,n
+       if (isnan(array(j))) then
+          log=.true.
+          exit
+       end if
+    end do
+  end function there_is_nan_in_array
 
 end module compute_function_gradient
