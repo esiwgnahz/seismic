@@ -94,9 +94,9 @@ contains
     call from_param('vpmin',invparam%parmin(1),1500.)
     call from_param('vpmax',invparam%parmax(1),4500.)
     if (invparam%nparam.eq.2) then
-    call from_param('sigma2',invparam%sigma(2),1.)
-       call from_param('par2min',invparam%parmin(2),1000.)
-       call from_param('par2max',invparam%parmax(2),3000.)
+       call from_param('sigma2',invparam%sigma(2),1.)
+       call from_param('rhomin',invparam%parmin(2),1000.)
+       call from_param('rhomax',invparam%parmax(2),3000.)
     end if
 
     write(0,*) 'INFO: ----------------------------'
@@ -124,8 +124,8 @@ contains
           end if
           write(0,*) 'INFO:   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'
           write(0,*) 'INFO:'
-          write(0,*) 'INFO:   par2min    = ',invparam%parmin(2)
-          write(0,*) 'INFO:   par2max    = ',invparam%parmax(2)
+          write(0,*) 'INFO:   rhomin    = ',invparam%parmin(2)
+          write(0,*) 'INFO:   rhomax    = ',invparam%parmax(2)
           write(0,*) 'INFO:   sigma(1,2) = ',invparam%sigma
        else
           write(0,*) 'INFO:   Density is not changed'

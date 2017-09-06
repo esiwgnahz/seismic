@@ -1,11 +1,12 @@
-      SUBROUTINE FREEZE_X(XMIN,XMAX,NPARAM,MASK,TYPE,X,N,XINIT)
+      SUBROUTINE FREEZE_X(VPRHOPAR,XMIN,XMAX,NPARAM,MASK,TYPE,X,N,XINIT)
       
-      INTEGER N,NPARAM,M
+      INTEGER N,NPARAM,M,VPRHOPAR
       DOUBLE PRECISION XMIN(NPARAM),XMAX(NPARAM)
+      DOUBLE PRECISION IMIN,IMAX
       LOGICAL TYPE
       DOUBLE PRECISION X(N),XINIT(N)
       REAL MASK(N)
-      INTEGER I,J
+      INTEGER I,J,K
       
 c size of each model
 
@@ -16,8 +17,15 @@ c size of each model
          IF (TYPE) THEN
             
             DO 30 I=1+(J-1)*M,M+(J-1)*M
-               X(I)=max(XMIN(J),X(I))
-               X(I)=min(XMAX(J),X(I))
+               IMIN=XMIN(J)
+               IMAX=XMAX(J)
+               IF ((J.eq.2).and.(VPRHOPAR.eq.1)) THEN
+                  K=I-M
+                  IMIN=XMIN(J)*X(K)
+                  IMAX=XMAX(J)*X(K)
+               ENDIF
+               X(I)=max(IMIN,X(I))
+               X(I)=min(IMAX,X(I))
  30         CONTINUE
             
          ELSE
@@ -26,8 +34,16 @@ c size of each model
                
                IF ((MASK(I).ne.0).and.(MASK(I).ne.2)) THEN
                   
-                  X(I)=max(XMIN(J),X(I))
-                  X(I)=min(XMAX(J),X(I))
+                  IMIN=XMIN(J)
+                  IMAX=XMAX(J)
+                  IF ((J.eq.2).and.(VPRHOPAR.eq.1)) THEN
+                     K=I-M
+                     IMIN=XMIN(J)*X(K)
+                     IMAX=XMAX(J)*X(K)
+                  ENDIF
+
+                  X(I)=max(IMIN,X(I))
+                  X(I)=min(IMAX,X(I))
                   
                ENDIF
                
@@ -55,9 +71,10 @@ C     LBFGS SUBROUTINE
 C     ****************
 C
       SUBROUTINE LBFGS(N,M,X,F,G,DIAGCO,DIAG,IPRINT,EPS,XTOL,W,IFLAG,
-     *                 MYINFO,XMIN,XMAX,NPARAM,MASK,BOUNDT,TYPE,XINIT)
+     *                 MYINFO,VPRHOPAR,XMIN,XMAX,NPARAM,MASK,BOUNDT,
+     *                 TYPE,XINIT)
 C
-      INTEGER N,M,IPRINT(2),IFLAG,MYINFO,NPARAM
+      INTEGER N,M,IPRINT(2),IFLAG,MYINFO,NPARAM,VPRHOPAR
       DOUBLE PRECISION X(N),G(N),DIAG(N),W(N*(2*M+1)+2*M)
       DOUBLE PRECISION F,EPS,XTOL
       LOGICAL DIAGCO
@@ -432,8 +449,8 @@ C     ----------------------------------------------------
  170  W(I)=G(I)
  172  CONTINUE
       CALL MCSRCH(N,X,F,G,W(ISPT+POINT*N+1),STP,FTOL,
-     *            XTOL,MAXFEV,INFO,NFEV,DIAG,XMIN,XMAX,NPARAM,MASK,
-     *            BOUNDT,TYPE,XINIT)
+     *            XTOL,MAXFEV,INFO,NFEV,DIAG,VPRHOPAR,XMIN,XMAX,NPARAM,
+     *            MASK,BOUNDT,TYPE,XINIT)
       IF (INFO .EQ. -1) THEN
         IFLAG=1
         RETURN
@@ -442,7 +459,7 @@ C     ----------------------------------------------------
       NFUN= NFUN + NFEV
       MYINFO = INFO
       IF (BOUNDT.EQ.2) THEN
-         IF (INFO .EQ. 1) CALL FREEZE_X(XMIN,XMAX,NPARAM,MASK,
+         IF (INFO .EQ. 1) CALL FREEZE_X(VPRHOPAR,XMIN,XMAX,NPARAM,MASK,
      *                                  TYPE,X,N,XINIT)
       ENDIF
 
@@ -599,7 +616,8 @@ C     LINE SEARCH ROUTINE MCSRCH
 C     **************************
 C
       SUBROUTINE MCSRCH(N,X,F,G,S,STP,FTOL,XTOL,MAXFEV,INFO,NFEV,WA,
-     *                  XMIN,XMAX,NPARAM,MASK,BOUNDT,TYPE,XINIT)
+     *                  VPRHOPAR,XMIN,XMAX,NPARAM,MASK,BOUNDT,TYPE,
+     *                  XINIT)
      
       INTEGER N,MAXFEV,INFO,NFEV,NPARAM
       DOUBLE PRECISION F,STP,FTOL,GTOL,XTOL,STPMIN,STPMAX
@@ -828,7 +846,7 @@ c         write(LP,*) 'MAXVAL BEFORE X',maxval(X)
          DO 40 J = 1, N
             X(J) = WA(J) + STP*S(J)
    40       CONTINUE
-         IF (BOUNDT.EQ.1) CALL FREEZE_X(XMIN,XMAX,NPARAM,
+         IF (BOUNDT.EQ.1) CALL FREEZE_X(VPRHOPAR,XMIN,XMAX,NPARAM,
      *                                  MASK,TYPE,X,N,XINIT)
 c         write(LP,*) 'MINVAL AFTER X',minval(X),'WA',minval(WA)
 c         write(LP,*) 'MAXVAL AFTER X',maxval(X)

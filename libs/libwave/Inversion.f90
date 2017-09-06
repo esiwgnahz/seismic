@@ -135,14 +135,15 @@ contains
 
        call LBFGS(NDIM,MSAVE,xd,fd,-gd,&
        &          .False.,diagd,iprint,EPS,&
-       &          XTOL,wd,iflag,myinfo,XMIN,XMAX,invparam%nparam,invparam%modmask,invparam%const_type,invparam%freeze_soft,invparam%modinit)
+       &          XTOL,wd,iflag,myinfo,invparam%vprho_param,XMIN,XMAX,&
+       &          invparam%nparam,invparam%modmask,invparam%const_type,invparam%freeze_soft,invparam%modinit)
 
        call mod_to_x(.false.,modin,xd,invparam)
        
        info=myinfo
 
        if (myinfo.eq.1) then
-          if (invparam%const_type.eq.2) call FREEZE_X(XMIN,XMAX,invparam%nparam,invparam%modmask,invparam%freeze_soft,XDSAVE,NDIM,invparam%modinit)
+          if (invparam%const_type.eq.2) call FREEZE_X(invparam%vprho_param,XMIN,XMAX,invparam%nparam,invparam%modmask,invparam%freeze_soft,XDSAVE,NDIM,invparam%modinit)
           xsave=xdsave
           myinfo=0
           invparam%iter=invparam%iter+1

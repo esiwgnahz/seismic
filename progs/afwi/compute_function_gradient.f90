@@ -280,12 +280,11 @@ contains
         if (file_has_nans) then
            write(0,*) file_has_nans,'thread=',omp_get_thread_num()+1
 !
-!           write(0,*) 'vel:', minval(modgath(i)%vel),maxval(modgath(i)%vel),there_is_nan_in_array(size(modgath(i)%vel),modgath(i)%vel)
-!           write(0,*) 'rho:', minval(modgath(i)%rho),maxval(modgath(i)%rho),there_is_nan_in_array(size(modgath(i)%rho),modgath(i)%rho)
+           write(0,*) 'vel:', minval(modgath(i)%vel),maxval(modgath(i)%vel),there_is_nan_in_array(size(modgath(i)%vel),modgath(i)%vel)
+           write(0,*) 'rho:', minval(modgath(i)%rho),maxval(modgath(i)%rho),there_is_nan_in_array(size(modgath(i)%rho),modgath(i)%rho)
 !           
-!           call srite('velisnan',modgath(i)%vel,4*size(modgath(i)%vel))
-!           call srite('rhoisnan',modgath(i)%rho,4*size(modgath(i)%rho))
-!           call srite('rho2isnan',modgath(i)%rho2,4*size(modgath(i)%rho2))
+           call srite('velisnan',modgath(i)%vel,4*size(modgath(i)%vel))
+           call srite('rhoisnan',modgath(i)%rho,4*size(modgath(i)%rho))
         end if
 !        !$OMP END CRITICAL
        begi=shotgath(i)%begi

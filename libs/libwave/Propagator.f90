@@ -135,10 +135,12 @@ contains
 
     integer :: i,counting(10),count_rate,count_max,tmin,tmax,tstep
     real    :: totcount(9)
-    logical :: verb,optim
+    logical :: verb,optim,testnan
 
     verb=genpar%verbose
     optim=genpar%optim
+
+    testnan=.false.
 
     ! Allocate wavefields and set them to zero first
     ! It is important to set them to zero as small rounding errors creep in otherwise
@@ -171,13 +173,24 @@ contains
        counting=0.
 
        if (verb.and.(mod(it,100).eq.0)) write (0,*) "INFO: Step",it," of ",max(genpar%tmin,genpar%tmax),"time steps"
-
+ 
+!       testnan=there_is_nan_in_array2(grid%u2,bounds,genpar)
+!       if (testnan) then
+!          write(0,*) 'found here1 testnan, it=',it
+!          exit
+!       end if
+       
        !       write(0,*) 'here1',it
        if (verb) call system_clock(counting(1),count_rate,count_max)
        if (present(ExtractData)) then
           if (present(datavec)) call ExtractData(bounds,model,datavec,grid%u2,genpar,it) 
        end if
 
+!       testnan=there_is_nan_in_array2(grid%u2,bounds,genpar)
+!       if (testnan) then
+!          write(0,*) 'found here2 testnan, it=',it
+!          exit
+!       end if
        !       write(0,*) 'here2',it
        if (verb) call system_clock(counting(2),count_rate,count_max)    
        if (present(ExtractWave)) then
@@ -188,16 +201,36 @@ contains
           end if
        end if
 
+!       testnan=there_is_nan_in_array2(grid%u2,bounds,genpar)
+!       if (testnan) then
+!          write(0,*) 'found here3 testnan, it=',it
+!          exit
+!       end if
        !       write(0,*) 'here3',it
        if (verb) call system_clock(counting(3),count_rate,count_max)
        if (present(ImagingCondition).and.(genpar%tstep.eq.-1)) then
           call ImagingCondition(bounds,model,elev,grid%u2,genpar,it)
        end if
 
+!       testnan=there_is_nan_in_array2(grid%u2,bounds,genpar)
+!       if (testnan) then
+!          write(0,*) 'found here4 testnan, it=',it
+!          exit
+!       end if
        !       write(0,*) 'here4',it
        if (verb) call system_clock(counting(4),count_rate,count_max)      
        call Boundary_set_free_surface_grid(bounds,model,elev,grid,genpar)
 
+!       testnan=there_is_nan_in_array2(grid%u2,bounds,genpar)
+!       if (testnan) then
+!          write(0,*) 'found here5 u2 testnan, it=',it
+!          exit
+!       end if
+!       testnan=there_is_nan_in_array2(grid%u3,bounds,genpar)
+!       if (testnan) then
+!          write(0,*) 'found here5 u3 testnan, it=',it
+!          exit
+!       end if
        !       write(0,*) 'here5',it
        if (verb) call system_clock(counting(5),count_rate,count_max)
        call FD_scheme(genpar,bounds,grid%u2,grid%u3,model)
@@ -205,19 +238,39 @@ contains
        !       write(0,*) 'here6'
        if (verb) call system_clock(counting(6),count_rate,count_max)
 
+!       testnan=there_is_nan_in_array2(grid%u3,bounds,genpar)
+!       if (testnan) then
+!          write(0,*) 'found here6 u3 testnan, it=',it
+!          exit
+!       end if
        ! This is regular injection for FD modeling/receiver injection
        if (present(sou)) &
        & call Injection(bounds,model,sou,grid%u3(:,:,:),genpar,it)
 
+!       testnan=there_is_nan_in_array2(grid%u3,bounds,genpar)
+!       if (testnan) then
+!          write(0,*) 'found here7 u3 testnan, it=',it
+!          exit
+!       end if
        ! This is Born modeling, with genpar%tstep=+1
        if (present(ImagingCondition).and.(genpar%tstep.eq.1)) then
           call ImagingCondition(bounds,model,elev,grid%u3(:,:,:),genpar,it)
        end if
 
+!       testnan=there_is_nan_in_array2(grid%u3,bounds,genpar)
+!       if (testnan) then
+!          write(0,*) 'found here8 u3 testnan, it=',it
+!          exit
+!       end if
        !       write(0,*) 'here7'
        if (verb) call system_clock(counting(7),count_rate,count_max)
        call TimeDer(genpar,bounds,grid)
 
+!       testnan=there_is_nan_in_array2(grid%u3,bounds,genpar)
+!       if (testnan) then
+!          write(0,*) 'found here9 u3 testnan, it=',it
+!          exit
+!       end if
        !       write(0,*) 'here8'
        if (verb) call system_clock(counting(8),count_rate,count_max)
        if (optim) then
@@ -228,6 +281,11 @@ contains
           !call Boundary0_opt_grid_noomp(genpar,bounds,grid,model,hig)
        end if
     
+!       testnan=there_is_nan_in_array2(grid%u3,bounds,genpar)
+!       if (testnan) then
+!          write(0,*) 'found here10 u3 testnan, it=',it
+!          exit
+!       end if
        !       write(0,*) 'here9'
        if (verb) call system_clock(counting(9),count_rate,count_max)
        call TimeSwap(grid)
@@ -269,4 +327,30 @@ contains
 
 
   end subroutine propagator_acoustic
+
+ 
+  function there_is_nan_in_array2(array,bounds,genpar) result(log)
+    type(FDbounds)       ::             bounds
+    type(GeneralParam)   ::                     genpar
+    logical :: log
+    integer :: n,j,k,i
+    real    :: array(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+
+    log=.false.
+
+    !$OMP PARALLEL DO PRIVATE(k,j,i)
+    do k=bounds%nmin3,bounds%nmax3
+       do j=bounds%nmin2,bounds%nmax2
+          do i=bounds%nmin1,bounds%nmax1
+             if (isnan(array(i,j,k))) then
+                log=.true.
+                exit
+             end if
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+  end function there_is_nan_in_array2
+
 end module Propagator_mod

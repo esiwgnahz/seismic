@@ -31,8 +31,7 @@ module OF_Res_AdjSrc_mod
       nd=nt*size(dmodgath)
 
       do j=1,size(dmodgath)
-!         dmodgath(j)%trace=mutegath(j)%trace*(dobsgath(j)%trace-dmodgath(j)%trace)
-         dmodgath(j)%trace=(dobsgath(j)%trace-dmodgath(j)%trace)
+         dmodgath(j)%trace=mutegath(j)%trace*(dobsgath(j)%trace-dmodgath(j)%trace)
          ftmp=fct_compute(nrm_type,dmodgath(j)%trace,nt,thresh)
 
 !         if (isnan(ftmp)) then
@@ -43,8 +42,7 @@ module OF_Res_AdjSrc_mod
          
          f=f+ftmp
          resigath(begi+j-1)%trace=dmodgath(j)%trace
-!         dmodgath(j)%trace=mutegath(j)%trace*dmodgath(j)%trace
-         dmodgath(j)%trace=dmodgath(j)%trace
+         dmodgath(j)%trace=mutegath(j)%trace*dmodgath(j)%trace
          stat=gdt_compute(nrm_type,dmodgath(j)%trace,nt,thresh) 
       end do
       

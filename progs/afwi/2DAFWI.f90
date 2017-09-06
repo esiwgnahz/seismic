@@ -103,8 +103,8 @@ program TWODAFWI
            &           invparam%freeze_soft,mod%rho,mod%nx*mod%ny*mod%nz,invparam%modinit(:,2))
            call ApplyMask(mod%nx*mod%ny*mod%nz,invparam%modmask(:,2),mod%rho,invparam%modinit(:,2))
         else
-           call Freeze(invparam%parmin(2),invparam%parmax(2),invparam%modmask(:,2),&
-           &           invparam%freeze_soft,mod%imp,mod%nx*mod%ny*mod%nz,invparam%modinit(:,2))
+           call Freeze_imp(invparam%parmin(2),invparam%parmax(2),invparam%modmask(:,2),&
+           &           invparam%freeze_soft,mod%imp,mod%vel,mod%nx*mod%ny*mod%nz,invparam%modinit(:,2))
            call ApplyMask(mod%nx*mod%ny*mod%nz,invparam%modmask(:,2),mod%imp,invparam%modinit(:,2))
         end if
      end if
@@ -277,3 +277,32 @@ subroutine Freeze(xmin,xmax,mask,type,x,m,xinit)
 
 end subroutine Freeze
 
+
+subroutine Freeze_imp(xmin,xmax,mask,type,x,v,m,xinit)
+  real ::             xmin,xmax
+  integer ::                                m,j,i
+  logical ::                         type
+  real, dimension(m) ::         mask,     x,v
+  double precision, dimension(m) ::           xinit
+
+  !xmin is rhomin
+  !xmax is rhomax
+  IF (type) THEN
+     do i=1,M
+        x(i)=max(xmin*v(i),x(i))
+        x(i)=min(xmax*v(i),x(i))
+     end do
+  ELSE     
+     do i=1,M
+        if ((mask(i).ne.0.).and.(mask(i).ne.2.)) then
+           x(i)=max(xmin*v(i),x(i))
+           x(i)=min(xmax*v(i),x(i))
+        end if
+     end do
+     do i=1,M
+        if(mask(i).eq.0.) x(i)=sngl(xinit(i))
+        if(mask(i).eq.2.) x(i)=sngl(xinit(i))
+     end do
+  ENDIF
+
+end subroutine Freeze_imp
