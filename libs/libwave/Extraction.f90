@@ -197,9 +197,9 @@ contains
     integer           :: i
     real              :: v
 
-    if (mod(it,genpar%snapi).eq.0) then
-       call srite('bornwavefield',u(1:model%nz,1:model%nxw,1:model%nyw),4*model%nz*model%nxw*model%nyw)
-    end if
+!    if (mod(it,genpar%snapi).eq.0) then
+!       call srite('bornwavefield',u(1:model%nz,1:model%nxw,1:model%nyw),4*model%nz*model%nxw*model%nyw)
+!    end if
 
     if (genpar%twoD) then
        v=1/product(genpar%delta(1:2))
