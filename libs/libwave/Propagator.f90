@@ -130,7 +130,6 @@ contains
     type(ScaledFDcoefs)        :: scaled_fdcoefs
     type(UnscaledFDcoefs)      :: fdcoefs
     integer                    :: it
-    real, allocatable :: u(:,:,:,:)
     type(USpace) :: grid
 
     integer :: i,counting(10),count_rate,count_max,tmin,tmax,tstep
@@ -142,9 +141,6 @@ contains
 
     ! Allocate wavefields and set them to zero first
     ! It is important to set them to zero as small rounding errors creep in otherwise
-    allocate(u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound,-1:3))
-    u=0.
-
     call allocateUSpace(grid,genpar,bounds)
     call zeroUSpace(grid)
 
@@ -225,8 +221,10 @@ contains
        if (verb) call system_clock(counting(8),count_rate,count_max)
        if (optim) then
           call Boundary_3d(genpar,bounds,grid,model,hig)
+          !call Boundary0_opt_grid(genpar,bounds,grid,model,hig)
        else
           call Boundary_3d_noomp(genpar,bounds,grid,model,hig)
+          !call Boundary0_opt_grid_noomp(genpar,bounds,grid,model,hig)
        end if
     
        !       write(0,*) 'here9'
@@ -260,7 +258,6 @@ contains
        write(0,*) 'INFO ---------------------------'
     end if
 
-    deallocate(u)
     call deallocateHigdonParam(hig)
     call deallocateUSpace(grid)
 
