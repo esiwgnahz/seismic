@@ -1,0 +1,8 @@
+*.o
+*.mod
+*.H
+*.H@
+*LINUX
+*.optrpt
+*.x
+*.exe
