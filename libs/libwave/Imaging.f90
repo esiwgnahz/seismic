@@ -431,9 +431,9 @@ contains
 
                          tmp1=u(i,j,k)*dti2*(model%wvfld%wave(i,j,k,indexm1,1)-2*model%wvfld%wave(i,j,k,index,1)+model%wvfld%wave(i,j,k,indexp1,1)) ! d/dt^2
                          
-                                model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+2*tmp1*taper/(model%vel(i,j,k)**3*model%rho(i,j,k))
+                         model%imagesmall_nparam(i,j,k,1)= model%imagesmall_nparam(i,j,k,1)+2*tmp1*taper/(model%vel(i,j,k)**3*model%rho(i,j,k))
                          model%imagesmall_nparam(i,j,k,2)= model%imagesmall_nparam(i,j,k,2)+   tmp*taper/(model%rho(i,j,k)**2)+ &
-                         &                                                                  tmp1*taper/(model%rho(i,j,k)**2*model%vel(i,j,k)**2)
+                         &                                                                    tmp1*taper/(model%rho(i,j,k)**2*model%vel(i,j,k)**2)
                          model%illumsmall(i,j,k)=        model%illumsmall(i,j,k)+model%wvfld%wave(i,j,k,index,1)*model%wvfld%wave(i,j,k,index,1)*taper
                          
                       end do

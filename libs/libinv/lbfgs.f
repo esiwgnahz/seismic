@@ -30,10 +30,8 @@ c size of each model
             
          ELSE
             
-            DO 10 I=1+(J-1)*M,M+(J-1)*M
-               
-               IF ((MASK(I).ne.0).and.(MASK(I).ne.2)) THEN
-                  
+            DO 10 I=1+(J-1)*M,M+(J-1)*M              
+               IF ((MASK(I).ne.0).and.(MASK(I).ne.2)) THEN                  
                   IMIN=XMIN(J)
                   IMAX=XMAX(J)
                   IF ((J.eq.2).and.(VPRHOPAR.eq.1)) THEN
@@ -41,12 +39,9 @@ c size of each model
                      IMIN=XMIN(J)*X(K)
                      IMAX=XMAX(J)*X(K)
                   ENDIF
-
                   X(I)=max(IMIN,X(I))
-                  X(I)=min(IMAX,X(I))
-                  
-               ENDIF
-               
+                  X(I)=min(IMAX,X(I))                 
+               ENDIF               
  10         CONTINUE
             
             DO 20 I=1+(J-1)*M,M+(J-1)*M
