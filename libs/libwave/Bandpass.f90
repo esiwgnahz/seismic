@@ -69,7 +69,7 @@ contains
        sourcegath(i)%trace(:,1)=srctmp
 
        ntraces=shotgath(i)%ntraces
-       if (modulo(i,10).eq.0) write(0,*) 'INFO: Starting bandassing',ntraces,'traces for shot',i
+       if (modulo(i,10).eq.0) write(0,*) 'INFO: Starting bandpassing',ntraces,'traces for shot',i
 
        !$OMP PARALLEL DO PRIVATE(j,tracetmp)
        do j=1,ntraces
