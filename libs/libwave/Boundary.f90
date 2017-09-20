@@ -214,6 +214,9 @@ contains
     ! Axis 1 ----------------------
     !
 
+    call omp_set_num_threads(genpar%threads_per_task)
+
+    !$OMP PARALLEL DO PRIVATE(k,j,i)
     do k=bounds%nmin3,bounds%nmax3
        do j=bounds%nmin2,bounds%nmax2
           ! Update the top
@@ -248,6 +251,7 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
     !
     ! Axis 3 ----------------------
@@ -257,6 +261,7 @@ contains
     ! nbound=0 if 2D
     ! nbound=4 if 3D
     if (genpar%nbound.gt.0) then
+       !$OMP PARALLEL DO PRIVATE(k,j,i)
        do j=bounds%nmin2,bounds%nmax2
           do k=bounds%nmin3+nstencil,bounds%nmin3-4,-1
              do i=nz0,bounds%nmax1
@@ -272,6 +277,8 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
+
     endif
 
   end subroutine Boundary_3d_noomp

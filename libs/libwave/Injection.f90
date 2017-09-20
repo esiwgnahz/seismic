@@ -79,7 +79,10 @@ contains
        type_inject=genpar%shot_type
     end if
 
+    call omp_set_num_threads(genpar%threads_per_task)
+
     if (genpar%twoD) then
+       !$OMP PARALLEL DO PRIVATE(i,v2r)
        do i=1,size(tracevec)
           if (genpar%withRho) then
              v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),1)**2* &
@@ -89,6 +92,7 @@ contains
           end if
           call Injection_source_simple_xyz(bounds,v2r,tracevec(i),u,genpar,it,type_inject)
        end do
+       !$OMP END PARALLEL DO
     else
        do i=1,size(tracevec)
           if (genpar%withRho) then
@@ -212,7 +216,10 @@ contains
        type_inject=genpar%shot_type
     end if
 
+    call omp_set_num_threads(genpar%threads_per_task)
+
     if (genpar%twoD) then
+       !$OMP PARALLEL DO PRIVATE(i,v2r)
        do i=1,size(tracevec)
           if (genpar%withRho) then
              v2r=model%vel(tracevec(i)%icoord(1),tracevec(i)%icoord(2),tracevec(i)%icoord(3))**2* &
@@ -222,6 +229,7 @@ contains
           end if
           call Injection_source_sinc_xz(bounds,v2r,tracevec(i),u,genpar,it,type_inject)
        end do
+       !$OMP END PARALLEL DO
     else
        do i=1,size(tracevec)
           if (genpar%withRho) then

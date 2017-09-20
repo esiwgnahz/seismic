@@ -43,6 +43,7 @@ module GeneralParam_types
 
      real    :: aperture(2)
      integer :: nthreads
+     integer :: threads_per_task
      real    :: max_memory
      character(len=3) :: task
   end type GeneralParam

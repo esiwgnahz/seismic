@@ -21,6 +21,7 @@ contains
     call from_param('aperture_x',genpar%aperture(1))
     call from_param('aperture_y',genpar%aperture(2))
     call from_param('num_threads',genpar%nthreads,4)
+    call from_param('threads_per_task',genpar%threads_per_task,1)
     call from_param('lsinc',genpar%lsinc,7)
     call from_param('maxsize',genpar%max_memory,16.)
 
@@ -62,6 +63,8 @@ contains
     write(0,*) 'INFO: aperture_y=',genpar%aperture(2)
     write(0,*) 'INFO:'
     write(0,*) 'INFO: num_threads=',genpar%nthreads
+    write(0,*) 'INFO: threads_per_task=',genpar%threads_per_task
+    write(0,*) 'INFO:'
     write(0,*) 'INFO: maxsize    =',genpar%max_memory,'Gb'
     write(0,*) 'INFO: lsinc      =',genpar%lsinc,'points'
     write(0,*) 'INFO:'

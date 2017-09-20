@@ -5,6 +5,7 @@
 ! 
 module FD_derivatives
 
+  use omp_lib
   use FD_types
   use ModelSpace_types
   use GeneralParam_types
@@ -778,6 +779,8 @@ contains
     sxx=0.
     szz=0. 
 
+    call omp_set_num_threads(genpar%threads_per_task)
+    !$OMP PARALLEL DO PRIVATE(j,i)
     do j=bounds%nmin2,bounds%nmax2
        do i=bounds%nmin1,bounds%nmax1   
           szz(i,j,1)=           (coefs%c1z*(u2(i+1,j,1)-u2(i  ,j,1))+ &
@@ -790,7 +793,9 @@ contains
           &                      coefs%c4x*(u2(i,j+4,1)-u2(i,j-3,1)))*delp(i,j,1)
        end do
     end do
+    !$OMP END PARALLEL DO
      
+    !$OMP PARALLEL DO PRIVATE(j)
     do j=bounds%nmin2,bounds%nmax2
        ! Gradient of the p-wave potential in the top operator padding 
        do i=bounds%nmin1-1,bounds%nmin1-3,-1
@@ -803,22 +808,30 @@ contains
           sxx(i,j,1)=dxi*(u2(i,j+1,1)-u2(i,j,1))*delp(bounds%nmax1,j,1)
        end do
     end do
+    !$OMP END PARALLEL DO
+
     ! Gradient of the p-wave potential in the left side operator padding 
+
+    !$OMP PARALLEL DO PRIVATE(j,i)
     do j=bounds%nmin2-1,bounds%nmin2-3,-1
        do i=bounds%nmin1,bounds%nmax1
           szz(i,j,1)=dzi*(u2(i+1,j,1)-u2(i,j,1))*delp(i,bounds%nmin2,1)
           sxx(i,j,1)=dxi*(u2(i,j+1,1)-u2(i,j,1))*delp(i,bounds%nmin2,1)
        end do
     end do
+    !$OMP END PARALLEL DO
     
     ! Gradient of the p-wave potential in the right side operator padding 
+    !$OMP PARALLEL DO PRIVATE(j,i)
     do j=bounds%nmax2+1,bounds%nmax2+3
        do i=bounds%nmin1,bounds%nmax1
           szz(i,j,1)=dzi*(u2(i+1,j,1)-u2(i,j,1))*delp(i,bounds%nmax2,1)
           sxx(i,j,1)=dxi*(u2(i,j+1,1)-u2(i,j,1))*delp(i,bounds%nmax2,1)
        end do
     end do 
+    !$OMP END PARALLEL DO
     
+    !$OMP PARALLEL DO PRIVATE(j,i)
     do j=bounds%nmin2,bounds%nmax2
        do i=bounds%nmin1,bounds%nmax1
           tmpzz=         coefs%c1z*(szz(i,j,1)-szz(i-1,j,1))+ &
@@ -833,6 +846,7 @@ contains
           &              mod%rho(i,j,1)*(tmpxx+tmpzz)
        end do
     end do
+    !$OMP END PARALLEL DO
     deallocate(sxx,szz,delp)
 
   end subroutine FD_2D_derivatives_acoustic_forward_grid
@@ -1126,6 +1140,8 @@ contains
     div11=1./11
     dt2=genpar%dt**2
 
+    call omp_set_num_threads(genpar%threads_per_task)
+    !$OMP PARALLEL DO PRIVATE(k,j,i)
     do k=bounds%nmin3,bounds%nmax3
        do j=bounds%nmin2,bounds%nmax2
           do i=bounds%nmin1,bounds%nmax1
@@ -1135,6 +1151,8 @@ contains
           end do
        end do
     end do
+
+    !$OMP END PARALLEL DO
 
   end subroutine FD_2nd_time_derivative_grid_noomp
   

@@ -657,14 +657,14 @@ contains
 
   end subroutine mod_copy_image
 
-  subroutine mod_copy_image_nparam(mod,image,illum,vprho_param)
-    type(ModelSpace) ::            mod
+  subroutine mod_copy_image_nparam(mod,image,illum,vprho_param,threads_per_task)
+    type(ModelSpace)  ::           mod
     real, dimension(:,:,:,:) ::        image
     real, dimension(:,:,:) ::                illum
     real, dimension(:,:,:,:), allocatable :: tmpim
     real, dimension(:,:,:),   allocatable :: tmpil
 
-    integer :: i,j,k,ix,iy,ix1,iy1,nparam,         vprho_param
+    integer :: i,j,k,ix,iy,ix1,iy1,nparam,         vprho_param,threads_per_task
     real    :: coord_x, coord_y
 
     nparam=size(mod%imagesmall_nparam(1,1,1,:))
@@ -673,6 +673,9 @@ contains
     tmpim=0.
     tmpil=0.
 
+    call omp_set_num_threads(threads_per_task)
+
+    !$OMP PARALLEL DO PRIVATE(j,coord_y,iy,i,coord_x,ix,k)
     do j=1,mod%nyw
        coord_y=(j-1)*mod%dy+mod%oyw
        iy=nint((coord_y-mod%oy)/mod%dy)+1
@@ -690,6 +693,7 @@ contains
              
        end do
     end do
+    !$OMP END PARALLEL DO
 
     image=image+tmpim
     illum=illum+tmpil

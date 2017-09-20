@@ -219,7 +219,9 @@ contains
     integer :: i,j,k,l,m,n1,begi,endi
     integer :: ntsnap,ntotaltraces,index,indexp
     double precision :: memory_needed,gist,scaling
-
+    integer :: count_rate,count_max
+    integer, dimension(:), allocatable :: start_counting
+    integer, dimension(:), allocatable :: stop_counting
     real, dimension(:), allocatable          :: illu
 
     logical :: file_has_nans
@@ -232,6 +234,9 @@ contains
     genpar%ntsnap=int(genpar%nt/genpar%snapi)
     genpar%dt2=(genpar%dt*genpar%snapi)**2
 
+    allocate(start_counting(genpar%nthreads))
+    allocate(stop_counting(genpar%nthreads))
+
     endi=0
     begi=0
 
@@ -240,6 +245,8 @@ contains
     memory_needed=0.
 
     genpar%nthreads=min(genpar%nthreads,size(shotgath))
+
+    if (genpar%nthreads*genpar%threads_per_task.gt.omp_get_num_procs()) call erexit("ERROR: decrease num_threads or threads_per_task")
     call omp_set_num_threads(genpar%nthreads)
 
     ! image and illumination for each thread
@@ -256,6 +263,8 @@ contains
     !$OMP PARALLEL DO PRIVATE(i,k,j,dmodgath,begi,endi,wfld_fwd,file_has_nans)
     do i=1,size(shotgath)
 !
+       call system_clock(start_counting(omp_get_thread_num()+1),count_rate,count_max)
+
        call copy_window_vel_gath(mod,modgath(i),genpar,genpargath(i),boundsgath(i),i)
        genpargath(i)%ntsnap=int(genpargath(i)%nt/genpargath(i)%snapi)
 !
@@ -263,13 +272,19 @@ contains
        elevgath(i)%elev=0.
 !
        allocate(dmodgath(size(shotgath(i)%gathtrace)))
+       
+       call omp_set_num_threads(genpar%threads_per_task)
+       !$OMP PARALLEL DO PRIVATE(j)
        do j=1,size(shotgath(i)%gathtrace)
           allocate(dmodgath(j)%trace(n1,1))
        end do
+       !$OMP END PARALLEL DO
        dmodgath=shotgath(i)%gathtrace
+       !$OMP PARALLEL DO PRIVATE(j)
        do j=1,size(shotgath(i)%gathtrace)
           dmodgath(j)%trace=0.
        end do
+       !$OMP END PARALLEL DO
 
        ! Forward: modeling
        
@@ -295,21 +310,27 @@ contains
        call AGRAD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),dmodgath,wfld_fwd,invparam%nparam)
 !       !write(0,*) minval(modgath(i)%imagesmall_nparam),maxval(modgath(i)%imagesmall_nparam)
        ! Copy to final image space and convert gradient to match parameterization
-       call mod_copy_image_nparam(modgath(i),gradthread(:,:,:,:,omp_get_thread_num()+1),illuthread(:,:,:,omp_get_thread_num()+1),invparam%vprho_param)
+       call mod_copy_image_nparam(modgath(i),gradthread(:,:,:,:,omp_get_thread_num()+1),illuthread(:,:,:,omp_get_thread_num()+1),invparam%vprho_param,genpar%threads_per_task)
 
        ! Deallocate arrays
        deallocate(modgath(i)%imagesmall_nparam)
        deallocate(modgath(i)%illumsmall)
-       call deallocateModelSpace_elev(elevgath(i))       
+       call deallocateModelSpace_elev(elevgath(i))
+       
+       !$OMP PARALLEL DO PRIVATE(k)
        do k=1,size(shotgath(i)%gathtrace)
           call deallocateTraceSpace(dmodgath(k))
        end do
+       !$OMP END PARALLEL DO
+
        deallocate(modgath(i)%vel)
        deallocate(dmodgath)
        if (allocated(modgath(i)%rho)) deallocate(modgath(i)%rho)
        if (allocated(modgath(i)%imp)) deallocate(modgath(i)%imp)
        if (allocated(modgath(i)%rho2)) deallocate(modgath(i)%rho2)
 
+       call system_clock(stop_counting(omp_get_thread_num()+1),count_rate,count_max)
+       write(0,*) 'INFO: done thread',omp_get_thread_num()+1,'gather ',i,' time',(stop_counting(omp_get_thread_num()+1)-start_counting(omp_get_thread_num()+1))/float(count_rate)/60.
     end do
     !$OMP END PARALLEL DO
 
@@ -379,6 +400,9 @@ contains
     call mult_grad_mask(grad,invparam%modmask)
     deallocate(gradthread,illu,illuthread,fthread)
     deallocate(elevgath)
+
+    deallocate(start_counting)
+    deallocate(stop_counting)
 
     stat=0
 
@@ -466,7 +490,7 @@ contains
        ! Backward: imaging
        call AGRAD_to_memory(modgath(i),genpargath(i),dat,boundsgath(i),elevgath(i),shotgath(i)%gathtrace,wfld_fwd,1)
       ! Copy to final image space
-       call mod_copy_image_nparam(modgath(i),imagthread(:,:,:,:,omp_get_thread_num()+1),illuthread(:,:,:,omp_get_thread_num()+1),0)
+       call mod_copy_image_nparam(modgath(i),imagthread(:,:,:,:,omp_get_thread_num()+1),illuthread(:,:,:,omp_get_thread_num()+1),0,genpar%threads_per_task)
 
        ! Deallocate arrays
        deallocate(modgath(i)%imagesmall_nparam)
@@ -543,11 +567,19 @@ contains
     double precision :: memory_needed,gist
 
     real, dimension(:), allocatable          :: illu
+    integer :: count_rate,count_max
+    integer, dimension(:), allocatable :: start_counting
+    integer, dimension(:), allocatable :: stop_counting
+
+    real, dimension(:), allocatable :: alltimes
 
     call from_aux('coordfile','n2',ntotaltraces)
 
     allocate(elevgath(size(shotgath)))  ! Each shot has an elevation file
     allocate(resigath(ntotaltraces))
+
+    allocate(start_counting(genpar%nthreads))
+    allocate(stop_counting(genpar%nthreads))
 
     n1=genpar%nt
     d1=genpar%dt
@@ -567,11 +599,15 @@ contains
 
     genpar%nthreads=min(genpar%nthreads,size(shotgath))
     call omp_set_num_threads(genpar%nthreads)
+    allocate(alltimes(size(shotgath)))
+    alltimes=0.
 
     nprocessed=0
 
     !$OMP PARALLEL DO PRIVATE(i,k,j,dmodgath,begi,endi,wfld_fwd)
     do i=1,size(shotgath)
+
+       call system_clock(start_counting(omp_get_thread_num()+1),count_rate,count_max)
 
 !       write(0,*) omp_get_thread_num(), 'is here before copy'
        call copy_window_vel_gath(mod,modgath(i),genpar,genpargath(i),boundsgath(i),i)
@@ -619,6 +655,11 @@ contains
        if (modulo(nprocessed,10).eq.0) write(0,*) 'INFO: Modeled',nprocessed*100/size(shotgath),'% of shots'
        !$OMP END CRITICAL
 
+       
+       call system_clock(stop_counting(omp_get_thread_num()+1),count_rate,count_max)
+       alltimes(i)=(stop_counting(omp_get_thread_num()+1)-start_counting(omp_get_thread_num()+1))/float(count_rate)/60.
+       write(0,*) 'INFO: done thread',omp_get_thread_num()+1,'gather ',i,' time',(stop_counting(omp_get_thread_num()+1)-start_counting(omp_get_thread_num()+1))/float(count_rate)/60.
+   
     end do
     !$OMP END PARALLEL DO
 
@@ -628,6 +669,9 @@ contains
     do i=1,ntotaltraces
        call srite('data',resigath(i)%trace(:,1),4*n1)
     end do
+    call srite('shot_times',alltimes,4*size(shotgath))
+    call to_history('n1',size(shotgath),'shot_times')
+    deallocate(alltimes)
 
     call to_history('n1',n1,'data')
     call to_history('n2',ntotaltraces,'data')
@@ -641,6 +685,8 @@ contains
     end do
     deallocate(resigath)
     deallocate(elevgath)
+    deallocate(start_counting)
+    deallocate(stop_counting)
 
     stat=0
 

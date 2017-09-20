@@ -81,15 +81,21 @@ contains
     
     real, allocatable :: deltai(:)
 
+    call omp_set_num_threads(genpar%threads_per_task)
+
     if (genpar%twoD) then
        if (genpar%rec_type.eq.0) then
+          !$OMP PARALLEL DO PRIVATE(i)
           do i=1,size(data)
              data(i)%trace(it,1)=data(i)%trace(it,1)+ u(data(i)%icoord(1),data(i)%icoord(2),1)
           end do
+          !$OMP END PARALLEL DO
        else
+          !$OMP PARALLEL DO PRIVATE(i)
           do i=1,size(data)
              data(i)%trace(it,1)=data(i)%trace(it,1)+(u(data(i)%icoord(1),data(i)%icoord(2),1)-u(-data(i)%icoord(1),data(i)%icoord(2),1))
           end do
+          !$OMP END PARALLEL DO
        end if
     else
        if (genpar%rec_type.eq.0) then

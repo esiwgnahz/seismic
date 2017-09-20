@@ -396,6 +396,8 @@ contains
     if (size(model%imagesmall_nparam(1,1,1,:)).eq.2) Twoparam=.true.
     if (model%nyw.eq.1) dk=0
 
+    call omp_set_num_threads(genpar%threads_per_task)
+
     if (genpar%withRho) then
        MODULO:if (mod(it,genpar%snapi).eq.0) then
 
@@ -406,6 +408,7 @@ contains
           
           if (genpar%surf_type.ne.0) then
              if (.not.Twoparam) then
+                !$OMP PARALLEL DO PRIVATE(k,j,taper,i)
                 do k=1,model%nyw
                    do j=1,model%nxw
                       taper=model%taperx(j)*model%tapery(k)
@@ -416,7 +419,9 @@ contains
                       end do
                    end do
                 end do
+                !$OMP END PARALLEL DO
              else
+                !$OMP PARALLEL DO PRIVATE(k,j,taper,i)
                 do k=1,model%nyw
                    do j=1,model%nxw
                       taper=model%taperx(j)*model%tapery(k)
@@ -439,10 +444,13 @@ contains
                       end do
                    end do
                 end do
+                !$OMP END PARALLEL DO
              
              end if
           else
              if (.not.Twoparam) then
+                
+                !$OMP PARALLEL DO PRIVATE(k,j,taper,i)
                 do k=1,model%nyw
                    do j=1,model%nxw
                       taper=model%taperx(j)*model%tapery(k)
@@ -453,7 +461,9 @@ contains
                       end do
                    end do
                 end do
+                !$OMP END PARALLEL DO
              else
+                !$OMP PARALLEL DO PRIVATE(k,j,taper,i)
                 do k=1,model%nyw
                    do j=1,model%nxw
                       taper=model%taperx(j)*model%tapery(k)
@@ -475,6 +485,8 @@ contains
                       end do
                    end do
                 end do
+                !$OMP END PARALLEL DO 
+                
              end if
           end if
 
@@ -488,6 +500,7 @@ contains
           indexm1=max(index-1,1)
 
           if (genpar%surf_type.ne.0) then
+             !$OMP PARALLEL DO PRIVATE(k,j,taper,i)
              do k=1,model%nyw
                 do j=1,model%nxw
                    taper=model%taperx(j)*model%tapery(k)
@@ -498,7 +511,9 @@ contains
                    end do
                 end do
              end do
+             !$OMP END PARALLEL DO
           else
+             !$OMP PARALLEL DO PRIVATE(k,j,taper,i)
              do k=1,model%nyw
                 do j=1,model%nxw
                    taper=model%taperx(j)*model%tapery(k)
@@ -509,6 +524,7 @@ contains
                    end do
                 end do
              end do
+             !$OMP END PARALLEL DO
           end if
 
        end if
