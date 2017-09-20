@@ -61,7 +61,7 @@ contains
     bpparam%nt=sourcegath(1)%dimt%nt
 
     write(0,*) 'INFO:----------------------------------------------'
-    write(0,*) 'INFO: Starting bandassing'
+    write(0,*) 'INFO: Starting bandpassing'
     do i=1,nshots
 
        srctmp=0.
@@ -80,7 +80,7 @@ contains
        !$OMP END PARALLEL DO
 
     end do
-    write(0,*) 'INFO: Done bandassing'
+    write(0,*) 'INFO: Done bandpassing'
     write(0,*) 'INFO:----------------------------------------------'
 
     deallocate(srctmp,tracetmp)
