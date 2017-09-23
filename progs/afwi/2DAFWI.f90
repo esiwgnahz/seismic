@@ -47,6 +47,7 @@ program TWODAFWI
   double precision    :: f
   call sep_init()
 
+  call omp_set_nested(.true.)
 
   mod%rhotag='rho'
   mod%veltag='vel'
