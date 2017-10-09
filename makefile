@@ -6,8 +6,8 @@ UF77LIBS:= ${UF77LIBS} -qopenmp -lbei
 
 ###########################################
 # Add -g 2 lines below if debugger needed
-OF90FLAGS:= -axCOMMON-AVX512 -qopenmp -fPIC -FR  -D_GNU_SOURCE -I${SEPINCDIR} -c
-OF77FLAGS:= -axCOMMON-AVX512 -qopenmp -fPIC -FR                               -c 
+OF90FLAGS:= -qopenmp -fPIC -FR  -D_GNU_SOURCE -I${SEPINCDIR} -c
+OF77FLAGS:= -qopenmp -fPIC -FR                               -c 
 ###########################################
 
 LIBDIR  = ${ADIR}/lib/$(MTYPE)
@@ -50,19 +50,19 @@ clean:
 
 all: 
 #	make dirstruct
-#	(cd libs/libfut; make)
-#	(cd libs/libdec; make)
-#	(cd libs/libinv; make)
-#	(cd libs/libflt; make)
-#	(cd libs/libwave; make)
-#	(cd progs/logdecon; make)
-#	(cd progs/match; make)
-#	(cd progs/futterman; make)
-#	(cd progs/modeling; make )
-#	(cd progs/rtm; make)
-#	(cd progs/afwi; make)
+	(cd libs/libfut; make)
+	(cd libs/libdec; make)
+	(cd libs/libinv; make)
+	(cd libs/libflt; make)
+	(cd libs/libwave; make)
+	(cd progs/logdecon; make)
+	(cd progs/match; make)
+	(cd progs/futterman; make)
+	(cd progs/modeling; make )
+	(cd progs/rtm; make)
+	(cd progs/afwi; make)
 	(cd progs/procs; make)
-#	(cd progs/inversion; make)
+	(cd progs/inversion; make)
 
 listfiles='ls  */*/*90'
 

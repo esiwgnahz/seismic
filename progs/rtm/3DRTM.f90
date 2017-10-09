@@ -40,10 +40,18 @@ program THREEDRTM
   write(0,*) 'INFO:'
 
   mod%veltag='vel'
+  mod%vel2tag='vel2'
   mod%rhotag='rho'
   mod%waFtag='wave_fwd'
   genpar%Born=.false.
+  mod%exist_vel2=.false.
+
   if (.not.exist_file(mod%veltag)) call erexit('ERROR: need vel file')
+  if (exist_file(mod%vel2tag)) then
+     mod%exist_vel2=.true.
+     write(0,*) 'INFO: ---- A second velocity file is used for bacward propagation ----'
+     write(0,*) 'INFO: ---- This usually means that PS or SP waves are imaged      ----'
+  end if
 
   call read_3D_params(genpar)
   call readsou(sourcevec,genpar)

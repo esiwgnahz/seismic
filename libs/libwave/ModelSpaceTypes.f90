@@ -13,6 +13,7 @@ module ModelSpace_types
   type ModelSpace
 
      character(len=3)  :: veltag
+     character(len=4)  :: vel2tag
      character(len=3)  :: rhotag
      character(len=3)  :: reftag
      character(len=8)  :: waFtag
@@ -58,6 +59,8 @@ module ModelSpace_types
      real    :: endy
 
      integer :: counter
+     
+     logical :: exist_vel2
 
   end type ModelSpace
 

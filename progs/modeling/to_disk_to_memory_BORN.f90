@@ -81,6 +81,10 @@ contains
     write(0,*) 'INFO: Done with forward modeling'
 
     model%counter=0
+
+    ! Copy vel2 to vel for backward propagation if needed
+    if (model%exist_vel2) model%vel=model%vel2
+
     call compute_taper(model)
 
     ! Set datavec to zero: modeling!
@@ -182,6 +186,9 @@ contains
        end if
     end if
     write(0,*) 'INFO:'
+
+    ! Copy vel2 to vel for backward propagation if needed
+    if (model%exist_vel2) model%vel=model%vel2
 
     call compute_taper(model)
 

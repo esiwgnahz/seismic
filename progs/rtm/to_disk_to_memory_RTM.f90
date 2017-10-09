@@ -109,6 +109,10 @@ module to_disk_to_memory_RTM_mod
       genpar%tstep=-1
 
       mod%counter=0
+
+      ! Copy vel2 to vel for backward propagation if needed
+      if (mod%exist_vel2) mod%vel=mod%vel2
+
       call compute_taper(mod)
 
       write(0,*) 'INFO: Starting backward propagation'
@@ -220,6 +224,10 @@ module to_disk_to_memory_RTM_mod
       genpar%tstep=-1
 
       mod%counter=0
+
+      ! Copy vel2 to vel for backward propagation if needed
+      if (mod%exist_vel2) mod%vel=mod%vel2
+
       call compute_taper(mod)
 
       write(0,*) 'INFO: Starting backward propagation'
@@ -309,6 +317,10 @@ module to_disk_to_memory_RTM_mod
       genpar%tstep=-1
 
       mod%counter=0
+
+      ! Copy vel2 to vel for backward propagation if needed
+      if (mod%exist_vel2) mod%vel=mod%vel2
+
       call compute_taper(mod)
 
       write(0,*) 'INFO: Starting backward propagation'
@@ -410,6 +422,9 @@ module to_disk_to_memory_RTM_mod
 
       mod%counter=0
       mod%wvfld=>wfld_fwd
+
+      ! Copy vel2 to vel for backward propagation if needed
+      if (mod%exist_vel2) mod%vel=mod%vel2
 
       call compute_taper(mod)
 
@@ -516,6 +531,9 @@ module to_disk_to_memory_RTM_mod
       mod%counter=0
       mod%wvfld=>wfld_fwd
 
+      ! Copy vel2 to vel for backward propagation if needed
+      if (mod%exist_vel2) mod%vel=mod%vel2
+
       call compute_taper(mod)
 
       write(0,*) 'INFO: Starting backward propagation'
@@ -599,6 +617,9 @@ module to_disk_to_memory_RTM_mod
 
       mod%counter=0
       mod%wvfld=>wfld_fwd
+
+      ! Copy vel2 to vel for backward propagation if needed
+      if (mod%exist_vel2) mod%vel=mod%vel2
 
       call compute_taper(mod)
 

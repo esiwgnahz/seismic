@@ -40,9 +40,16 @@ program THREEDBORN
   write(0,*) 'INFO:'
 
   mod%veltag='vel'
+  mod%vel2tag='vel2'
   mod%rhotag='rho'
   mod%reftag='ref'
   mod%waFtag='wave_fwd'
+
+  if (exist_file(mod%vel2tag)) then 
+     mod%exist_vel2=.true.
+     write(0,*) 'INFO: ---- A second velocity file is used for bacward propagation ----'
+     write(0,*) 'INFO: ---- This usually means that PS or SP waves are modeled     ----'
+  end if
 
   if (.not.exist_file(mod%veltag)) call erexit('ERROR: need velocity file')
   if (.not.exist_file(mod%reftag)) call erexit('ERROR: need reflectivity file')

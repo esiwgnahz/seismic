@@ -270,6 +270,17 @@ contains
           call Interpolate(mod,bounds,genpar)
        end if
     end if
+
+    if(mod%exist_vel2) then
+       call dim_consistency_check(mod%vel2tag,mod%veltag,genpar%twoD)
+       allocate(mod%vel2(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound))
+       call sreed(mod%vel2tag,tmpbig,4*mod%nz*mod%nx*mod%ny)
+       call auxclose(mod%vel2tag)
+       call vel_check(tmpbig,genpar)
+       call mod_window_pad(.true.,tmpbig,tmpsmall,mod)
+       call model_pad(tmpsmall,mod%vel2,bounds,mod%nz,mod%nxw,mod%nyw,genpar)
+    end if
+
     deallocate(tmpbig,tmpsmall)
   end subroutine read_window_vel
 
