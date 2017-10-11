@@ -114,9 +114,13 @@ contains
     call mod_to_x(.true.,modin,xsave,invparam)    
     xdsave=xsave
 
+    write(0,*) 'INFO: '
+    write(0,*) 'INFO: Starting lbfgs solver iterations'
+    write(0,*) 'INFO: '
+
     do while (cont.and.(.not.found))
 
-      stat2=fctgdt(g=g,f=fd,res=resigath)
+       stat2=fctgdt(g=g,f=fd,res=resigath)
 
        if (invparam%eval.eq.0) then
           g0=maxval(sngl(xsave))/(100*maxval(abs(g)))
@@ -130,10 +134,10 @@ contains
 
        call mod_to_x(.true.,modin,xd,invparam)
 
-       gd=dble(g)
+       gd=-dble(g)
        xdsave=xd
 
-       call LBFGS(NDIM,MSAVE,xd,fd,-gd,&
+       call LBFGS(NDIM,MSAVE,xd,fd,gd,&
        &          .False.,diagd,iprint,EPS,&
        &          XTOL,wd,iflag,myinfo,invparam%vprho_param,XMIN,XMAX,&
        &          invparam%nparam,invparam%modmask,invparam%const_type,invparam%freeze_soft,invparam%modinit)

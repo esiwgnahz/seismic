@@ -52,7 +52,7 @@ all:
 #	make dirstruct
 #	(cd libs/libfut; make)
 #	(cd libs/libdec; make)
-#	(cd libs/libinv; make)
+	(cd libs/libinv; make)
 #	(cd libs/libflt; make)
 	(cd libs/libwave; make)
 #	(cd progs/logdecon; make)

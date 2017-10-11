@@ -334,6 +334,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
+    write(0,*) 'here'
     allocate(illu(mod%nz*mod%nx*mod%ny)); illu=0.
     ! Add all images for each thread to final image
     do i=1,genpar%nthreads
@@ -364,6 +365,7 @@ contains
 
     end do
 
+    write(0,*) 'here1'
     if ((invparam%nparam.eq.2).and.(invparam%vprho_param.eq.1)) then
        !$OMP PARALLEL DO PRIVATE(k,j,l,index,indexp)
        do k=1,mod%ny
@@ -379,6 +381,7 @@ contains
        !$OMP END PARALLEL DO 
     end if
 
+    write(0,*) 'here2'
     illu=illu**invparam%illupow
 
     ! Scaling
@@ -392,6 +395,7 @@ contains
        grad(1+mod%nz*mod%nx*mod%ny:)=invparam%sigma(2)*grad(1+mod%nz*mod%nx*mod%ny:)/illu
     end if
 
+    write(0,*) 'here3'
     call mult_grad_mask(grad,invparam%modmask)
     call triangle2(smoothpar,grad(1:mod%nz*mod%nx*mod%ny))
     if (invparam%nparam.eq.2) then
@@ -401,6 +405,7 @@ contains
     deallocate(gradthread,illu,illuthread,fthread)
     deallocate(elevgath)
 
+    write(0,*) 'here4'
     deallocate(start_counting)
     deallocate(stop_counting)
 
