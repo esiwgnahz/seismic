@@ -156,9 +156,20 @@ contains
              found=.true.
              write(0,*) 'INFO: iter reached max_iter - Iterations will stop'
           end if
-          if(exist_file('model'))    call srite('model',sngl(xdsave),4*NDIM)
-          if(exist_file('function')) call srite('function',sngl(fd),4)
-          if(exist_file('gradient')) call srite('gradient',-g,4*NDIM)
+
+          if(exist_file('model')) then           
+             call srite('model',modin%vel,4*size(modin%vel))
+             if (invparam%nparam.eq.2) then
+                if (invparam%vprho_param.eq.0) then
+                   call srite('model',modin%rho,4*size(modin%vel))
+                else
+                   call srite('model',modin%imp,4*size(modin%vel))
+                end if
+             end if
+          end if
+          f=sngl(fd)
+          if(exist_file('function')) call srite('function',f,4)
+          if(exist_file('gradient')) call srite('gradient',g,4*NDIM)
           if (exist_file('residual')) then
              do i=1,invparam%ntotaltraces
                 call srite('residual',resigath(i)%trace(:,1),4*invparam%n1)
@@ -184,7 +195,7 @@ contains
           cont=.false.
        end if
     end do
-!    ! We didn't really find a new model vector, the line-search
+    ! We didn't really find a new model vector, the line-search
     ! was still going. We take the previous best solution.
     if (.not.cont) then
        call mod_to_x(.false.,modin,xsave,invparam)
