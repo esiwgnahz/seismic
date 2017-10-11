@@ -263,7 +263,7 @@ contains
     !$OMP PARALLEL DO PRIVATE(i,k,j,dmodgath,begi,endi,wfld_fwd,file_has_nans)
     do i=1,size(shotgath)
 !
-       call system_clock(start_counting(omp_get_thread_num()+1),count_rate,count_max)
+!       call system_clock(start_counting(omp_get_thread_num()+1),count_rate,count_max)
 
        call copy_window_vel_gath(mod,modgath(i),genpar,genpargath(i),boundsgath(i),i)
        genpargath(i)%ntsnap=int(genpargath(i)%nt/genpargath(i)%snapi)
@@ -329,8 +329,8 @@ contains
        if (allocated(modgath(i)%imp)) deallocate(modgath(i)%imp)
        if (allocated(modgath(i)%rho2)) deallocate(modgath(i)%rho2)
 
-       call system_clock(stop_counting(omp_get_thread_num()+1),count_rate,count_max)
-       write(0,*) 'INFO: done thread',omp_get_thread_num()+1,'gather ',i,' time',(stop_counting(omp_get_thread_num()+1)-start_counting(omp_get_thread_num()+1))/float(count_rate)/60.
+!       call system_clock(stop_counting(omp_get_thread_num()+1),count_rate,count_max)
+!       write(0,*) 'INFO: done thread',omp_get_thread_num()+1,'gather ',i,' time',(stop_counting(omp_get_thread_num()+1)-start_counting(omp_get_thread_num()+1))/float(count_rate)/60.
     end do
     !$OMP END PARALLEL DO
 
@@ -385,10 +385,10 @@ contains
     illu=illu**invparam%illupow
 
     ! Scaling
-    scaling=dble(2*n1*ntotaltraces)
+    scaling=dble(ntotaltraces)
     f=f/scaling
     grad=2*grad/sngl(scaling)
-    illu=(illu+maxval(illu)/10000)/sqrt(sum(dprod(illu,illu))/size(illu))
+    illu=(illu+maxval(illu)/1000)/sqrt(sum(dprod(illu,illu))/size(illu))
 
     grad(1:mod%nz*mod%nx*mod%ny)=invparam%sigma(1)*grad(1:mod%nz*mod%nx*mod%ny)/illu
     if (invparam%nparam.eq.2) then
@@ -533,7 +533,7 @@ contains
        
     end do
 
-    illu=(illu+maxval(illu)/10000)/sqrt(sum(dprod(illu,illu))/size(illu))
+    illu=(illu+maxval(illu)/1000)/sqrt(sum(dprod(illu,illu))/size(illu))
     imag=imag
 
     write(0,*) 'INFO:'
