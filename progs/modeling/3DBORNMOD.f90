@@ -44,6 +44,7 @@ program THREEDBORN
   mod%rhotag='rho'
   mod%reftag='ref'
   mod%waFtag='wave_fwd'
+  mod%exist_vel2=.false.
 
   if (exist_file(mod%vel2tag)) then 
      mod%exist_vel2=.true.

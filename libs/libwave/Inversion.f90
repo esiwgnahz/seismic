@@ -125,10 +125,10 @@ contains
        fd=f0*fd
 
        xd=dble(x)
-       gd=dble(g)
+       gd=-dble(g)
        xdsave=xd
 
-       call LBFGS(NDIM,MSAVE,xd,fd,-gd,&
+       call LBFGS(NDIM,MSAVE,xd,fd,gd,&
        &          .False.,diagd,iprint,EPS,&
        &          XTOL,wd,iflag,myinfo,XMIN,XMAX,invparam%vpmask,invparam%const_type,invparam%freeze_soft,invparam%vpinit)
 
