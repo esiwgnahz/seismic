@@ -7,11 +7,11 @@ OBJDIR = .
 LIBNAME=${LIBDIR}/libAnlinv.a
 SOURCES= $(notdir $(wildcard ${SRCDIR}/*.r90 ${SRCDIR}/*.f90 ${SRCDIR}/*.f ${SRCDIR}/*.c))
 
-lbfgs.o: lbfgs.f
-	${F90C} -O${FCOLEVEL} -Bstatic -c  -o lbfgs.o ./lbfgs.f
+nlinv_lbfgs.o: nlinv_lbfgs.f
+	${F90C} -O${FCOLEVEL} -Bstatic -c  -o nlinv_lbfgs.o ./nlinv_lbfgs.f
 
-blas.o: blas.f
-	${F90C} -O${FCOLEVEL} -Bstatic -c  -o blas.o ./blas.f
+nlinv_blas.o: nlinv_blas.f
+	${F90C} -O${FCOLEVEL} -Bstatic -c  -o nlinv_blas.o ./nlinv_blas.f
 
 default: all_Lib
 

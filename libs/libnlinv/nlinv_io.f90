@@ -25,53 +25,12 @@ contains
     if(allocated(file%o))     deallocate(file%o)
   end subroutine deallocate_sepfile
 
-  ! Read 4*n bytes float array single precision from file tag
-  subroutine io_read_sngl(tag,array,n)
-    character(len=*)   :: tag
-    integer            ::           n
-    real, dimension(n) ::     array
-
-    ! SEPLib call
-    call sreed(tag,array,4*n)
-
-  end subroutine io_read_sngl
-
-  ! Read 8*n bytes float array double precision from file tag
-  subroutine io_read_dble(tag,array,n)
-    character(len=*) ::   tag
-    integer          ::             n
-    double precision, dimension(n) ::     array
-
-    ! SEPLib call
-    call sreed(tag,array,8*n)
-
-  end subroutine io_read_dble
-
-  ! Write 4*n bytes float array single precision from file tag
-  subroutine io_write_sngl(tag,array,n)
-    character(len=*)   ::  tag
-    integer            ::            n
-    real, dimension(n) ::      array
-
-    ! SEPLib call
-    call srite(tag,array,4*n)
-
-  end subroutine io_write_sngl
-
-  ! Write 8*n bytes float array double precision from file tag
-  subroutine io_write_dble(tag,array,n)
-    character(len=*) ::    tag
-    integer         ::               n
-    double precision, dimension(n) ::     array
-
-    ! SEPLib call
-    call srite(tag,array,8*n)
-
-  end subroutine io_write_dble
-
   subroutine read_sepfile(file)
     type(sepfile_type) :: file
     integer            :: sep_dim,i
+    character(len=1024):: label
+
+    label=" "
 
     sep_dim=sep_dimension(file%tag)
     allocate(file%n(sep_dim))
@@ -82,7 +41,7 @@ contains
        call sep_get_data_axis_par(file%tag,i,file%n(i),file%o(i),file%d(i),label)
     end do
     
-    allocate(file%array(product(file%n)))
+    if (.not.allocated(file%array)) allocate(file%array(product(file%n)))
     call sreed(file%tag,file%array,4*product(file%n))
     call auxclose(file%tag)
 
@@ -91,7 +50,10 @@ contains
   subroutine write_sepfile(file)
     type(sepfile_type) ::  file
     integer            ::  sep_dim,i
+    character(len=1024):: label
     
+    label=" "
+
     do i=1,sep_dim
        call sep_put_data_axis_par(file%tag,i,file%n(i),file%o(i),file%d(i),label)
     end do

@@ -6,8 +6,11 @@ module nlinv_types_mod
 
 contains
 
-  type nlinvparam
-
+  type nlinvsepfile
+     
+     !*****************************************************************
+     ! These arrays are read using seplib commands sreed and from_param
+     !*****************************************************************
      ! Input file
      type(sepfile_type) :: mod ! Model vector
      type(sepfile_type) :: fct ! Objective function
@@ -16,29 +19,43 @@ contains
 
      ! Optional weight file, set to 1 if not present
      type(sepfile_type) :: wgh ! Gradient weight
+    
+     ! min and max values for each parameter
+     real, dimension(:), allocatable :: xmin, xmax
+
+  end type nlinvsepfile
+
+  type nlinvparam
 
      ! Input file for LBFGS
-     character(len=*) :: diagFilename
-     character(len=*) :: iflagFilename
-     character(len=*) :: myInfoFilename
-     character(len=*) :: lbfgsDatFilename
-     character(len=*) :: mcsrchDatFilename
-     character(len=*) :: workingArrayFilename
+     character(len=1024) :: diagFilename
+     character(len=1024) :: iflagFilename
+     character(len=1024) :: myInfoFilename
+     character(len=1024) :: lbfgsDatFilename
+     character(len=1024) :: mcsrchDatFilename
+     character(len=1024) :: workingArrayFilename
      
      ! Output file for LBFGS
-     character(len=*) :: diagFilenameOut
-     character(len=*) :: iflagFilenameOut
-     character(len=*) :: myInfoFilenameOut
-     character(len=*) :: lbfgsDatFilenameOut
-     character(len=*) :: mcsrchDatFilenameOut
-     character(len=*) :: workingArrayFilenameOut
+     character(len=1024) :: diagFilenameOut
+     character(len=1024) :: iflagFilenameOut
+     character(len=1024) :: myInfoFilenameOut
+     character(len=1024) :: lbfgsDatFilenameOut
+     character(len=1024) :: mcsrchDatFilenameOut
+     character(len=1024) :: workingArrayFilenameOut
 
+
+     !************************************************************************
+     ! These parameters are read from the command line using seplib from_param
+     !************************************************************************
      ! Clipping parameter influencing behavior
      integer          :: clip_type
      ! Parameter controling how the gradient is scaled in first iteration
      integer          :: stp1_opt
-     ! min and max values for each parameter
-     double precision, dimension(:), allocatable :: xmin,xmax
+     ! Parameter controling the lbfgs version, with (1) without (0) clipping
+     ! and masking. With clipping is for FWI for instance. Without clipping 
+     ! is for LSRTM for instance.
+     !************************************************************************
+
      ! Number of parameters to invert for
      integer          :: nparams   
      ! Size of model space for 1 parameter
@@ -78,5 +95,18 @@ contains
 
   end subroutine nlinv_cleanarray
 
+  subroutine nlinvsepfile_clean(param)
+    type(nlinvsepfile)   ::     param
+
+    call deallocate_sepfile(param%mod)
+    call deallocate_sepfile(param%fct)
+    call deallocate_sepfile(param%gdt)
+    call deallocate_sepfile(param%modi)
+    call deallocate_sepfile(param%wgh)
+
+    if(allocated(param%xmin)) deallocate(param%xmin)
+    if(allocated(param%xmax)) deallocate(param%xmax)
+    
+  end subroutine nlinvsepfile_clean
 
 end module nlinv_types_mod

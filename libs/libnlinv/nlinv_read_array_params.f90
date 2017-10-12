@@ -11,6 +11,7 @@ contains
   function lbfgs_setup_sepfile(nlinv_sepfile)
     implicit none
     type(nlinvsepfile) ::      nlinv_sepfile 
+    real, dimensio(:), allocatable :: tmp
 
     lbfgs_setup_sepfile = .true.
 
@@ -91,6 +92,15 @@ contains
        return
     end if
 
+    ! Set the size for xmin and xmax: last axis is usually the nparam axis
+    allocate(nlinv_sepfile%xmin(size(nlinv_sepfile%mod%n))
+    allocate(nlinv_sepfile%xmax(size(nlinv_sepfile%mod%n))
+    
+    allocate(tmp(size(nlinv_sepfile%xmin))); tmp=0.
+    call from_param('xmin',nlinv_sepfile%xmin,tmp)
+    call from_param('xmax',nlinv_sepfile%xmax,tmp)
+    deallocate(tmp)
+
   end function lbfgs_setup_sepfile
 
   function lbfgs_setup(nlinv_param,nlinv_array,nlinv_sepfile)
@@ -133,13 +143,13 @@ contains
        
     inquire( file=nlinv_param%myInfoFilename, exist=myInfoExists)
     if (myInfoExists) then
-	    open(40,file=nlinv_param%myInfoFilename)
-	    read(40,*) nlinv_param%myinfo
-	    close(40)
-	    write(0,*) 'Reading myinfo= ', nlinv_param%myinfo
+       open(40,file=nlinv_param%myInfoFilename)
+       read(40,*) nlinv_param%myinfo
+       close(40)
+       write(0,*) 'Reading myinfo= ', nlinv_param%myinfo
     else
-            nlinv_param%myinfo = 0	
-	    write(0,*) 'myinfo control file not present. Setting myinfo=', nlinv_param%myinfo
+       nlinv_param%myinfo = 0	
+       write(0,*) 'myinfo control file not present. Setting myinfo=', nlinv_param%myinfo
     end if
 
     ! Set some parameters
@@ -164,21 +174,27 @@ contains
     allocate(nlinv_array%diagd(NDIM))
 
     if (nlinv_param%iflag.ne.0) then
-	write(0,*) 'Reading diag'
-	open(88,file=nlinv_param%diagFilename, FORM='UNFORMATTED')
-	rewind(88)
-	read(88) nlinv_array%diagd
-	close(88)
-
-	write(0,*) 'Reading working array'
-	open(89,file=nlinv_param%workingArrayFilename, FORM='UNFORMATTED')
-	rewind(89)
-	read(89) nlinv_array%wd
-	close(89)
+       write(0,*) 'Reading diag'
+       open(88,file=nlinv_param%diagFilename, FORM='UNFORMATTED')
+       rewind(88)
+       read(88) nlinv_array%diagd
+       close(88)
+       
+       write(0,*) 'Reading working array'
+       open(89,file=nlinv_param%workingArrayFilename, FORM='UNFORMATTED')
+       rewind(89)
+       read(89) nlinv_array%wd
+       close(89)
     end if
 
-    
-    
+    !*************************************************
+    ! Reading parameter values using seplib from param
+    !*************************************************
+    call from_param('lbfgs_type',nlinv_param%lbfgs_type,1)
+    call from_param('bound_type',nlinv_param%clip_type,1)
+    call from_param('stp1_opt',nlinv_nparam%stp1_opt,1)
+    !*************************************************
+
   end function lbfgs_setup
 
 end module nlinv_read_mod
