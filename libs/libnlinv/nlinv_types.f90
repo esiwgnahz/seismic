@@ -4,8 +4,6 @@ module nlinv_types_mod
 
   implicit none
 
-contains
-
   type nlinvsepfile
      
      !*****************************************************************
@@ -71,6 +69,8 @@ contains
      integer          :: iflag
      integer          :: myinfo
 
+     integer          :: lbfgs_type
+
      integer,dimension(2) :: iprint
 
   end type nlinvparam
@@ -84,6 +84,8 @@ contains
      double precision                            :: fd   ! Objective function double precision
 
   end type nlinvarray
+
+contains
 
   subroutine nlinv_cleanarray(param)
     type(nlinvarray) ::       param

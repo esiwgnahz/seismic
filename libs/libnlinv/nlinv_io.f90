@@ -1,20 +1,19 @@
 module nlinv_io_mod
 
+  use sep
   implicit none
 
-  use sep
-
-contains
-
   type sepfile_type
-     real, dimension(:), allocatable :: d
-     real, dimension(:), allocatable :: o
-     real, dimension(:), allocatable :: n
+     real,    dimension(:), allocatable :: d
+     real,    dimension(:), allocatable :: o
+     integer, dimension(:), allocatable :: n
 
-     character(len=*) :: tag
+     character(len=1024) :: tag
      
      real, dimension(:), allocatable :: array
   end type sepfile_type
+
+contains
 
   subroutine deallocate_sepfile(file)
     type(sepfile_type) ::       file
@@ -50,7 +49,7 @@ contains
   subroutine write_sepfile(file)
     type(sepfile_type) ::  file
     integer            ::  sep_dim,i
-    character(len=1024):: label
+    character(len=1024)::  label
     
     label=" "
 
@@ -61,6 +60,6 @@ contains
     call srite(file%tag,file%array,4*product(file%n))
     call auxclose(file%tag)
 
-  end subroutine read_sepfile
+  end subroutine write_sepfile
 
 end module nlinv_io_mod
