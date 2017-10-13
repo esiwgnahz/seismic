@@ -23,6 +23,14 @@ contains
     nlinv_sepfile%modi%tag='Initial_Model'
     nlinv_sepfile%wgh%tag='Gradient_Weight'
 
+    !*************************************************
+    ! Reading parameter values using seplib from param
+    !*************************************************
+    call from_param('lbfgs_type',nlinv_sepfile%lbfgs_type,0)
+    call from_param('bound_type',nlinv_sepfile%clip_type,1)
+    call from_param('stp1_opt',nlinv_sepfile%stp1_opt,1)
+    !*************************************************
+
     ! We first read the sep files for model, gradient and function and 
     ! make sure they exist and check dimension consitencies.
     if (.not.exist_file(nlinv_sepfile%mod%tag)) then
@@ -48,44 +56,49 @@ contains
     else
        call read_sepfile(nlinv_sepfile%gdt)
     end if
+ 
+    if (nlinv_sepfile%lbfgs_type.eq.1) then
+       if (.not.exist_file(nlinv_sepfile%modi%tag)) then
+          write(0,*) 'Model init file is missing, exit now'
+          lbfgs_setup_sepfile=.false.
+          return
+       else
+          call read_sepfile(nlinv_sepfile%modi)
+       end if
 
-    if (.not.exist_file(nlinv_sepfile%modi%tag)) then
-       write(0,*) 'Model init file is missing, exit now'
-       lbfgs_setup_sepfile=.false.
-       return
-    else
-       call read_sepfile(nlinv_sepfile%modi)
+       if (.not.exist_file(nlinv_sepfile%wgh%tag)) then
+          ! We set the weight to one if the file doesn't exist
+          allocate(nlinv_sepfile%wgh%array(product(nlinv_sepfile%gdt%n)))
+          nlinv_sepfile%wgh%array=1.
+       else
+          call read_sepfile(nlinv_sepfile%wgh)
+       end if
+       
+       do i=1,size(nlinv_sepfile%mod%n)
+       
+          ! Do gdt and wgh have the same size?
+          if (nlinv_sepfile%gdt%n(i).ne.nlinv_sepfile%wgh%n(i)) then
+             write(0,*) 'Gradient and Gradient weight have different sizes, exit now'
+             lbfgs_setup_sepfile=.false.
+             return
+          end if
+          
+          ! Do mod and modi have the same size?
+          if (nlinv_sepfile%mod%n(i).ne.nlinv_sepfile%modi%n(i)) then
+             write(0,*) 'Model and initial model have different sizes, exit now'
+             lbfgs_setup_sepfile=.false.
+             return
+          end if
+       end do
     end if
-
-    if (.not.exist_file(nlinv_sepfile%wgh%tag)) then
-       ! We set the weight to one if the file doesn't exist
-       allocate(nlinv_sepfile%wgh%array(product(nlinv_sepfile%gdt%n)))
-       nlinv_sepfile%wgh%array=1.
-    else
-       call read_sepfile(nlinv_sepfile%wgh)
-    end if
-
-    ! Do mod and grad have the same size?
+       
     do i=1,size(nlinv_sepfile%mod%n)
+    ! Do mod and grad have the same size?
        if (nlinv_sepfile%gdt%n(i).ne.nlinv_sepfile%mod%n(i)) then
           write(0,*) 'Gradient and Model have different sizes, exit now'
           lbfgs_setup_sepfile=.false.
           return
-       end if
-       
-       ! Do gdt and wgh have the same size?
-       if (nlinv_sepfile%gdt%n(i).ne.nlinv_sepfile%wgh%n(i)) then
-          write(0,*) 'Gradient and Gradient weight have different sizes, exit now'
-          lbfgs_setup_sepfile=.false.
-          return
-       end if
-       
-       ! Do mod and modi have the same size?
-       if (nlinv_sepfile%mod%n(i).ne.nlinv_sepfile%modi%n(i)) then
-          write(0,*) 'Model and initial model have different sizes, exit now'
-          lbfgs_setup_sepfile=.false.
-          return
-       end if
+       end if      
     end do
 
     ! Set the size for xmin and xmax: last axis is usually the nparam axis
@@ -106,6 +119,8 @@ contains
     logical :: lbfgs_setup
     logical :: iflagExists
     logical :: myInfoExists
+
+    double precision :: NMEMORY
 
     lbfgs_setup=.true.
 
@@ -130,10 +145,10 @@ contains
        open(10,file=nlinv_param%iflagFilename)
        read(10,*) nlinv_param%iflag
        close(10)
-       write(0,*) 'Reading iflag=', nlinv_param%iflag
+       write(1010,*) 'Reading iflag=', nlinv_param%iflag
     else
        nlinv_param%iflag = 0	
-       write(0,*) 'iflag control file not present. Setting iflag=', nlinv_param%iflag
+       write(1010,*) 'iflag control file not present. Setting iflag=', nlinv_param%iflag
     end if
        
     inquire( file=nlinv_param%myInfoFilename, exist=myInfoExists)
@@ -141,10 +156,10 @@ contains
        open(40,file=nlinv_param%myInfoFilename)
        read(40,*) nlinv_param%myinfo
        close(40)
-       write(0,*) 'Reading myinfo= ', nlinv_param%myinfo
+       write(1010,*) 'Reading myinfo= ', nlinv_param%myinfo
     else
        nlinv_param%myinfo = 0	
-       write(0,*) 'myinfo control file not present. Setting myinfo=', nlinv_param%myinfo
+       write(1010,*) 'myinfo control file not present. Setting myinfo=', nlinv_param%myinfo
     end if
 
     ! Set some parameters
@@ -174,13 +189,13 @@ contains
     allocate(nlinv_array%gd(nlinv_param%NDIM))
 
     if (nlinv_param%iflag.ne.0) then
-       write(0,*) 'Reading diag'
+       write(1010,*) 'Reading diag'
        open(88,file=nlinv_param%diagFilename, FORM='UNFORMATTED')
        rewind(88)
        read(88) nlinv_array%diagd
        close(88)
        
-       write(0,*) 'Reading working array'
+       write(1010,*) 'Reading working array'
        open(89,file=nlinv_param%workingArrayFilename, FORM='UNFORMATTED')
        rewind(89)
        read(89) nlinv_array%wd
@@ -198,13 +213,13 @@ contains
     nlinv_array%gd=dble(nlinv_sepfile%gdt%array)
     deallocate(nlinv_sepfile%gdt%array)
 
-    !*************************************************
-    ! Reading parameter values using seplib from param
-    !*************************************************
-    call from_param('lbfgs_type',nlinv_param%lbfgs_type,1)
-    call from_param('bound_type',nlinv_param%clip_type,1)
-    call from_param('stp1_opt',nlinv_param%stp1_opt,1)
-    !*************************************************
+    ! Compute maximum memory
+    ! NWORK is for wd
+    ! NDIM  is for diagd,xd,gd,modinit,x,g,wght (7)
+    NMEMORY=dble(4*(nlinv_param%NWORK+7*nlinv_param%NDIM)*1e-9)
+    write(1010,"(A3)") '***'
+    write(1010,*) 'Memory needed in Gb =',sngl(NMEMORY)
+    write(1010,"(A3)") '***'
 
   end function lbfgs_setup
 

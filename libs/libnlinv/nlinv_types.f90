@@ -21,6 +21,19 @@ module nlinv_types_mod
      ! min and max values for each parameter
      real, dimension(:), allocatable :: xmin, xmax
 
+     !************************************************************************
+     ! These parameters are read from the command line using seplib from_param
+     !************************************************************************
+     ! Clipping parameter influencing behavior
+     integer          :: clip_type
+     ! Parameter controling how the gradient is scaled in first iteration
+     integer          :: stp1_opt
+     ! Parameter controling the lbfgs version, with (1) without (0) clipping
+     ! and masking. With clipping is for FWI for instance. Without clipping 
+     ! is for LSRTM for instance.
+     !************************************************************************
+     integer          :: lbfgs_type
+
   end type nlinvsepfile
 
   type nlinvparam
@@ -41,19 +54,6 @@ module nlinv_types_mod
      character(len=1024) :: mcsrchDatFilenameOut
      character(len=1024) :: workingArrayFilenameOut
 
-
-     !************************************************************************
-     ! These parameters are read from the command line using seplib from_param
-     !************************************************************************
-     ! Clipping parameter influencing behavior
-     integer          :: clip_type
-     ! Parameter controling how the gradient is scaled in first iteration
-     integer          :: stp1_opt
-     ! Parameter controling the lbfgs version, with (1) without (0) clipping
-     ! and masking. With clipping is for FWI for instance. Without clipping 
-     ! is for LSRTM for instance.
-     !************************************************************************
-
      ! Number of parameters to invert for
      integer          :: nparams   
      ! Size of model space for 1 parameter
@@ -68,8 +68,6 @@ module nlinv_types_mod
      ! BFGS control parameters
      integer          :: iflag
      integer          :: myinfo
-
-     integer          :: lbfgs_type
 
      integer,dimension(2) :: iprint
 

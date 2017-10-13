@@ -8,6 +8,8 @@ module nlinv_io_mod
      real,    dimension(:), allocatable :: o
      integer, dimension(:), allocatable :: n
 
+     integer :: ndim
+
      character(len=1024) :: tag
      
      real, dimension(:), allocatable :: array
@@ -26,18 +28,24 @@ contains
 
   subroutine read_sepfile(file)
     type(sepfile_type) :: file
-    integer            :: sep_dim,i
+    integer            :: i
     character(len=1024):: label
 
     label=" "
 
-    sep_dim=sep_dimension(file%tag)
-    allocate(file%n(sep_dim))
-    allocate(file%o(sep_dim))
-    allocate(file%d(sep_dim))
+    write(1010,*) '  '
+    write(1010,"(A13,A10)") 'Reading file ',file%tag
+
+    file%ndim=sep_dimension(file%tag)
+    allocate(file%n(file%ndim))
+    allocate(file%o(file%ndim))
+    allocate(file%d(file%ndim))
     
-    do i=1,sep_dim
+    write(1010,*) '-- Dimensions=',file%ndim
+
+    do i=1,file%ndim
        call sep_get_data_axis_par(file%tag,i,file%n(i),file%o(i),file%d(i),label)
+       write(1010,*) '-- axis(',i,'),n,o,d=',file%n(i),file%o(i),file%d(i)
     end do
     
     if (.not.allocated(file%array)) allocate(file%array(product(file%n)))
@@ -53,7 +61,7 @@ contains
     
     label=" "
 
-    do i=1,sep_dim
+    do i=1,file%ndim
        call sep_put_data_axis_par(file%tag,i,file%n(i),file%o(i),file%d(i),label)
     end do
     
