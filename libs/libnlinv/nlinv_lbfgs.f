@@ -62,7 +62,7 @@ C
 
       DOUBLE PRECISION XMIN,XMAX
 
-C
+
 C        LIMITED MEMORY BFGS METHOD FOR LARGE SCALE OPTIMIZATION
 C                          JORGE NOCEDAL
 C                        *** July 1990 ***
@@ -1246,6 +1246,7 @@ C      write(0,*) ' IYPT ', IYPT
       GNORM= DSQRT(DDOT(N,G,1,G,1))
 
       STP1= ONE/GNORM
+c      write(0,*) 'STP1',STP1
 
 C      STP1= ONE
 C
@@ -1461,7 +1462,7 @@ C
       DOUBLE PRECISION X(N),G(N),S(N),WA(N)
       CHARACTER(len=1024) MCSRCH_DAT
       CHARACTER(len=1024) MCSRCHOUT_DAT
-      COMMON /LB3/MP,LP,GTOL
+      COMMON /LB3/MP,LP,GTOL,STPMIN,STPMAX
       SAVE
 C
 C                     SUBROUTINE MCSRCH
@@ -1669,8 +1670,10 @@ C
 C
 C        FORCE THE STEP TO BE WITHIN THE BOUNDS STPMAX AND STPMIN.
 C
+c         write(0,*) 'stp before',stp,stpmin,stpmax
          STP = MAX(STP,STPMIN)
          STP = MIN(STP,STPMAX)
+c         write(0,*) 'stp after',stp
 C
 C        IF AN UNUSUAL TERMINATION IS TO OCCUR THEN LET
 C        STP BE THE LOWEST POINT OBTAINED SO FAR.
@@ -1683,9 +1686,11 @@ C        EVALUATE THE FUNCTION AND GRADIENT AT STP
 C        AND COMPUTE THE DIRECTIONAL DERIVATIVE.
 C        We return to main program to obtain F and G.
 C
+c         write(0,*) minval(x), maxval(x),STP,minval(s),maxval(s)
          DO 40 J = 1, N
             X(J) = WA(J) + STP*S(J)
    40    CONTINUE
+c         write(0,*) minval(x), maxval(x)
 
          INFO=-1
          
@@ -1815,3 +1820,4 @@ C
       close(70)
 
       END
+
