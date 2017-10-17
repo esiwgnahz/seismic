@@ -16,19 +16,24 @@ program Ddot_OC
   double precision :: ddotd
   real             :: ddots
   logical          :: add, double_precision
-  integer :: ndim,esize
+  integer :: ndim,esize,norm
 
   call sep_init(SOURCE)
   ndim=sep_dimension('file1')
 
-  call ReadData_dim('file1',dat1,ndim)
-  call ReadData_dim('file2',dat2,ndim)
-  if (.not.ns_are_consistent(ndim,dat1,dat2)) call erexit('ERROR: dimensions file1 and file2 are not the same, exist now')
+  call from_param('norm',norm,2)
+  write(0,*) 'INFO: norm=',norm
 
+  call ReadData_dim('file1',dat1,ndim)
   call ReadData_cube('file1',dat1)
   call auxclose('file1')
-  call ReadData_cube('file2',dat2)
-  call auxclose('file2')
+
+  if (norm.eq.2) then
+     call ReadData_dim('file2',dat2,ndim)
+     if (.not.ns_are_consistent(ndim,dat1,dat2)) call erexit('ERROR: dimensions file1 and file2 are not the same, exist now')
+     call ReadData_cube('file2',dat2)
+     call auxclose('file2')
+  end if
 
   call from_param('add',add,.false.)
   call from_param('double_precision',double_precision,.false.)
@@ -52,12 +57,20 @@ program Ddot_OC
 
   if (double_precision) then
      write(0,*) 'INFO: ddot in',ddotd
-     ddotd=ddotd+dot_product(dat1%dat,dat2%dat)
+     if (norm.eq.1) then
+        ddotd=ddotd+dble(sum(abs(dat1%dat)))
+     else
+        ddotd=ddotd+dot_product(dat1%dat,dat2%dat)
+     end if
      write(0,*) 'INFO: ddot out',ddotd
   else
      write(0,*) 'INFO: ddot in',ddots
-     ddotd=dot_product(dat1%dat,dat2%dat)
-     ddots=ddots+sngl(ddotd)
+     if (norm.eq.1) then
+        ddots=ddots+sum(abs(dat1%dat))
+     else
+        ddotd=dot_product(dat1%dat,dat2%dat)
+        ddots=ddots+sngl(ddotd)
+     end if
      write(0,*) 'INFO: ddot out',ddots
   end if
 
