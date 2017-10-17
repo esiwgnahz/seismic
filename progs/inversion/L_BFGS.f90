@@ -16,24 +16,33 @@ program lbgs_prog
   logical            :: sep_setup_works
   logical            :: lbfgs_setup_works
 
-  character(len=1024):: logFilename
+  character(len=1024):: logFilename,iterlogFilename
   logical            :: existLog
 
   ! LBFGS variables
   DOUBLE PRECISION   :: GTOL,STPMIN,STPMAX
   INTEGER            :: MP,LP
-  external :: LB2
-  COMMON /LB3/MP,LP,GTOL,STPMIN,STPMAX
+  external :: LB4
+  COMMON /LB5/MP,LP,GTOL,STPMIN,STPMAX
 
   call sep_init()
   call LBFGS_doc()
 
   logFilename='log.dat'
+  iterlogFilename='bfgsiter.dat'
+
   inquire(file=logFilename,exist=existLog)
   if(existLog) then
      open(1010,File=logFilename,status='old',position='append',action='write')
   else
      open(1010,File=logFilename,status='new',action='write')
+  end if
+
+  inquire(file=iterlogFilename,exist=existLog)
+  if(existLog) then
+     open(1020,File=iterlogFilename,status='old',position='append',action='write')
+  else 
+     open(1020,File=iterlogFilename,status='new',action='write')
   end if
 
   sep_setup_works=lbfgs_setup_sepfile(invsep)
@@ -45,7 +54,7 @@ program lbgs_prog
   if(invsep%lbfgs_type.eq.0) then
      call LBFGSOLD(invpar%NDIM,invpar%MSAVE,invarr%xd,invarr%fd,invarr%gd,&
           &        .False.,invarr%diagd,invpar%iprint,invpar%EPS,&
-          &        invpar%XTOL,invarr%wd,invpar%iflag,invpar%myinfo,&
+          &        invpar%XTOL,invsep%stp_init,invarr%wd,invpar%iflag,invpar%myinfo,&
           &        invpar%lbfgsDatFilename,invpar%lbfgsDatFilenameOut,&
           &        invpar%mcsrchDatFilename,invpar%mcsrchDatFilenameOut)
   else
@@ -77,10 +86,12 @@ program lbgs_prog
   write(1010,*) 'Writing myinfo=', invpar%myinfo
   open(20,file=invpar%myInfoFilenameOut,status='replace')
   rewind(20)
+
   write(20,*) invpar%myinfo
   close(20) 
 
   close(1010)
+  close(1020)
 
   allocate(invsep%mod%array(invpar%NDIM))
   invsep%mod%array=sngl(invarr%xd)

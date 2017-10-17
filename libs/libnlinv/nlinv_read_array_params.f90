@@ -13,6 +13,7 @@ contains
     real, dimension(:), allocatable :: tmp
     logical :: lbfgs_setup_sepfile
     integer :: i
+    real    :: step_init
 
     lbfgs_setup_sepfile = .true.
 
@@ -108,6 +109,10 @@ contains
     allocate(tmp(size(nlinv_sepfile%xmin))); tmp=0.
     call from_param('xmin',nlinv_sepfile%xmin,tmp)
     call from_param('xmax',nlinv_sepfile%xmax,tmp)
+    call from_param('step_init',step_init,999999.)
+    
+    nlinv_sepfile%stp_init=dble(step_init)
+
     deallocate(tmp)
 
   end function lbfgs_setup_sepfile

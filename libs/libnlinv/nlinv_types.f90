@@ -33,6 +33,8 @@ module nlinv_types_mod
      ! is for LSRTM for instance.
      !************************************************************************
      integer          :: lbfgs_type
+     ! Initial guess for line-search, 1st iter only
+     double precision :: stp_init
 
   end type nlinvsepfile
 
