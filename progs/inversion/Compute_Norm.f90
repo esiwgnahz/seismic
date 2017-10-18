@@ -10,6 +10,7 @@ program Compute_Norm
   real                            :: fct
   integer :: task ! compute of or gradient
   integer :: norm ! norm type
+  integer :: add  ! whether or not we cummulate fct
 
   integer, dimension(:), allocatable:: n
   real,    dimension(:), allocatable:: o
@@ -41,7 +42,7 @@ program Compute_Norm
   end if
 
   thresh=0.
-  call from_parm('norm',norm,2)
+  call from_param('norm',norm,2)
   if (norm.eq.2) then
      write(0,*) 'INFO: using L2 norm'
   else if (norm.eq.1) then
@@ -56,12 +57,23 @@ program Compute_Norm
      write(0,*) 'INFO: with hyperparameter',thresh
   end if
 
+  call from_param('add',add,0)
+  fct=0.
+
+  if (add.eq.1) then
+     write(0,*) 'INFO: Adding to existing of file'
+     call sreed('fct',fct,4)
+     call auxclose('fct')
+     write(0,*) 'INFO: fct in=',fct
+  end if
+
   if (task.eq.0) then
-     fct=fct_compute(norm,res,nd,thresh)
+     fct=fct+fct_compute(norm,res,nd,thresh)
      call srite('fct',fct,4)
      call to_history('n1',1,'fct')
      call to_history('n2',1,'fct')
      call to_history('n3',1,'fct')
+     write(0,*) 'INFO: fct out=',fct
   else if (task.eq.1) then
      allocate(gdt(nd)); gdt=0.
      gdt=gdt_compute(norm,res,nd,thresh)
@@ -69,7 +81,8 @@ program Compute_Norm
   else if (task.eq.2) then
      allocate(gdt(nd)); gdt=0.
      gdt=gdt_compute(norm,res,nd,thresh)
-     fct=fct_compute(norm,res,nd,thresh)
+     fct=fct+fct_compute(norm,res,nd,thresh)
+     write(0,*) 'INFO: fct out=',fct
      call srite('fct',fct,4)
      call to_history('n1',1,'fct')
      call to_history('n2',1,'fct')
