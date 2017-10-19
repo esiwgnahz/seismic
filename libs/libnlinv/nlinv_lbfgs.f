@@ -18,7 +18,7 @@
          
          DO 10 I=1,N
             
-            IF ((MASK(I).ne.0).and.(MASK(I).ne.2)) THEN
+            IF (MASK(I).ne.0) THEN
                
                X(I)=max(XMIN,X(I))
                X(I)=min(XMAX,X(I))
@@ -30,7 +30,6 @@
          DO 20 I=1,N
             
             IF (MASK(I).eq.0) X(I)=XINIT(I)
-            IF (MASK(I).eq.2) X(I)=XINIT(I)
             
  20      CONTINUE
          
