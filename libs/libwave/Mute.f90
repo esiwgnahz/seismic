@@ -113,21 +113,21 @@ contains
 
     allocate(tmp(nt),tmp1(nt))
 
-    allocate(mutepar%maskgath(1)))
+    allocate(mutepar%maskgath(1))
 !
     sx=sourcegath(1)%coord(2)
     sy=sourcegath(1)%coord(3)
 
-    allocate(mutepar%maskgath(1)%gathtrace(shotgath(1)%ntraces))
+    allocate(mutepar%maskgath(1)%gathtrace(size(shotgath)))
 
-    mutepar%maskgath(1)%ntraces=shotgath(1)%ntraces
+    mutepar%maskgath(1)%ntraces=size(shotgath)
     
-    do j=1,shotgath(1)%ntraces
+    do j=1,size(shotgath)
        
        allocate(mutepar%maskgath(1)%gathtrace(j)%trace(nt,1))
        
-       gx=shotgath(1)%gathtrace(j)%coord(2)
-       gy=shotgath(1)%gathtrace(j)%coord(3)
+       gx=shotgath(j)%coord(2)
+       gy=shotgath(j)%coord(3)
        
        hx=gx-sx
        hy=gy-sy
@@ -138,6 +138,7 @@ contains
        if (exist_file('mute_out')) call srite('mute_out',mutepar%maskgath(1)%gathtrace(j)%trace,4*nt)
     end do
     
+
     deallocate(tmp,tmp1)
  
   end subroutine MuteParam_compute_mask_1shot

@@ -589,9 +589,9 @@ contains
 
   end subroutine mod_copy_image_to_disk
 
-  subroutine mod_copy_gradient_to_disk(mod,nparam)
+  subroutine mod_copy_gradient_to_disk(mod,nparam,vprho_param)
     type(ModelSpace) ::                mod
-    integer          :: nparam
+    integer          :: nparam,vprho_param
     real, dimension(:,:,:,:), allocatable :: tmpim
     real, dimension(:,:,:),   allocatable :: tmpil
 
@@ -640,6 +640,11 @@ contains
        !$OMP END PARALLEL DO
     end if
        
+    if ((nparam.eq.2).and.(vprho_param.eq.1)) then
+       tmpim(:,:,:,1)= tmpim(:,:,:,1)-(mod%rho/mod%vel)*tmpim(:,:,:,2) ! grad(v)=grad(v)-Ip/vp^2*grad(rho)
+       tmpim(:,:,:,2)= (1/mod%vel)*tmpim(:,:,:,2)               ! grad(Ip)=1/vp*grad(rho
+    end if
+
     do i=1,nparam
        do j=1,mod%ny
           call srite('gradient',tmpim(:,:,j,i),4*mod%nx*mod%nz)

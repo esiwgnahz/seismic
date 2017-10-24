@@ -85,7 +85,7 @@ contains
     if (allocated(mod%illum)) deallocate(mod%illum)
     if (allocated(mod%imagesmall)) deallocate(mod%imagesmall)
     if (allocated(mod%illumsmall)) deallocate(mod%illumsmall)
-    if (allocated(mod%illumsmall_nparam)) deallocate(mod%illumsmall_nparam)
+    if (allocated(mod%imagesmall_nparam)) deallocate(mod%imagesmall_nparam)
     if (allocated(mod%taperx)) deallocate(mod%taperx)
     if (allocated(mod%tapery)) deallocate(mod%tapery)
     if (associated(mod%wvfld)) nullify(mod%wvfld)

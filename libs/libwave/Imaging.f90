@@ -429,7 +429,7 @@ contains
     real              ::                                                u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
     &                                                                           bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
     integer           :: it
-    integer :: i,j,k,counter
+    integer :: i,j,k,di,dj,dk,counter
     real, dimension (:,:,:), pointer :: bwd
 
     integer :: ierr,blocksize,index,indexm1,indexp1
@@ -511,7 +511,7 @@ contains
 
   end subroutine Imaging_condition_AFWI_RHOVP_from_memory
 
-  subroutine Imaging_condition_AFWI_RHOVP_from_memory(bounds,model,elev,u,genpar,it)
+  subroutine Imaging_condition_AFWI_RHOVP_from_disk(bounds,model,elev,u,genpar,it)
     type(FDbounds)    ::                              bounds
     type(ModelSpace)  ::                                     model
     type(ModelSpace_elevation) ::                                  elev
@@ -519,7 +519,7 @@ contains
     real              ::                                                u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
     &                                                                           bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
     integer           :: it
-    integer :: i,j,k,counter
+    integer :: i,j,k,di,dj,dk,counter
     real, dimension (:,:,:), pointer :: fwd,fwdm,fwdp
 
     integer :: ierr,blocksize,index,indexm1,indexp1
@@ -620,7 +620,7 @@ contains
 
     end if MODULO
 
-  end subroutine Imaging_condition_AFWI_RHOVP_from_memory
+  end subroutine Imaging_condition_AFWI_RHOVP_from_disk
 
   subroutine Imaging_condition_AFWI_from_disk(bounds,model,elev,u,genpar,it)
     type(FDbounds)    ::                      bounds

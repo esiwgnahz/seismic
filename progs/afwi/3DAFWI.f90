@@ -18,8 +18,6 @@ program THREEDAFWI
   use GeneralParam_types
   use Inversion_types
 
-  use THREED_Doc
-
   implicit none
 
   type(GeneralParam) :: genpar
@@ -39,7 +37,6 @@ program THREEDAFWI
   double precision :: memory_needed
 
   call sep_init()
-  call RTM_doc()
 
   write(0,*) 'INFO:'
   write(0,*) 'INFO: -- 3DAFWI for one shot Starting -- '
@@ -98,12 +95,12 @@ program THREEDAFWI
   if (dble(genpar%max_memory).gt.memory_needed) then
      write(0,*) 'INFO: writing wavefield in memory'
      write(0,*) 'INFO:'
-     call FWI_to_memory(mod,invparam,mutepar,genpar,dat,bounds,elev,datavec,sourcevec)
+     call AFWI_to_memory(mod,invparam,mutepar,genpar,dat,bounds,elev,datavec,sourcevec)
   else
      write(0,*) 'INFO: writing wavefield on disk file',mod%waFtag
      write(0,*) 'INFO:'
      call auxinout(mod%waFtag)
-     call FWI_to_disk(mod,invparam,mutepar,genpar,dat,bounds,elev,datavec,sourcevec)
+     call AFWI_to_disk(mod,invparam,mutepar,genpar,dat,bounds,elev,datavec,sourcevec)
      call auxclose(mod%waFtag)
   end if
 

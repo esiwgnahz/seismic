@@ -7,6 +7,7 @@ module to_disk_to_memory_AFWI_mod
 
   use sep
 
+  use Mute_gather
   use Readsouvelrho_mod
   use ExtractPadModel_mod
   use FDcoefs_assign
@@ -20,6 +21,8 @@ module to_disk_to_memory_AFWI_mod
   use DataSpace_types
   use ModelSpace_types
   use GeneralParam_types
+
+  use OF_Res_AdjSrc_mod
 
   implicit none
 
@@ -41,6 +44,7 @@ module to_disk_to_memory_AFWI_mod
       type(TraceSpace), dimension(:), allocatable :: dmodvec
 
       integer :: ntraces,i
+      double precision :: f
       
       call to_history('n1',mod%nz,'wave_fwd')
       call to_history('n2',mod%nxw,'wave_fwd')
@@ -126,13 +130,13 @@ module to_disk_to_memory_AFWI_mod
 
       if (exist_file('residual')) then
          do i=1,ntraces
-            call srite('residual',mutevec%maskgath(1)%gathtrace(i)%trace*(datavec(i)%trace-dmodvec(i)%trace),4*datavec(i))%dimt%nt)
+            call srite('residual',mutepar%maskgath(1)%gathtrace(i)%trace*(datavec(i)%trace-dmodvec(i)%trace),4*datavec(i)%dimt%nt)
          end do
          call to_history('n1',datavec(1)%dimt%nt,'residual')
          call to_history('n2',ntraces,'residual')
       end if
 
-      call Compute_OF_RES_3D(invparam,datavec,dmodvec,mutevec%maskgath(1),f)
+      call Compute_OF_RES_3D(invparam,datavec,dmodvec,mutepar%maskgath(1)%gathtrace,f)
 
       if (invparam%nparam.eq.1) then
          allocate(mod%imagesmall(mod%nz,mod%nxw,mod%nyw))
@@ -222,6 +226,7 @@ module to_disk_to_memory_AFWI_mod
       type(TraceSpace), dimension(:), allocatable :: dmodvec
 
       integer :: ntraces,i
+      double precision :: f
 
       genpar%tmin=1
       genpar%tmax=sourcevec(1)%dimt%nt
@@ -295,13 +300,13 @@ module to_disk_to_memory_AFWI_mod
 
       if (exist_file('residual')) then
          do i=1,ntraces
-            call srite('residual',mutevec%maskgath(1)%gathtrace(i)%trace*(datavec(i)%trace-dmodvec(i)%trace),4*datavec(i))%dimt%nt)
+            call srite('residual',mutepar%maskgath(1)%gathtrace(i)%trace*(datavec(i)%trace-dmodvec(i)%trace),4*datavec(i)%dimt%nt)
          end do
          call to_history('n1',datavec(1)%dimt%nt,'residual')
          call to_history('n2',ntraces,'residual')
       end if
 
-      call Compute_OF_RES_3D(invparam,datavec,dmodvec,mutevec%maskgath(1),f)
+      call Compute_OF_RES_3D(invparam,datavec,dmodvec,mutepar%maskgath(1)%gathtrace,f)
       call to_history('n1',1,'function')
       call srite('function',sngl(f),4)
 
