@@ -30,6 +30,9 @@ module Inversion_types
      integer          :: dat_nrm_type 
      real             :: dat_thresh
      
+     integer:: vprho_param! (0) Vp/rho parameterization 
+                          ! (1) Vp/Ip  parameterization 
+
      double precision, allocatable:: vpinit(:)
      real,             allocatable:: vpmask(:)
 

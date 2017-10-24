@@ -589,6 +589,71 @@ contains
 
   end subroutine mod_copy_image_to_disk
 
+  subroutine mod_copy_gradient_to_disk(mod,nparam)
+    type(ModelSpace) ::                mod
+    integer          :: nparam
+    real, dimension(:,:,:,:), allocatable :: tmpim
+    real, dimension(:,:,:),   allocatable :: tmpil
+
+    integer :: i,j,k,ix,iy,ix1,iy1
+    real    :: coord_x, coord_y
+
+    allocate(tmpim(mod%nz,mod%nx,mod%ny,nparam))
+    allocate(tmpil(mod%nz,mod%nx,mod%ny))
+    tmpim=0.
+    tmpil=0.
+
+    if (nparam.eq.1) then
+       !$OMP PARALLEL DO PRIVATE(j,coord_y,iy,i,coord_x,ix)
+       do j=1,mod%nyw
+          coord_y=(j-1)*mod%dy+mod%oyw
+          iy=nint((coord_y-mod%oy)/mod%dy)+1
+          if ((iy.lt.1).or.(iy.gt.mod%ny)) cycle
+          
+          do i=1,mod%nxw
+             coord_x=(i-1)*mod%dx+mod%oxw
+             ix=nint((coord_x-mod%ox)/mod%dx)+1
+             if ((ix.lt.1).or.(ix.gt.mod%nx)) cycle
+             
+             tmpim(:,ix,iy,1)=tmpim(:,ix,iy,1)+mod%imagesmall(:,i,j)
+             tmpil(:,ix,iy)=tmpil(:,ix,iy)+mod%illumsmall(:,i,j)
+          end do
+       end do
+       !$OMP END PARALLEL DO
+    else
+       !$OMP PARALLEL DO PRIVATE(j,coord_y,iy,i,coord_x,ix)
+       do j=1,mod%nyw
+          coord_y=(j-1)*mod%dy+mod%oyw
+          iy=nint((coord_y-mod%oy)/mod%dy)+1
+          if ((iy.lt.1).or.(iy.gt.mod%ny)) cycle
+          
+          do i=1,mod%nxw
+             coord_x=(i-1)*mod%dx+mod%oxw
+             ix=nint((coord_x-mod%ox)/mod%dx)+1
+             if ((ix.lt.1).or.(ix.gt.mod%nx)) cycle
+             
+             tmpim(:,ix,iy,1)=tmpim(:,ix,iy,1)+mod%imagesmall_nparam(:,i,j,1)
+             tmpim(:,ix,iy,2)=tmpim(:,ix,iy,2)+mod%imagesmall_nparam(:,i,j,2)
+             tmpil(:,ix,iy)=tmpil(:,ix,iy)+mod%illumsmall(:,i,j)
+          end do
+       end do
+       !$OMP END PARALLEL DO
+    end if
+       
+    do i=1,nparam
+       do j=1,mod%ny
+          call srite('gradient',tmpim(:,:,j,i),4*mod%nx*mod%nz)
+       end do
+    end do
+
+    do j=1,mod%ny
+       call srite('gradient',tmpil(:,:,j),4*mod%nx*mod%nz)
+    end do
+
+    deallocate(tmpim,tmpil) 
+
+  end subroutine mod_copy_gradient_to_disk
+
   subroutine mod_copy_image(mod,image,illum)
     type(ModelSpace) ::     mod
     real, dimension(:,:,:) :: image,illum

@@ -71,6 +71,7 @@ program THREEDAFWI
   if (genpar%withRho) invparam%nparam=2 
   call from_param('data_nrm_type',invparam%dat_nrm_type_char,'L2norm')
   call from_param('data_threshold',invparam%dat_thresh,0.)
+  call from_param('vprho_param',invparam%vprho_param,0)
 
   genpar%ntsnap=int(genpar%nt/genpar%snapi)
 
@@ -115,7 +116,7 @@ program THREEDAFWI
   deallocate(datavec)
   deallocate(sourcevec)
 
-  call mod_copy_image_to_disk(mod)
+  call mod_copy_gradient_to_disk(mod,invparam%nparam,invparam%vprho_param)
 
   call to_history('n1',mod%nz,'gradient')
   call to_history('n2',mod%nx,'gradient')
