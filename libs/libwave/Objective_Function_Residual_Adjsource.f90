@@ -38,4 +38,32 @@ module OF_Res_AdjSrc_mod
       end do
       
     end subroutine Compute_OF_RES_ADJ
+
+    subroutine Compute_OF_RES_3D(invparam,dobsgath,dmodgath,mutegath,f)
+      type(InversionParam) ::    invparam
+      type(TraceSpace), dimension(:) ::   dobsgath,dmodgath,mutegath
+      double precision ::                                            f
+
+      integer :: i,j,nt,nd,stat,nrm_type
+      real    :: thresh
+
+      thresh=invparam%dat_thresh
+      nrm_type=invparam%dat_nrm_type
+
+      nt=size(dmodgath(1)%trace(:,1))
+      nd=nt*size(dmodgath)
+
+      do j=1,size(dmodgath)
+         ! dmod=w*(dobs-dmod)
+         dmodgath(j)%trace=mutegath(j)%trace*(dobsgath(j)%trace-dmodgath(j)%trace)
+         ! f=Sum(\|dmod\|_norm)
+         f=f+fct_compute(nrm_type,dmodgath(j)%trace,nt,thresh)
+         ! dmod=W*dmod
+         dmodgath(j)%trace=mutegath(j)%trace*dmodgath(j)%trace
+         ! dmodgath=Grad(m)
+         stat=gdt_compute(nrm_type,dmodgath(j)%trace,nt,thresh)
+      end do
+      
+    end subroutine Compute_OF_RES_3D
+
 end module OF_Res_AdjSrc_mod

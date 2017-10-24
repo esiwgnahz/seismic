@@ -6,7 +6,6 @@ program Compute_Norm
   implicit none
 
   real, dimension(:), allocatable :: res
-  real, dimension(:), allocatable :: gdt
   real                            :: fct
   integer :: task ! compute of or gradient
   integer :: norm ! norm type
@@ -17,7 +16,7 @@ program Compute_Norm
   real,    dimension(:), allocatable:: d
   character(len=1024)               :: label
 
-  integer :: ndim,i,j,nd
+  integer :: ndim,i,j,nd,stat
   real    :: thresh
 
   call sep_init(SOURCE)
@@ -55,6 +54,10 @@ program Compute_Norm
      write(0,*) 'INFO: using Cauchy norm'
      call from_param('thresh',thresh)
      write(0,*) 'INFO: with hyperparameter',thresh
+  else if (norm.eq.4) then
+     write(0,*) 'INFO: using Hyperbolic functional'
+     call from_param('thresh',thresh)
+     write(0,*) 'INFO: with hyperparameter',thresh
   end if
 
   call from_param('add',add,0)
@@ -75,22 +78,19 @@ program Compute_Norm
      call to_history('n3',1,'fct')
      write(0,*) 'INFO: fct out=',fct
   else if (task.eq.1) then
-     allocate(gdt(nd)); gdt=0.
-     gdt=gdt_compute(norm,res,nd,thresh)
-     call srite('out',gdt,4*nd)
+     stat=gdt_compute(norm,res,nd,thresh)
+     call srite('out',res,4*nd)
   else if (task.eq.2) then
-     allocate(gdt(nd)); gdt=0.
-     gdt=gdt_compute(norm,res,nd,thresh)
      fct=fct+fct_compute(norm,res,nd,thresh)
+     stat=gdt_compute(norm,res,nd,thresh)
      write(0,*) 'INFO: fct out=',fct
      call srite('fct',fct,4)
      call to_history('n1',1,'fct')
      call to_history('n2',1,'fct')
      call to_history('n3',1,'fct')
-     call srite('out',gdt,4*nd)
+     call srite('out',res,4*nd)
   end if
   
-  if (allocated(gdt)) deallocate(gdt) 
   deallocate(res)
   write(0,*) 'INFO: Done with fct/gdt computation'
   

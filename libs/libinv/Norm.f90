@@ -62,6 +62,20 @@ contains
        end if
        ! Cauchy norm
        f = sum(log(1+(rd/cauchy)**2)/2)
+    case(4)
+       if (.not.present(thresh)) then
+          write(0,*) 'WARNING: thresh is not provided for hyperbolic norm, uses maxval(rd) instead'
+          gamd=maxval(abs(rd))
+       else
+          if (thresh.eq.0.) then
+             thresh=maxval(abs(rd))
+             write(0,*) 'WARNING: thresh can''t be zero, reset to maxval(rd) instead'
+          end if
+         gamd=thresh
+       end if
+       ! Cauchy norm
+       f = sum(sqrt(gamd*gamd+rd*rd)-gamd)
+       
     end select
 
   end function fct_compute
@@ -110,8 +124,18 @@ contains
        end if
        ! Cauchy norm
        rd=rd/(cauchy**2+rd**2)
+    case (4)
+       if (.not.present(thresh)) then
+          write(0,*) 'WARNING: thresh is not provided for Cauchy, uses maxval(rd) instead'
+          gamd=maxval(abs(rd))
+       else if (thresh.eq.0.) then
+          thresh=maxval(abs(rd))
+          write(0,*) 'WARNING: thresh can''t be zero, reset to maxval(rd) instead'
+       end if
+       gamd=thresh
+    
+       rd=(rd/gamd)/sqrt(1+rd*rd/(gamd*gamd))
     end select
-
     stat = 1
 
   end function gdt_compute
