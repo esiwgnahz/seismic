@@ -97,6 +97,51 @@ contains
  
   end subroutine MuteParam_compute_mask
 
+  subroutine MuteParam_compute_mask_1shot(mutepar,shotgath,sourcegath)
+    type(MuteParam)                ::     mutepar
+    type(TraceSpace), dimension(:) ::             shotgath
+    type(TraceSpace), dimension(:) ::                      sourcegath
+
+    real               :: hx,hy,sx,sy,gx,gy,dt,t0
+    integer            :: i,j,nt
+
+    real, dimension(:), allocatable :: tmp, tmp1
+
+    dt=shotgath(1)%dimt%dt
+    t0=shotgath(1)%dimt%ot
+    nt=shotgath(1)%dimt%nt
+
+    allocate(tmp(nt),tmp1(nt))
+
+    allocate(mutepar%maskgath(1)))
+!
+    sx=sourcegath(1)%coord(2)
+    sy=sourcegath(1)%coord(3)
+
+    allocate(mutepar%maskgath(1)%gathtrace(shotgath(1)%ntraces))
+
+    mutepar%maskgath(1)%ntraces=shotgath(1)%ntraces
+    
+    do j=1,shotgath(1)%ntraces
+       
+       allocate(mutepar%maskgath(1)%gathtrace(j)%trace(nt,1))
+       
+       gx=shotgath(1)%gathtrace(j)%coord(2)
+       gy=shotgath(1)%gathtrace(j)%coord(3)
+       
+       hx=gx-sx
+       hy=gy-sy
+       
+       call compute_top_mute(mutepar,dt,t0,hx,hy,tmp)
+       call compute_bottom_mute(mutepar,dt,t0,hx,hy,tmp1)
+       mutepar%maskgath(1)%gathtrace(j)%trace(:,1)=tmp*tmp1
+       if (exist_file('mute_out')) call srite('mute_out',mutepar%maskgath(1)%gathtrace(j)%trace,4*nt)
+    end do
+    
+    deallocate(tmp,tmp1)
+ 
+  end subroutine MuteParam_compute_mask_1shot
+
   subroutine MuteParam_deallocate(mutepar)
     type(MuteParam) ::            mutepar
     integer :: i,j

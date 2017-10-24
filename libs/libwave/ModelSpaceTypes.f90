@@ -20,6 +20,7 @@ module ModelSpace_types
      character(len=8)  :: waBtag
 
      real, allocatable :: vel(:,:,:)
+     real, allocatable :: imp(:,:,:)    ! impedance
      real, allocatable :: rho(:,:,:)
      real, allocatable :: rho2(:,:,:) 
      real, allocatable :: vel2(:,:,:) 
@@ -28,7 +29,8 @@ module ModelSpace_types
 
      real, allocatable :: illum(:,:,:)  ! illumination
 
-     real, allocatable :: imagesmall(:,:,:)  ! Resulting image 
+     real, allocatable :: imagesmall(:,:,:)           ! Resulting image 
+     real, allocatable :: imagesmall_nparam(:,:,:,:)  ! Resulting image with more parameters
 
      real, allocatable :: illumsmall(:,:,:)  ! illumination
 
@@ -79,9 +81,11 @@ contains
     if (allocated(mod%rho))   deallocate(mod%rho)
     if (allocated(mod%rho2))  deallocate(mod%rho2)
     if (allocated(mod%image)) deallocate(mod%image)
+    if (allocated(mod%imp)) deallocate(mod%imp)
     if (allocated(mod%illum)) deallocate(mod%illum)
     if (allocated(mod%imagesmall)) deallocate(mod%imagesmall)
     if (allocated(mod%illumsmall)) deallocate(mod%illumsmall)
+    if (allocated(mod%illumsmall_nparam)) deallocate(mod%illumsmall_nparam)
     if (allocated(mod%taperx)) deallocate(mod%taperx)
     if (allocated(mod%tapery)) deallocate(mod%tapery)
     if (associated(mod%wvfld)) nullify(mod%wvfld)

@@ -21,6 +21,7 @@ module Inversion_types
                           ! (1) velocity is not strictly enforced in masking area
      real   :: vpmin
      real   :: vpmax
+     integer:: nparam     ! Number of parameters to invert
 
      logical:: wantreg    ! regularization parameter
      logical:: wantlog    ! regularization parameter, logistic

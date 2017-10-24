@@ -124,9 +124,21 @@ module to_disk_to_memory_AFWI_mod
 
       write(0,*) 'INFO: Done with forward modeling'
 
+      if (exist_file('residual')) then
+         do i=1,ntraces
+            call srite('residual',mutevec%maskgath(1)%gathtrace(i)%trace*(datavec(i)%trace-dmodvec(i)%trace),4*datavec(i))%dimt%nt)
+         end do
+         call to_history('n1',datavec(1)%dimt%nt,'residual')
+         call to_history('n2',ntraces,'residual')
+      end if
+
       call Compute_OF_RES_3D(invparam,datavec,dmodvec,mutevec%maskgath(1),f)
 
-      allocate(mod%imagesmall(mod%nz,mod%nxw,mod%nyw))
+      if (invparam%nparam.eq.1) then
+         allocate(mod%imagesmall(mod%nz,mod%nxw,mod%nyw))
+      else
+         allocate(mod%imagesmall_nparam(mod%nz,mod%nxw,mod%nyw,2))
+      end if
       allocate(mod%illumsmall(mod%nz,mod%nxw,mod%nyw))
       mod%imagesmall=0.
       mod%illumsmall=0.
@@ -157,7 +169,7 @@ module to_disk_to_memory_AFWI_mod
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_2D_derivatives_acoustic_forward_grid,       &
-            & Injection_sinc,                            &
+            & Injection_sinc,                                &
             & FD_2nd_time_derivative_grid,                   &
             & FDswaptime_pointer,                            &
             & bounds,mod,elev,genpar,                        &
@@ -281,9 +293,23 @@ module to_disk_to_memory_AFWI_mod
 
       write(0,*) 'INFO: Done with forward modeling'
 
-      call Compute_OF_RES_3D(invparam,datavec,dmodvec,mutevec%maskgath(1),f)
+      if (exist_file('residual')) then
+         do i=1,ntraces
+            call srite('residual',mutevec%maskgath(1)%gathtrace(i)%trace*(datavec(i)%trace-dmodvec(i)%trace),4*datavec(i))%dimt%nt)
+         end do
+         call to_history('n1',datavec(1)%dimt%nt,'residual')
+         call to_history('n2',ntraces,'residual')
+      end if
 
-      allocate(mod%imagesmall(mod%nz,mod%nxw,mod%nyw))
+      call Compute_OF_RES_3D(invparam,datavec,dmodvec,mutevec%maskgath(1),f)
+      call to_history('n1',1,'function')
+      call srite('function',sngl(f),4)
+
+      if (invparam%nparam.eq.1) then
+         allocate(mod%imagesmall(mod%nz,mod%nxw,mod%nyw))
+      else
+         allocate(mod%imagesmall_nparam(mod%nz,mod%nxw,mod%nyw,2))
+      end if
       allocate(mod%illumsmall(mod%nz,mod%nxw,mod%nyw))
       mod%imagesmall=0.
       mod%illumsmall=0.
