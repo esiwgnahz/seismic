@@ -61,7 +61,7 @@ all:
 #	(cd progs/modeling; make )
 #	(cd progs/rtm; make)
 	(cd progs/afwi; make)
-#	(cd progs/procs; make)
+	(cd progs/procs; make)
 #	(cd progs/inversion; make)
 
 allprogs: 
