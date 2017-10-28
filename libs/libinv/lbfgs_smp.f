@@ -10,6 +10,7 @@ C
 C
       INTEGER N,M,IPRINT(2),IFLAG,MYINFO
       DOUBLE PRECISION X(N),G(N),DIAG(N),W(N*(2*M+1)+2*M)
+      DOUBLE PRECISION TMP(N)
       DOUBLE PRECISION F,EPS,XTOL
       LOGICAL DIAGCO
 C
@@ -228,9 +229,9 @@ C
 C     - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C
       DOUBLE PRECISION GTOL,ONE,ZERO,GNORM,DDOT,STP1,FTOL,STPMIN,
-     .                 STPMAX,STP,YS,YY,SQ,YR,BETA,XNORM
+     .                 STPMAX,STP,YS,YY,SQ,YR,BETA,TOT,XNORM
       INTEGER MP,LP,ITER,NFUN,POINT,ISPT,IYPT,MAXFEV,INFO,
-     .        BOUND,NPT,CP,I,NFEV,INMC,IYCN,ISCN
+     .        BOUND,NPT,CP,I,J,NFEV,INMC,IYCN,ISCN
       LOGICAL FINISH
 C
       SAVE
@@ -285,7 +286,6 @@ C
 C     PARAMETERS FOR LINE SEARCH ROUTINE
 C     
       FTOL= 1.0D-4
-C      FTOL= 1.0D-4
       MAXFEV= 20
 C
       IF(IPRINT(1).GE.0) CALL LB1S(IPRINT,ITER,NFUN,
@@ -301,9 +301,33 @@ C
       IF(ITER.EQ.1) GO TO 165
       IF (ITER .GT. M)BOUND=M
 C
-         YS= DDOT(N,W(IYPT+NPT+1),1,W(ISPT+NPT+1),1)
+c      YS= DDOT(N,W(IYPT+NPT+1),1,W(ISPT+NPT+1),1)
+
+      YS=0.0D0
+C$OMP PARALLEL 
+C$OMP& SHARED(N,W)
+C$OMP& PRIVATE(J)
+C$OMP DO REDUCTION (+:YS)
+      DO 890 J=1,N
+         YS=YS+W(IYPT+NPT+J)*W(ISPT+NPT+J)
+ 890  CONTINUE
+C$OMP END DO
+C$OMP END PARALLEL
+
       IF(.NOT.DIAGCO) THEN
-         YY= DDOT(N,W(IYPT+NPT+1),1,W(IYPT+NPT+1),1)
+         
+         YY=0.0D0
+C$OMP PARALLEL 
+C$OMP& SHARED(N,W)
+C$OMP& PRIVATE(J)
+C$OMP DO REDUCTION (+:YY)
+         DO 891 J=1,N
+            YY=YY+W(IYPT+NPT+J)*W(IYPT+NPT+J)
+ 891     CONTINUE
+C$OMP END DO
+C$OMP END PARALLEL
+
+c         YY= DDOT(N,W(IYPT+NPT+1),1,W(IYPT+NPT+1),1)
          DO 90 I=1,N
    90    DIAG(I)= YS/YY
       ELSE
@@ -330,23 +354,66 @@ C
       DO 125 I= 1,BOUND
          CP=CP-1
          IF (CP.EQ. -1)CP=M-1
-         SQ= DDOT(N,W(ISPT+CP*N+1),1,W,1)
+
+         SQ=0.0D0
+C$OMP PARALLEL 
+C$OMP& SHARED(N,W)
+C$OMP& PRIVATE(J)
+C$OMP DO REDUCTION (+:SQ)
+         DO 892 J=1,N
+            SQ=SQ+W(ISPT+CP*N+J)*W(J)
+ 892     CONTINUE
+C$OMP END DO
+C$OMP END PARALLEL
+
+c         SQ= DDOT(N,W(ISPT+CP*N+1),1,W,1)
          INMC=N+M+CP+1
          IYCN=IYPT+CP*N
          W(INMC)= W(N+CP+1)*SQ
-         CALL DAXPY(N,-W(INMC),W(IYCN+1),1,W,1)
+
+C$OMP PARALLEL 
+C$OMP& SHARED(N,W)
+C$OMP& PRIVATE(J)
+C$OMP DO
+         DO 888 J=1,N
+            W(J)=W(J)-W(INMC)*W(IYCN+J)
+ 888     CONTINUE
+C$OMP END DO
+C$OMP END PARALLEL
+
  125  CONTINUE
 C
       DO 130 I=1,N
  130  W(I)=DIAG(I)*W(I)
 C
       DO 145 I=1,BOUND
-         YR= DDOT(N,W(IYPT+CP*N+1),1,W,1)
+         YR=0.0D0
+C$OMP PARALLEL 
+C$OMP& SHARED(N,W)
+C$OMP& PRIVATE(J)
+C$OMP DO REDUCTION (+:YR)
+         DO 893 J=1,N
+            YR=YR+W(IYPT+CP*N+J)*W(J)
+ 893     CONTINUE
+C$OMP END DO
+C$OMP END PARALLEL
+
+c         YR= DDOT(N,W(IYPT+CP*N+1),1,W,1)
          BETA= W(N+CP+1)*YR
          INMC=N+M+CP+1
          BETA= W(INMC)-BETA
          ISCN=ISPT+CP*N
-         CALL DAXPY(N,BETA,W(ISCN+1),1,W,1)
+
+C$OMP PARALLEL 
+C$OMP& SHARED(N,BETA,W)
+C$OMP& PRIVATE(J)
+C$OMP DO
+         DO 889 J=1,N
+            W(J)=W(J)+BETA*W(ISCN+J)
+ 889     CONTINUE
+C$OMP END DO
+C$OMP END PARALLEL
+
          CP=CP+1
          IF (CP.EQ.M)CP=0
  145  CONTINUE
@@ -366,6 +433,13 @@ C     ----------------------------------------------------
       DO 170 I=1,N
  170  W(I)=G(I)
  172  CONTINUE
+
+c      DO 801 J=1,N
+c 801  TMP(J)= W(ISPT+POINT*N+J)
+c         
+c      CALL MCSRCHS(N,X,F,G,TMP,STP,FTOL,
+c     *            XTOL,MAXFEV,INFO,NFEV,DIAG)
+
       CALL MCSRCHS(N,X,F,G,W(ISPT+POINT*N+1),STP,FTOL,
      *            XTOL,MAXFEV,INFO,NFEV,DIAG)
       IF (INFO .EQ. -1) THEN
@@ -675,7 +749,9 @@ C
       DGINIT = ZERO
       DO 10 J = 1, N
          DGINIT = DGINIT + G(J)*S(J)
+C         IF(mod(J,1000)) write(0,*) J,G(J),S(J)
    10    CONTINUE
+c      write(0,*) sngl(dginit)
       IF (DGINIT .GE. ZERO) then
          write(LP,15)
    15    FORMAT(/'  THE SEARCH DIRECTION IS NOT A DESCENT DIRECTION')

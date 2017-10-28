@@ -14,7 +14,7 @@ program TestRegularization
   use createhelixmod
 
   real, dimension(:), allocatable :: d,m,w ! Here, d and m are the same
-  integer          :: n1, n2, niter ,neval
+  integer          :: n1, n2, niter ,neval, nsamples
   real             :: epsx,epszp,epszm,threshp,threshm
   type(filter)     :: xx,zz
   integer, dimension(:), allocatable :: n0,x,y,z,center,gap,npef
@@ -24,13 +24,14 @@ program TestRegularization
 
   call from_history('n1',n1)
   call from_history('n2',n2)
+  nsamples=n1*n2
 
-!  allocate(d(n1*n2),m(n1*n2),g(n1*n2))
-  allocate(d(n1*n2),m(n1*n2))
-  call sreed('in',d,4*n1*n2)
-  allocate(w(n1*n2))
+!  allocate(d(nsamples),m(nsamples),g(nsamples))
+  allocate(d(nsamples),m(nsamples))
+  call sreed('in',d,4*nsamples)
+  allocate(w(nsamples))
   if(exist_file('weight')) then
-     call sreed('weight',w,4*n1*n2)
+     call sreed('weight',w,4*nsamples)
   else
      w=1.
   end if
@@ -81,24 +82,35 @@ program TestRegularization
   call helicon2_mod_init(xx)
 
   if (task.eq.0) then
-     call l_bfgs_smp(simple_test,d,m,n1*n2,niter,neval)
+     call l_bfgs_smp(simple_test,d,m,nsamples,niter,neval)
   else
-     call l_bfgs_smp(simple_test_hinge,d,m,n1*n2,niter,neval)
+     call l_bfgs_smp(simple_test_hinge,d,m,nsamples,niter,neval)
   end if
 
   call testreg_count(counter)
-!  stat=simple_test(n1*n2,m,g,f,eps2)
+!  stat=simple_test(nsamples,m,g,f,eps2)
 
-  call srite('out',m,4*n1*n2)
+  call srite('out',m,4*nsamples)
 
-  call to_history('n1',n1,'grad')
-  call to_history('n2',n2,'grad')
-  call to_history('n3',counter,'grad')
+!  call to_history('n1',n1,'grad')
+!  call to_history('n2',n2,'grad')
+!  call to_history('n3',counter,'grad')
+
+!  call to_history('n1',n1,'model')
+!  call to_history('n2',n2,'model')
+!  call to_history('n3',counter,'grad')
 
 end program TestRegularization
 
-subroutine l_bfgs_smp(fctgdt,d,x,sizex,niter,neval)
 
+
+
+
+
+
+
+subroutine l_bfgs_smp(fctgdt,d,x,sizex,niter,neval)
+ use sep
   interface
      function fctgdt(sizex,d,x,g,f) result (stat)
        integer                ::  stat
@@ -115,7 +127,6 @@ subroutine l_bfgs_smp(fctgdt,d,x,sizex,niter,neval)
   integer                     :: count
 
   real, dimension(:),     allocatable :: g
-
 
   double precision, dimension(:), allocatable :: gd
   double precision, dimension(:), allocatable :: xd
@@ -135,7 +146,8 @@ subroutine l_bfgs_smp(fctgdt,d,x,sizex,niter,neval)
   integer              :: stat2,iflag,myinfo
 
   DOUBLE PRECISION GTOL,STPMIN,STPMAX,XMIN,XMAX
-  INTEGER MP,LP,NDIM,NWORK,MSAVE
+  INTEGER MP,LP,NDIM,MSAVE
+  integer(kind=8) :: NWORK
 
   external :: LB2S
   COMMON /LB3S/MP,LP,GTOL,STPMIN,STPMAX
@@ -159,10 +171,11 @@ subroutine l_bfgs_smp(fctgdt,d,x,sizex,niter,neval)
   allocate(xsave(NDIM))
   allocate(xdsave(NDIM))
 
+  wd=0.
   fd=0.
+
   g=0.
   gd=0.
-
   xd=0.
   xsave=0.
   iter=0
@@ -173,6 +186,7 @@ subroutine l_bfgs_smp(fctgdt,d,x,sizex,niter,neval)
   count=0
   cont=.True.
   found=.False.
+
 
   ! We keep the starting guess in memory
   xsave = dble(x)
@@ -186,6 +200,8 @@ subroutine l_bfgs_smp(fctgdt,d,x,sizex,niter,neval)
      gd=dble(g)
      xdsave=xd
 
+!     call srite('model',x,4*size(x))
+!     call srite('grad',g,4*size(x))
      call LBFGSS(NDIM,MSAVE,xd,fd,gd,&
      &          .False.,diagd,iprint,EPS,&
      &          XTOL,wd,iflag,myinfo)

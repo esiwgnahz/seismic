@@ -8,10 +8,10 @@ LIBNAME=${LIBDIR}/libAnlinv.a
 SOURCES= $(notdir $(wildcard ${SRCDIR}/*.r90 ${SRCDIR}/*.f90 ${SRCDIR}/*.f ${SRCDIR}/*.c))
 
 nlinv_lbfgs.o: nlinv_lbfgs.f
-	${F90C} -O${FCOLEVEL} -Bstatic -c  -o nlinv_lbfgs.o ./nlinv_lbfgs.f
+	${F90C} -axCOMMON-AVX512 -qopenmp -lmkl_intel_lp64 -lmkl_lapack95_lp64 -lmkl_core -lmkl_intel_thread -Bstatic -c  -o nlinv_lbfgs.o ./nlinv_lbfgs.f
 
-nlinv_blas.o: nlinv_blas.f
-	${F90C} -O${FCOLEVEL} -Bstatic -c  -o nlinv_blas.o ./nlinv_blas.f
+#nlinv_blas.o: nlinv_blas.f
+#	${F90C} -O${FCOLEVEL} -Bstatic -c  -o nlinv_blas.o ./nlinv_blas.f
 
 default: all_Lib
 

@@ -6,8 +6,8 @@ UF77LIBS:= ${UF77LIBS} -qopenmp -lbei
 
 ###########################################
 # Add -g 2 lines below if debugger needed
-OF90FLAGS:= -qopenmp -fPIC -FR  -D_GNU_SOURCE -I${SEPINCDIR} -c
-OF77FLAGS:= -qopenmp -fPIC -FR                               -c 
+OF90FLAGS:=  -axCOMMON-AVX512 -qopenmp -fPIC -FR  -D_GNU_SOURCE -I${SEPINCDIR} -c
+OF77FLAGS:=  -axCOMMON-AVX512 -qopenmp -fPIC -FR                               -c 
 ###########################################
 
 LIBDIR  = ${ADIR}/lib/$(MTYPE)

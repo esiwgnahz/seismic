@@ -82,10 +82,10 @@ contains
     gtmpz=w*gtmpz
     gtmpx=w*gtmpx
 
-    if (mod(counter,10).eq.0) then
-       ncount=ncount+1
-       call srite('grad',epsz*gtmpz+epsx*gtmpx,4*sizex)
-    end if
+!    if (mod(counter,10).eq.0) then
+!       ncount=ncount+1
+!       call srite('grad',epsz*gtmpz+epsx*gtmpx,4*sizex)
+!    end if
 
     f=f+epsz*fct_compute(regtypep,gtmpz,sizex,threshp)
     f=f+epsx*fct_compute(regtypep,gtmpx,sizex,threshp)
@@ -173,10 +173,10 @@ contains
 
     gtmpx=w*gtmpx
 
-    if (mod(counter,10).eq.0) then
-       ncount=ncount+1
-       call srite('grad',epszp*gtmpzp+epszm*gtmpzm+epsx*gtmpx,4*sizex)
-    end if
+!    if (mod(counter,10).eq.0) then
+!       ncount=ncount+1
+!       call srite('grad',epszp*gtmpzp+epszm*gtmpzm+epsx*gtmpx,4*sizex)
+!    end if
 
     f=f+epszm*fct_compute(regtypem,gtmpzm,sizex,threshm)
     f=f+epszp*fct_compute(regtypep,gtmpzp,sizex,threshp)
@@ -195,7 +195,7 @@ contains
     stat=helicon2_mod_lop(.true.,.false.,gx,gtmpx)
 
     g=(-r+epsx*gx+epszp*gzp+epszm*gzm)/sizex
-    f=f/sizex
+    f=f/sizex**2
 
     deallocate(gtmpz,gtmpx)
     deallocate(gtmpzm,gtmpzp)
