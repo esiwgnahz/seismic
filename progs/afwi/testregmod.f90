@@ -195,7 +195,7 @@ contains
     stat=helicon2_mod_lop(.true.,.false.,gx,gtmpx)
 
     g=(-r+epsx*gx+epszp*gzp+epszm*gzm)/sizex
-    f=f/sizex**2
+    f=f/sizex
 
     deallocate(gtmpz,gtmpx)
     deallocate(gtmpzm,gtmpzp)
