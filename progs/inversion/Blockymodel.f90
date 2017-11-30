@@ -38,7 +38,7 @@ program blocky_model
   allocate(tmp(nsamples))
 
   allocate(x(2),y(2),z(2),center(2),gap(2),n0(2),npef(2))
-  center=1; gap=0; npef=(/n1,n2/); n0=npef
+  center=1; gap=0; npef=(/n(1),n(2)/); n0=npef
   z=(/2,1/)
   x=(/1,2/) 
   
@@ -77,19 +77,19 @@ program blocky_model
 
   f=0.
   do i=1,npanels
-     if (mod(i,5)) write(0,*) 'INFO: Processing panel',i,'/',npanels
+     if (mod(i,10).eq.0) write(0,*) 'INFO: Processing panel',i,'/',npanels
      m=0.;g=0.;tmp=0.
-     if (mod(i,5)) write(0,*) 'INFO:    read panel ',i
+     if (mod(i,10).eq.0) write(0,*) 'INFO:    read panel ',i
      call sreed('in',m,4*nsamples)
-     if (mod(i,5)) write(0,*) 'INFO:    convolve panel ',i,' with Dz'
+     if (mod(i,10).eq.0) write(0,*) 'INFO:    convolve panel ',i,' with Dz'
      stat= helicon_mod_lop(.false.,.false.,m,tmp)
-     if (mod(i,5)) write(0,*) 'INFO:    compute fct for panel ',i
+     if (mod(i,10).eq.0) write(0,*) 'INFO:    compute fct for panel ',i
      f=f+fct_compute(norm,tmp,nsamples,thresh)
-     if (mod(i,5)) write(0,*) 'INFO:    compute gdt for panel ',i
+     if (mod(i,10).eq.0) write(0,*) 'INFO:    compute gdt for panel ',i
      stat=gdt_compute(norm,tmp,nsamples,thresh)
-     if (mod(i,5)) write(0,*) 'INFO:    compute adjt for panel ',i
+     if (mod(i,10).eq.0) write(0,*) 'INFO:    compute adjt for panel ',i
      stat= helicon_mod_lop(.true.,.false.,g,tmp)
-     if (mod(i,5)) write(0,*) 'INFO:    write panel ',i
+     if (mod(i,10).eq.0) write(0,*) 'INFO:    write panel ',i
      call srite('out',g,4*nsamples)
   end do
   write(0,*) 'INFO: Now write objective function'
