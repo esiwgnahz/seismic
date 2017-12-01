@@ -18,6 +18,7 @@ program blocky_model
   type(filter)                      :: xx,zz
   integer                           :: stat,norm
   real                              :: thresh
+  logical                           :: blocky
 
   call sep_init(SOURCE)
   ndim=sep_dimension()
@@ -31,26 +32,36 @@ program blocky_model
      call sep_get_data_axis_par("in",i,n(i),o(i),d(i),label)
   end do
 
+  blocky=.true.
+
+  call from_param('blocky',blocky,.true.)
+
   npanels=product(n(3:))
   nsamples=n(2)*n(1)
   allocate(m(nsamples))
   allocate(g(nsamples))
   allocate(tmp(nsamples))
 
-  allocate(x(2),y(2),z(2),center(2),gap(2),n0(2),npef(2))
-  center=1; gap=0; npef=(/n(1),n(2)/); n0=npef
-  z=(/2,1/)
-  x=(/1,2/) 
-  
-  zz=createhelix(npef,center,gap,z)
-  xx=createhelix(npef,center,gap,x)            
-  zz%flt=-1
-  xx%flt=-1
-
-  write(0,*) 'INFO: Filter z:'
-  call printn(n0,center,z,zz)
-  write(0,*) 'INFO: Filter x:' 
-  call printn(n0,center,x,xx)
+  if (blocky) then
+     write(0,*) 'INFO: BLOCKY REGULARIZATION - COMPUTING FILTERS'
+     allocate(x(2),y(2),z(2),center(2),gap(2),n0(2),npef(2))
+     center=1; gap=0; npef=(/n(1),n(2)/); n0=npef
+     z=(/2,1/)
+     x=(/1,2/) 
+     
+     zz=createhelix(npef,center,gap,z)
+     xx=createhelix(npef,center,gap,x)            
+     zz%flt=-1
+     xx%flt=-1
+     
+     write(0,*) 'INFO: Filter z:'
+     call printn(n0,center,z,zz)
+     write(0,*) 'INFO: Filter x:' 
+     call printn(n0,center,x,xx)
+     call helicon_mod_init(zz)
+  else
+     write(0,*) 'INFO: SPARSE REGULARIZATION'
+  end if
 
   call from_param('num_threads',nthreads,4)
   write(0,*) 'INFO: nthreads=',nthreads
@@ -73,7 +84,6 @@ program blocky_model
      call from_param('thresh',thresh)
      write(0,*) 'INFO: with hyperparameter',thresh
   end if
-  call helicon_mod_init(zz)
 
   f=0.
   do i=1,npanels
@@ -81,14 +91,23 @@ program blocky_model
      m=0.;g=0.;tmp=0.
      if (mod(i,10).eq.0) write(0,*) 'INFO:    read panel ',i
      call sreed('in',m,4*nsamples)
-     if (mod(i,10).eq.0) write(0,*) 'INFO:    convolve panel ',i,' with Dz'
-     stat= helicon_mod_lop(.false.,.false.,m,tmp)
+     if (blocky) then
+        if (mod(i,10).eq.0) write(0,*) 'INFO:    convolve panel ',i,' with Dz'
+        stat= helicon_mod_lop(.false.,.false.,m,tmp)
+     else
+        tmp=m
+     end if
      if (mod(i,10).eq.0) write(0,*) 'INFO:    compute fct for panel ',i
      f=f+fct_compute(norm,tmp,nsamples,thresh)
      if (mod(i,10).eq.0) write(0,*) 'INFO:    compute gdt for panel ',i
      stat=gdt_compute(norm,tmp,nsamples,thresh)
      if (mod(i,10).eq.0) write(0,*) 'INFO:    compute adjt for panel ',i
-     stat= helicon_mod_lop(.true.,.false.,g,tmp)
+     if (blocky) then
+        if (mod(i,10).eq.0) write(0,*) 'INFO:    convolve panel ',i,' with adjoint Dz'
+        stat= helicon_mod_lop(.true.,.false.,g,tmp)
+     else
+        g=tmp
+     end if
      if (mod(i,10).eq.0) write(0,*) 'INFO:    write panel ',i
      call srite('out',g,4*nsamples)
   end do
