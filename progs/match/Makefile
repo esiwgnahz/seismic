@@ -1,7 +1,7 @@
 include ${SEPINC}/SEP.top
 include ../../makefile
 
-default: ${BINDIR}/Matching.x ${BINDIR}/Apply_Filter.x
+default: ${BINDIR}/Matching.x ${BINDIR}/Apply_Filter.x ${BINDIR}/Wavelet_Estimation.x
 
 aclean: jclean       
 	@-${RM} ${BINDIR}/*.x

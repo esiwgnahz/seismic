@@ -1,10 +1,9 @@
 program Wavelet_Estimation
 
   use sep
-  use cgstep_mod
-
-  use identity_mod
   use nchconest
+  use cgstep_mod
+  use identity_mod
   use nhelicon_mod
   use solver_smp_mod
   use BuildAdaptiveFilter_mod
@@ -18,7 +17,7 @@ program Wavelet_Estimation
 
   integer :: ndim                        ! dimension of dataset
   integer :: ndim_domain                 ! dimension for the filtering (will be 2 here)
-  integer :: niter
+  integer :: niter,prodnflt
 
   character (len=20) :: targetname
   integer, dimension(:), pointer :: n                  ! data-size, dimension(ndim)
@@ -27,7 +26,7 @@ program Wavelet_Estimation
   real,    dimension(:), pointer :: d_obs, o_obs
 
   integer :: i,stat,ilag,ipatch,idim,ipanels,npanels   ! junk variables
-  integer :: n12
+  integer :: n12, nw
   integer :: verb
   character(len=1024)    :: label
 
@@ -120,13 +119,14 @@ program Wavelet_Estimation
 
   write(0,*) 'INFO: Finished reading model, observed and wavelet'
 
+  prodnflt=product(nfilt_n)
   ! PROCESSING PART
-  call allocatehelix(match_n,product(nfilt_n))
+  call allocatehelix(match_n,prodnflt)
   match_n%lag=match_tmp%lag
 
-  if (verb>2) write(0,*) 'INFO:  -----------------------------------'
-  if (verb>2) write(0,*) 'INFO:  Calling findmatch with no weight...'
-  if (verb>2) write(0,*) 'INFO:  -----------------------------------'
+  write(0,*) 'INFO:  -----------------------------------'
+  write(0,*) 'INFO:  Calling findmatch with no weight...'
+  write(0,*) 'INFO:  -----------------------------------'
   
   call nchconest_init(synt_data,match_n)
   if (exist_file("weight")) then
@@ -200,6 +200,12 @@ subroutine Wavelet_estimation_doc()
   call sep_add_doc_line("      f(m)=|W(Lm - d_obs)|_2 where L is the convolution with the modeled data")
   call sep_add_doc_line("                             and m the filter coefficients. W is the weighting operator")
   call sep_add_doc_line("                             which is optional")
+  call sep_add_doc_line("      Once the filter coefficients m are found, they are appplied to the input_wavelet file")
+  call sep_add_doc_line("      and optionally to the modeled_data file (thus giving matched_data)")
+  call sep_add_doc_line("      ")
+  call sep_add_doc_line("      Two steps:")
+  call sep_add_doc_line("          (1) - find 1D match filter between observed and modeled data")
+  call sep_add_doc_line("          (2) - apply 1D match filter to input wavelet")
   call sep_add_doc_line("COMMENTS")
   call sep_add_doc_line("")
   call doc('SOURCE')
