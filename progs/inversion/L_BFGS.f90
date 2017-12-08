@@ -87,8 +87,7 @@ program lbgs_prog
   write(1010,*) 'Writing myinfo=', invpar%myinfo
   open(20,file=invpar%myInfoFilenameOut,status='replace')
   rewind(20)
-
-  write(20,*) invpar%myinfo
+  write(20,"(I2)") invpar%myinfo
   close(20) 
 
   close(1010)
