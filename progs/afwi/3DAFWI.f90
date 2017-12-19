@@ -112,6 +112,11 @@ program THREEDAFWI
   call Init_MuteParam(mutepar)
   call MuteParam_compute_mask_1shot(mutepar,datavec,sourcevec)
 
+  if (exist_file('mute_out')) then
+     call to_history('n1',datavec(1)%dimt%nt,'mute_out')
+     call to_history('n2',size(datavec),'mute_out')
+  end if
+
   if (dble(genpar%max_memory).gt.memory_needed) then
      write(0,*) 'INFO: writing wavefield in memory'
      write(0,*) 'INFO:'

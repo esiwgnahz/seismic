@@ -128,6 +128,14 @@ module to_disk_to_memory_AFWI_mod
 
       write(0,*) 'INFO: Done with forward modeling'
 
+      if (exist_file('dmod')) then
+         do i=1,ntraces
+            call srite('dmod',mutepar%maskgath(1)%gathtrace(i)%trace*dmodvec(i)%trace,4*dmodvec(i)%dimt%nt)
+         end do
+         call to_history('n1',dmodvec(1)%dimt%nt,'dmod')
+         call to_history('n2',ntraces,'dmod')
+      end if
+
       if (exist_file('residual')) then
          do i=1,ntraces
             call srite('residual',mutepar%maskgath(1)%gathtrace(i)%trace*(datavec(i)%trace-dmodvec(i)%trace),4*datavec(i)%dimt%nt)

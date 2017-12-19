@@ -103,15 +103,22 @@ contains
     type(TraceSpace), dimension(:) ::                      sourcegath
 
     real               :: hx,hy,sx,sy,gx,gy,dt,t0
-    integer            :: i,j,nt
+    integer            :: i,j,nt,ntraces
 
-    real, dimension(:), allocatable :: tmp, tmp1
+    real, dimension(:),  allocatable :: tmp, tmp1
+    real, dimension(:,:),allocatable :: tmp2
 
     dt=shotgath(1)%dimt%dt
     t0=shotgath(1)%dimt%ot
     nt=shotgath(1)%dimt%nt
 
+    ntraces=size(shotgath)
+
     allocate(tmp(nt),tmp1(nt))
+    if (exist_file('mute_in')) then
+       allocate(tmp2(nt,ntraces)); tmp2=0.
+       call sreed('mute_in',tmp2,4*nt*ntraces)
+    end if
 
     allocate(mutepar%maskgath(1))
 !
@@ -134,11 +141,15 @@ contains
        
        call compute_top_mute(mutepar,dt,t0,hx,hy,tmp)
        call compute_bottom_mute(mutepar,dt,t0,hx,hy,tmp1)
-       mutepar%maskgath(1)%gathtrace(j)%trace(:,1)=tmp*tmp1
+       if (exist_file('mute_in')) then
+          mutepar%maskgath(1)%gathtrace(j)%trace(:,1)=tmp*tmp1*tmp2(:,j)
+       else
+          mutepar%maskgath(1)%gathtrace(j)%trace(:,1)=tmp*tmp1
+       end if
        if (exist_file('mute_out')) call srite('mute_out',mutepar%maskgath(1)%gathtrace(j)%trace,4*nt)
-    end do
-    
+    end do    
 
+    if (allocated(tmp2)) deallocate(tmp2)
     deallocate(tmp,tmp1)
  
   end subroutine MuteParam_compute_mask_1shot
