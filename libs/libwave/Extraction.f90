@@ -134,6 +134,34 @@ contains
   end subroutine Extraction_array_sinc
 
   ! Sinc interpolation
+  subroutine Extraction_array_sinc_afwi(bounds,model,data,u,genpar,it)
+    type(FDbounds)    ::           bounds
+    type(ModelSpace)  ::                  model
+    type(TraceSpace), dimension(:) ::           data
+    type(GeneralParam)::                               genpar 
+    real              ::                             u(bounds%nmin1-4:bounds%nmax1+4, bounds%nmin2-4:bounds%nmax2+4, &
+    &                 bounds%nmin3-genpar%nbound:bounds%nmax3+genpar%nbound)
+    integer           :: it
+    integer           :: i
+    real              :: v
+    
+    if (genpar%twoD) then
+       do i=1,size(data)
+          v=1.
+          call Extraction_1trace_sinc_xy(bounds,v,data(i),u,genpar,it)
+       end do
+    else      
+       !$OMP PARALLEL DO PRIVATE(i)
+       do i=1,size(data)       
+          v=1.
+          call Extraction_1trace_sinc_xyz(bounds,v,data(i),u,genpar,it)
+       end do       
+       !$OMP END PARALLEL DO
+    end if
+
+  end subroutine Extraction_array_sinc_afwi
+
+  ! Sinc interpolation
   subroutine Extraction_array_sinc_noomp(bounds,model,data,u,genpar,it)
     type(FDbounds)    ::           bounds
     type(ModelSpace)  ::                  model

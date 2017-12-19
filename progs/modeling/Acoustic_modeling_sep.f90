@@ -12,6 +12,8 @@ program Acoustic_modeling_sep
   use Propagator_mod
   use Interpolate_mod
 
+
+  use ReadParam_mod
   use DataSpace_types
   use ModelSpace_types
   use GeneralParam_types
@@ -34,43 +36,13 @@ program Acoustic_modeling_sep
 
   call sep_init()
 
-  call from_param('lsinc',genpar%lsinc,7)
-  call from_param('fmax',genpar%fmax,30.)
-  call from_param('ntaper',genpar%ntaper,20)
-  call from_param('aperture_x',genpar%aperture(1))
-  call from_param('aperture_y',genpar%aperture(2))
-  call from_param('num_threads',genpar%nthreads,4)
-  call from_param('i_want_wavefield',i_want_wavefield,.false.)
-
-  call omp_set_num_threads(genpar%nthreads)
-
-
-  call from_param('snapi',genpar%snapi,4)
-
   mod%veltag='vel'
   mod%rhotag='rho'
   genpar%Born=.false.
 
-  call from_param('twoD',genpar%twoD,.false.)
-
-  call from_param('withRho',genpar%withRho,.false.)
-  if (.not.genpar%twoD) then     
-     genpar%nbound=4
-  else
-     genpar%nbound=0
-  end if
-
-  call from_param('rec_type',genpar%rec_type,0)
-  call from_param('shot_type',genpar%shot_type,0)
-  call from_param('surf_type',genpar%surf_type,0)
-
+  call from_param('i_want_wavefield',i_want_wavefield,.false.)
+  call read_3D_params(genpar)
   call readsou(sourcevec,genpar)
- 
-  if (genpar%withRho) then
-     genpar%coefpower=1
-  else
-     genpar%coefpower=2
-  end if
 
   call readtraces(datavec,sourcevec,genpar)
   call readcoords(datavec,sourcevec,genpar)
@@ -81,9 +53,15 @@ program Acoustic_modeling_sep
 
   allocate(wfld_fwd%wave(mod%nz,mod%nxw,mod%nyw,genpar%ntsnap,1))
   
-  write(0,*) 'bounds%nmin1',bounds%nmin1,'bounds%nmax1',bounds%nmax1
-  write(0,*) 'bounds%nmin2',bounds%nmin2,'bounds%nmax2',bounds%nmax2
-  write(0,*) 'bounds%nmin3',bounds%nmin3,'bounds%nmax3',bounds%nmax3
+  write(0,*) 'INFO: ------- Size model space for propagation --------'
+  write(0,*) 'INFO:'
+  write(0,*) 'INFO: bounds%nmin1',bounds%nmin1,'bounds%nmax1',bounds%nmax1
+  write(0,*) 'INFO: bounds%nmin2',bounds%nmin2,'bounds%nmax2',bounds%nmax2
+  write(0,*) 'INFO: bounds%nmin3',bounds%nmin3,'bounds%nmax3',bounds%nmax3
+  write(0,*) 'INFO:'
+  write(0,*) 'INFO: ------------------------------------------------'
+
+  call omp_set_num_threads(genpar%nthreads)
 
   allocate(elev%elev(bounds%nmin2:bounds%nmax2, bounds%nmin3:bounds%nmax3))
   elev%elev=0.

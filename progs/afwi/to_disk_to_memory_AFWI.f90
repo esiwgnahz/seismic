@@ -44,6 +44,7 @@ module to_disk_to_memory_AFWI_mod
       type(TraceSpace), dimension(:), allocatable :: dmodvec
 
       integer :: ntraces,i
+      integer(kind=8)  :: ntotal
       double precision :: f
       
       call to_history('n1',mod%nz,'wave_fwd')
@@ -64,14 +65,13 @@ module to_disk_to_memory_AFWI_mod
       genpar%tmin=1
       genpar%tmax=sourcevec(1)%dimt%nt
       genpar%tstep=1
-      
+
+      ntotal=size(datavec)*sourcevec(1)%dimt%nt
       ntraces=size(datavec)
       allocate(dmodvec(ntraces))
       do i=1,ntraces
          allocate(dmodvec(i)%trace(datavec(i)%dimt%nt,1))
-         dmodvec(i)%dimt%nt=datavec(i)%dimt%nt
-         dmodvec(i)%dimt%ot=datavec(i)%dimt%ot
-         dmodvec(i)%dimt%dt=datavec(i)%dimt%dt
+         dmodvec(i)=datavec(i)
          dmodvec(i)%trace=0.
       end do
 
@@ -86,7 +86,7 @@ module to_disk_to_memory_AFWI_mod
             & FDswaptime_pointer,                            &
             & bounds,mod,elev,genpar,                        &    
             & sou=sourcevec,datavec=dmodvec,                 &
-            & ExtractData=Extraction_array_sinc,             &
+            & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield_copy_to_disk) 
          else
             call propagator_acoustic(                        &
@@ -97,7 +97,7 @@ module to_disk_to_memory_AFWI_mod
             & FDswaptime_pointer,                            &
             & bounds,mod,elev,genpar,                        &    
             & sou=sourcevec,datavec=dmodvec,                 &
-            & ExtractData=Extraction_array_sinc,             &
+            & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield_copy_to_disk)
          end if
       else
@@ -110,7 +110,7 @@ module to_disk_to_memory_AFWI_mod
             & FDswaptime_pointer,                            &
             & bounds,mod,elev,genpar,                        &    
             & sou=sourcevec,datavec=dmodvec,                 &
-            & ExtractData=Extraction_array_sinc,             &
+            & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield_copy_to_disk) 
          else
             call propagator_acoustic(                        &
@@ -121,7 +121,7 @@ module to_disk_to_memory_AFWI_mod
             & FDswaptime_pointer,                            &
             & bounds,mod,elev,genpar,                        &    
             & sou=sourcevec,datavec=dmodvec,                 &
-            & ExtractData=Extraction_array_sinc,             &
+            & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield_copy_to_disk)
          end if
       end if
@@ -137,14 +137,17 @@ module to_disk_to_memory_AFWI_mod
       end if
 
       call Compute_OF_RES_3D(invparam,datavec,dmodvec,mutepar%maskgath(1)%gathtrace,f)
+      call to_history('n1',1,'function')
+      call srite('function',sngl(f),4)
 
       if (invparam%nparam.eq.1) then
          allocate(mod%imagesmall(mod%nz,mod%nxw,mod%nyw))
+         mod%imagesmall=0.
       else
          allocate(mod%imagesmall_nparam(mod%nz,mod%nxw,mod%nyw,2))
+         mod%imagesmall_nparam=0.
       end if
       allocate(mod%illumsmall(mod%nz,mod%nxw,mod%nyw))
-      mod%imagesmall=0.
       mod%illumsmall=0.
 
       genpar%tmax=1
@@ -152,9 +155,6 @@ module to_disk_to_memory_AFWI_mod
       genpar%tstep=-1
 
       mod%counter=0
-
-      ! Copy vel2 to vel for backward propagation if needed
-      if (mod%exist_vel2) mod%vel=mod%vel2
 
       call compute_taper(mod)
 
@@ -193,7 +193,7 @@ module to_disk_to_memory_AFWI_mod
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_3D_derivatives_acoustic_forward_grid,       &
-            & Injection_sinc,                            &
+            & Injection_sinc,                                &
             & FD_2nd_time_derivative_grid,                   &
             & FDswaptime_pointer,                            &
             & bounds,mod,elev,genpar,                        &
@@ -227,21 +227,21 @@ module to_disk_to_memory_AFWI_mod
 
       integer :: ntraces,i
       double precision :: f
+      integer(kind=8) :: ntotal
 
       genpar%tmin=1
       genpar%tmax=sourcevec(1)%dimt%nt
       genpar%tstep=1
 
+      ntotal=size(datavec)*sourcevec(1)%dimt%nt
       ntraces=size(datavec)
       allocate(dmodvec(ntraces))
       do i=1,ntraces
          allocate(dmodvec(i)%trace(datavec(i)%dimt%nt,1))
-         dmodvec(i)%dimt%nt=datavec(i)%dimt%nt
-         dmodvec(i)%dimt%ot=datavec(i)%dimt%ot
-         dmodvec(i)%dimt%dt=datavec(i)%dimt%dt
+         dmodvec(i)=datavec(i)
          dmodvec(i)%trace=0.
       end do
-
+      
       allocate(wfld_fwd%wave(mod%nz,mod%nxw,mod%nyw,genpar%ntsnap,1))
 
       wfld_fwd%wave=0.
@@ -256,18 +256,18 @@ module to_disk_to_memory_AFWI_mod
             & FDswaptime_pointer,                            &
             & bounds,mod,elev,genpar,                        &    
             & sou=sourcevec,datavec=dmodvec,                 &
-            & ExtractData=Extraction_array_sinc,             &
+            & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield,wfld=wfld_fwd) 
          else
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_2D_derivatives_acoustic_forward_grid,       &
-            & Injection_sinc,                            &
+            & Injection_sinc,                                &
             & FD_2nd_time_derivative_grid,                   &
             & FDswaptime_pointer,                            &
             & bounds,mod,elev,genpar,                        &    
             & sou=sourcevec,datavec=dmodvec,                 &
-            & ExtractData=Extraction_array_sinc,             &
+            & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield,wfld=wfld_fwd)
          end if
       else
@@ -280,18 +280,18 @@ module to_disk_to_memory_AFWI_mod
             & FDswaptime_pointer,                            &
             & bounds,mod,elev,genpar,                        &    
             & sou=sourcevec,datavec=dmodvec,                 &
-            & ExtractData=Extraction_array_sinc,             &
+            & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield,wfld=wfld_fwd) 
          else
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_3D_derivatives_acoustic_forward_grid,       &
-            & Injection_sinc,                            &
+            & Injection_sinc,                                &
             & FD_2nd_time_derivative_grid,                   &
             & FDswaptime_pointer,                            &
             & bounds,mod,elev,genpar,                        &    
             & sou=sourcevec,datavec=dmodvec,                 &
-            & ExtractData=Extraction_array_sinc,             &
+            & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield,wfld=wfld_fwd)
          end if
       end if
@@ -312,11 +312,12 @@ module to_disk_to_memory_AFWI_mod
 
       if (invparam%nparam.eq.1) then
          allocate(mod%imagesmall(mod%nz,mod%nxw,mod%nyw))
+         mod%imagesmall=0.
       else
          allocate(mod%imagesmall_nparam(mod%nz,mod%nxw,mod%nyw,2))
+         mod%imagesmall_nparam=0.
       end if
       allocate(mod%illumsmall(mod%nz,mod%nxw,mod%nyw))
-      mod%imagesmall=0.
       mod%illumsmall=0.
 
       genpar%tmax=1
@@ -326,12 +327,9 @@ module to_disk_to_memory_AFWI_mod
       mod%counter=0
       mod%wvfld=>wfld_fwd
 
-      ! Copy vel2 to vel for backward propagation if needed
-      if (mod%exist_vel2) mod%vel=mod%vel2
-
       call compute_taper(mod)
 
-      write(0,*) 'INFO: Starting backward propagation'
+      write(0,*) 'INFO: Starting backward propagation',genpar%withRho
       if (genpar%twoD) then
          if (.not.genpar%withRho) then
             call propagator_acoustic(                        &
@@ -346,7 +344,7 @@ module to_disk_to_memory_AFWI_mod
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_2D_derivatives_acoustic_forward_grid,       &
-            & Injection_sinc,                            &
+            & Injection_sinc,                                &
             & FD_2nd_time_derivative_grid,                   &
             & FDswaptime_pointer,                            &
             & bounds,mod,elev,genpar,                        &
@@ -366,7 +364,7 @@ module to_disk_to_memory_AFWI_mod
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_3D_derivatives_acoustic_forward_grid,       &
-            & Injection_sinc,                            &
+            & Injection_sinc,                                &
             & FD_2nd_time_derivative_grid,                   &
             & FDswaptime_pointer,                            &
             & bounds,mod,elev,genpar,                        &

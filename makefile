@@ -53,18 +53,18 @@ all:
 #	make dirstruct
 #	(cd libs/libfut; make)
 #	(cd libs/libdec; make)
-	(cd libs/libinv; make)
-	(cd libs/libnlinv; make)
-	(cd libs/libflt; make)
+#	(cd libs/libinv; make)
+#	(cd libs/libnlinv; make)
+#	(cd libs/libflt; make)
 	(cd libs/libwave; make)
 #	(cd progs/logdecon; make)
-	(cd progs/match; make)
+#	(cd progs/match; make)
 #	(cd progs/futterman; make)
 #	(cd progs/modeling; make )
 #	(cd progs/rtm; make)
 	(cd progs/afwi; make)
 #	(cd progs/procs; make)
-	(cd progs/inversion; make)
+#	(cd progs/inversion; make)
 
 listfiles='ls  */*/*90'
 

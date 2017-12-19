@@ -18,6 +18,8 @@ program THREEDAFWI
   use GeneralParam_types
   use Inversion_types
 
+  use AFWI_Doc
+
   implicit none
 
   type(GeneralParam) :: genpar
@@ -34,9 +36,11 @@ program THREEDAFWI
 
   integer :: i,j,k
   integer :: ntsnap
+  integer(kind=8) :: ntotal
   double precision :: memory_needed
 
   call sep_init()
+  call THREEDAFWI_doc()
 
   write(0,*) 'INFO:'
   write(0,*) 'INFO: -- 3DAFWI for one shot Starting -- '
@@ -70,8 +74,24 @@ program THREEDAFWI
   call from_param('data_threshold',invparam%dat_thresh,0.)
   call from_param('vprho_param',invparam%vprho_param,0)
 
+  if(invparam%dat_nrm_type_char(1:5).eq.'Hyper') invparam%dat_nrm_type=4
+  if(invparam%dat_nrm_type_char(1:5).eq.'Cauch') invparam%dat_nrm_type=3
+  if(invparam%dat_nrm_type_char(1:5).eq.'Huber') invparam%dat_nrm_type=12
+  if(invparam%dat_nrm_type_char(1:5).eq.'L1nor') invparam%dat_nrm_type=1
+  if(invparam%dat_nrm_type_char(1:5).eq.'L2nor') invparam%dat_nrm_type=2
+  
   genpar%ntsnap=int(genpar%nt/genpar%snapi)
 
+  genpar%dt2=(genpar%dt*genpar%snapi)**2
+
+  write(0,*) 'INFO: ------- Inversion parameters -------'
+  write(0,*) 'INFO:'
+  write(0,*) 'INFO:    data_nrm_type  :',invparam%dat_nrm_type_char
+  write(0,*) 'INFO:    data_nrm_type  :',invparam%dat_nrm_type
+  write(0,*) 'INFO:    data_threshold :',invparam%dat_thresh
+  write(0,*) 'INFO:    vprho_param    :',invparam%vprho_param
+  write(0,*) 'INFO:    number of param:',invparam%nparam
+  write(0,*) 'INFO:'
   write(0,*) 'INFO: ------- Size model space for propagation --------'
   write(0,*) 'INFO:'
   write(0,*) 'INFO: bounds%nmin1',bounds%nmin1,'bounds%nmax1',bounds%nmax1
