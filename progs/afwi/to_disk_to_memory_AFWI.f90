@@ -11,6 +11,7 @@ module to_disk_to_memory_AFWI_mod
   use Readsouvelrho_mod
   use ExtractPadModel_mod
   use FDcoefs_assign
+  use FD_derivatives
   use Propagator_mod
   use Interpolate_mod
   use Injection_mod
@@ -89,6 +90,7 @@ module to_disk_to_memory_AFWI_mod
             & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield_copy_to_disk) 
          else
+            call allocate_sxx2d_szz2d_delp2d(bounds)
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_2D_derivatives_acoustic_forward_grid,       &
@@ -99,6 +101,7 @@ module to_disk_to_memory_AFWI_mod
             & sou=sourcevec,datavec=dmodvec,                 &
             & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield_copy_to_disk)
+            call deallocate_sxx2d_szz2d_delp2d()
          end if
       else
          if (.not.genpar%withRho) then
@@ -113,6 +116,7 @@ module to_disk_to_memory_AFWI_mod
             & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield_copy_to_disk) 
          else
+            call allocate_sxx3d_syy3d_szz3d_delp3d(bounds)
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_3D_derivatives_acoustic_forward_grid,       &
@@ -123,6 +127,7 @@ module to_disk_to_memory_AFWI_mod
             & sou=sourcevec,datavec=dmodvec,                 &
             & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield_copy_to_disk)
+            call deallocate_sxx3d_syy3d_szz3d_delp3d()
          end if
       end if
 
@@ -178,6 +183,7 @@ module to_disk_to_memory_AFWI_mod
             & bounds,mod,elev,genpar,                        &
             & sou=dmodvec,ImagingCondition=Imaging_condition_AFWI_from_disk)
          else
+            call allocate_sxx2d_szz2d_delp2d(bounds)
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_2D_derivatives_acoustic_forward_grid,       &
@@ -186,6 +192,7 @@ module to_disk_to_memory_AFWI_mod
             & FDswaptime_pointer,                            &
             & bounds,mod,elev,genpar,                        &
             & sou=dmodvec,ImagingCondition=Imaging_condition_AFWI_RHOVP_from_disk)
+            call deallocate_sxx2d_szz2d_delp2d()
          end if
       else
          if (.not.genpar%withRho) then
@@ -198,6 +205,7 @@ module to_disk_to_memory_AFWI_mod
             & bounds,mod,elev,genpar,                        &
             & sou=dmodvec,ImagingCondition=Imaging_condition_AFWI_from_disk)
          else
+            call allocate_sxx3d_syy3d_szz3d_delp3d(bounds)
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_3D_derivatives_acoustic_forward_grid,       &
@@ -206,6 +214,7 @@ module to_disk_to_memory_AFWI_mod
             & FDswaptime_pointer,                            &
             & bounds,mod,elev,genpar,                        &
             & sou=dmodvec,ImagingCondition=Imaging_condition_AFWI_RHOVP_from_disk)
+            call deallocate_sxx3d_syy3d_szz3d_delp3d()
          end if
       end if
       write(0,*) 'INFO: Done with backward propagation'
@@ -267,6 +276,7 @@ module to_disk_to_memory_AFWI_mod
             & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield,wfld=wfld_fwd) 
          else
+            call allocate_sxx2d_szz2d_delp2d(bounds)
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_2D_derivatives_acoustic_forward_grid,       &
@@ -277,6 +287,7 @@ module to_disk_to_memory_AFWI_mod
             & sou=sourcevec,datavec=dmodvec,                 &
             & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield,wfld=wfld_fwd)
+            call deallocate_sxx2d_szz2d_delp2d()
          end if
       else
          if (.not.genpar%withRho) then
@@ -291,9 +302,10 @@ module to_disk_to_memory_AFWI_mod
             & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield,wfld=wfld_fwd) 
          else
+            call allocate_sxx3d_syy3d_szz3d_delp3d(bounds)
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
-            & FD_3D_derivatives_acoustic_forward_grid,       &
+            & FD_3D_derivatives_acoustic_forward_grid,      &
             & Injection_sinc,                                &
             & FD_2nd_time_derivative_grid,                   &
             & FDswaptime_pointer,                            &
@@ -301,10 +313,19 @@ module to_disk_to_memory_AFWI_mod
             & sou=sourcevec,datavec=dmodvec,                 &
             & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield,wfld=wfld_fwd)
+            call deallocate_sxx3d_syy3d_szz3d_delp3d()
          end if
       end if
 
       write(0,*) 'INFO: Done with forward modeling'
+
+      if (exist_file('dmod')) then
+         do i=1,ntraces
+            call srite('dmod',mutepar%maskgath(1)%gathtrace(i)%trace*dmodvec(i)%trace,4*dmodvec(i)%dimt%nt)
+         end do
+         call to_history('n1',dmodvec(1)%dimt%nt,'dmod')
+         call to_history('n2',ntraces,'dmod')
+      end if
 
       if (exist_file('residual')) then
          do i=1,ntraces
@@ -349,6 +370,7 @@ module to_disk_to_memory_AFWI_mod
             & bounds,mod,elev,genpar,                        &
             & sou=dmodvec,ImagingCondition=Imaging_condition_AFWI_from_memory)
          else
+            call allocate_sxx2d_szz2d_delp2d(bounds)
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_2D_derivatives_acoustic_forward_grid,       &
@@ -357,6 +379,7 @@ module to_disk_to_memory_AFWI_mod
             & FDswaptime_pointer,                            &
             & bounds,mod,elev,genpar,                        &
             & sou=dmodvec,ImagingCondition=Imaging_condition_AFWI_RHOVP_from_memory)
+            call deallocate_sxx2d_szz2d_delp2d()
          end if
       else
          if (.not.genpar%withRho) then
@@ -369,6 +392,7 @@ module to_disk_to_memory_AFWI_mod
             & bounds,mod,elev,genpar,                        &
             & sou=dmodvec,ImagingCondition=Imaging_condition_AFWI_from_memory)
          else
+            call allocate_sxx3d_syy3d_szz3d_delp3d(bounds)
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_3D_derivatives_acoustic_forward_grid,       &
@@ -377,6 +401,7 @@ module to_disk_to_memory_AFWI_mod
             & FDswaptime_pointer,                            &
             & bounds,mod,elev,genpar,                        &
             & sou=dmodvec,ImagingCondition=Imaging_condition_AFWI_RHOVP_from_memory)
+            call deallocate_sxx3d_syy3d_szz3d_delp3d()
          end if
       end if
       write(0,*) 'INFO: Done with backward propagation'

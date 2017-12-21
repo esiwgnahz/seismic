@@ -58,12 +58,12 @@ program lbgs_prog
           &        invpar%lbfgsDatFilename,invpar%lbfgsDatFilenameOut,&
           &        invpar%mcsrchDatFilename,invpar%mcsrchDatFilenameOut)
   else
-!     call LBFGS(invpar%NDIM,invpar%MSAVE,invarr%xd,invarr%fd,invarr%gd,&
-!          &     .False.,invarr%diagd,invpar%iprint,invpar%EPS,&
-!          &     invpar%XTOL,invsep%stp_init,invarr%wd,invpar%iflag,invpar%myinfo,&
-!          &     invpar%lbfgsDatFilename, invpar%lbfgsDatFilenameOut,&
-!          &     invpar%mcsrchDatFilename, invpar%mcsrchDatFilenameOut,&
-!          &     invsep%xmin,invsep%xmax,invsep%stp1_opt,invsep%clip_type)
+     call LBFGSOC(invpar%NDIM,invpar%MSAVE,invarr%xd,invarr%fd,invarr%gd,&
+          &     .False.,invarr%diagd,invpar%iprint,invpar%EPS,&
+          &     invpar%XTOL,invsep%stp_init,invarr%wd,invpar%iflag,invpar%myinfo,&
+          &     invpar%lbfgsDatFilename, invpar%lbfgsDatFilenameOut,&
+          &     invpar%mcsrchDatFilename, invpar%mcsrchDatFilenameOut,&
+          &     invsep%xmin,invsep%xmax, invpar%nparams, invsep%stp1_opt,invsep%clip_type)
   end if
 
   write(1010,*) "Writing working array"

@@ -102,18 +102,9 @@ contains
        end if      
     end do
 
-    ! Set the size for xmin and xmax: last axis is usually the nparam axis
-    allocate(nlinv_sepfile%xmin(size(nlinv_sepfile%mod%n)))
-    allocate(nlinv_sepfile%xmax(size(nlinv_sepfile%mod%n)))
-    
-    allocate(tmp(size(nlinv_sepfile%xmin))); tmp=0.
-    call from_param('xmin',nlinv_sepfile%xmin,tmp)
-    call from_param('xmax',nlinv_sepfile%xmax,tmp)
     call from_param('step_init',step_init,999999.)
     
     nlinv_sepfile%stp_init=dble(step_init)
-
-    deallocate(tmp)
 
   end function lbfgs_setup_sepfile
 
@@ -124,6 +115,7 @@ contains
     logical :: lbfgs_setup
     logical :: iflagExists
     logical :: myInfoExists
+    real, dimension(:), allocatable :: tmp
 
     double precision :: NMEMORY
 
@@ -172,7 +164,28 @@ contains
     ! Dimension of model space
     nlinv_param%NDIM   =product(nlinv_sepfile%gdt%n)
     ! The last axis is usually the dimension of the number of parameters to invert for
-    nlinv_param%nparams=nlinv_sepfile%gdt%n(size(nlinv_sepfile%gdt%n))
+    if (size(nlinv_sepfile%gdt%n).eq.2) then
+       nlinv_param%nparams=1  ! We have two dimensions only, nparams is 1
+    else if (size(nlinv_sepfile%gdt%n).eq.3) then
+       if (nlinv_sepfile%gdt%n(3).lt.5) then ! Hack: I am assuming that if n(3)<5, then it is a parameter axis. May be I should
+                                             ! just read nparams from the command line directly...
+          nlinv_param%nparams=nlinv_sepfile%gdt%n(3)
+       else
+          nlinv_param%nparams=1
+       end if
+    else if (size(nlinv_sepfile%gdt%n).eq.4) then
+       nlinv_param%nparams=nlinv_sepfile%gdt%n(4) ! This is 
+    end if
+    write(1010,*) 'We are inverting for ',nlinv_param%nparams,' parameters'
+
+    allocate(nlinv_sepfile%xmin(nlinv_param%nparams))
+    allocate(nlinv_sepfile%xmax(nlinv_param%nparams))
+    
+    allocate(tmp(size(nlinv_sepfile%xmin))); tmp=0.
+    call from_param('xmin',nlinv_sepfile%xmin,tmp)
+    call from_param('xmax',nlinv_sepfile%xmax,tmp)
+    deallocate(tmp)
+
     ! We keep the history of the last 5 iterations for the inverse Hessian
     nlinv_param%MSAVE  =5 
     ! Set size of working array

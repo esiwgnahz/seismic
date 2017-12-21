@@ -1,39 +1,22 @@
-      SUBROUTINE FREEZE_XOC(XMIN,XMAX,MASK,TYPE,X,N,XINIT)
+      SUBROUTINE FREEZE_XOC(XMIN,XMAX,NPARAM,X,N)
       
-      DOUBLE PRECISION XMIN,XMAX
+      INTEGER N,M,NPARAM
+      DOUBLE PRECISION XMIN(NPARAM),XMAX(NPARAM)
       LOGICAL TYPE
-      INTEGER N
-      DOUBLE PRECISION X(N),XINIT(N)
-      REAL MASK(N)
-      INTEGER I
+      DOUBLE PRECISION X(N),IMIN,IMAX
+      INTEGER I,J
       
-      IF (TYPE) THEN
-         
-         DO 30 I=1,N
-            X(I)=max(XMIN,X(I))
-            X(I)=min(XMAX,X(I))
+      M=N/NPARAM
+
+      DO 40 J=1,NPARAM
+         DO 30 I=1+(J-1)*M,M+(J-1)*M
+            IMIN=XMIN(J)
+            IMAX=XMAX(J)
+            X(I)=max(IMIN,X(I))
+            X(I)=min(IMAX,X(I))
  30      CONTINUE
-         
-      ELSE
-         
-         DO 10 I=1,N
-            
-            IF (MASK(I).ne.0) THEN
-               
-               X(I)=max(XMIN,X(I))
-               X(I)=min(XMAX,X(I))
-               
-            ENDIF
-            
- 10      CONTINUE
-         
-         DO 20 I=1,N
-            
-            IF (MASK(I).eq.0) X(I)=XINIT(I)
-            
- 20      CONTINUE
-         
-      ENDIF
+      
+ 40   CONTINUE
       
       RETURN
       END
@@ -47,9 +30,9 @@ C     ****************
 C
       SUBROUTINE LBFGSOC(N,M,X,F,G,DIAGCO,DIAG,IPRINT,EPS,XTOL,W,IFLAG,
      *              MYINFO, LBFGS_DAT, LBFGSOUT_DAT, MCSRCH_DAT,
-     *              MCSRCHOUT_DAT, XMIN, XMAX, SPT1_OPT, BOUNDT)
+     *              MCSRCHOUT_DAT, XMIN, XMAX, NPARAM, SPT1_OPT, BOUNDT)
 C
-      INTEGER N,M,IPRINT(2),IFLAG,MYINFO
+      INTEGER N,M,NPARAM,IPRINT(2),IFLAG,MYINFO
       DOUBLE PRECISION X(N),G(N),DIAG(N),W(N*(2*M+1)+2*M)
       DOUBLE PRECISION F,EPS,XTOL
       LOGICAL DIAGCO
@@ -59,7 +42,7 @@ C
       CHARACTER(len=1024) MCSRCH_DAT      
       CHARACTER(len=1024) MCSRCHOUT_DAT
 
-      DOUBLE PRECISION XMIN,XMAX
+      DOUBLE PRECISION XMIN(NPARAM),XMAX(NPARAM)
 
 
 C        LIMITED MEMORY BFGS METHOD FOR LARGE SCALE OPTIMIZATION
@@ -531,6 +514,9 @@ c      write(0,*) 'info',info
       IF (INFO .NE. 1) GO TO 190
       NFUN= NFUN + NFEV
       MYINFO = INFO
+      IF (BOUNDT.EQ.2) THEN
+         IF (INFO.EQ.1) CALL FREEZE_XOC(XMIN,XMAX,NPARAM,X,N)
+      ENDIF
 c
 C     COMPUTE THE NEW STEP AND GRADIENT CHANGE 
 C     -----------------------------------------
@@ -802,8 +788,6 @@ C
       WIDTH = STPMAX - STPMIN
       WIDTH1 = WIDTH/P5
 
-      IF (BOUNDT.EQ.2) CALL FREEZE_XOC(XMIN,XMAX,MASK,TYPE,X,N,XINIT)
-
       DO 20 J = 1, N
          WA(J) = X(J)
    20    CONTINUE
@@ -858,13 +842,7 @@ C
             X(J) = WA(J) + STP*S(J)
    40    CONTINUE
 
-	 IF (BOUNDT.EQ.1) CALL FREEZE_XOC(XMIN,XMAX,MASK,TYPE,X,N,XINIT)
-         
-         DO 41 I=1,N
-            X(I)=max(XMIN,X(I))
-            X(I)=min(XMAX,X(I))
-   41    CONTINUE
-
+	 IF (BOUNDT.EQ.1) CALL FREEZE_XOC(XMIN,XMAX,NPARAM,X,N)
 
          INFO=-1
          

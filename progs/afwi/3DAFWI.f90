@@ -90,6 +90,13 @@ program THREEDAFWI
   write(0,*) 'INFO:    data_nrm_type  :',invparam%dat_nrm_type
   write(0,*) 'INFO:    data_threshold :',invparam%dat_thresh
   write(0,*) 'INFO:    vprho_param    :',invparam%vprho_param
+  if (invparam%nparam.ne.1) then
+     if (invparam%vprho_param.eq.0) then
+        write(0,*) 'INFO:      Vp/Rho parameterization '
+     else
+        write(0,*) 'INFO:      Vp/Imp parameterization '
+     end if
+  end if
   write(0,*) 'INFO:    number of param:',invparam%nparam
   write(0,*) 'INFO:'
   write(0,*) 'INFO: ------- Size model space for propagation --------'
