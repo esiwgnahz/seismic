@@ -270,15 +270,9 @@ contains
     real                 :: dxi,dyi,dzi
     integer              :: i,j,k
   
-    
-    delp3d=1./mod%rho2
     dzi =1./genpar%delta(1)
     dxi =1./genpar%delta(2)
     dyi =1./genpar%delta(3)
-
-    s3dzz=0.
-    s3dyy=0.
-    s3dxx=0.
 
     !$OMP PARALLEL DO PRIVATE(k,j,i)
     do k=bounds%nmin3,bounds%nmax3
@@ -388,13 +382,16 @@ contains
   end subroutine FD_3D_derivatives_acoustic_forward_grid
   
 
-  subroutine allocate_sxx3d_syy3d_szz3d_delp3d(bounds)    
-    type(FDbounds)       ::                            bounds
+  subroutine allocate_sxx3d_syy3d_szz3d_delp3d(bounds,mod)    
+    type(FDbounds)       ::                    bounds
+    type(ModelSpace)     ::                           mod
 
     allocate(s3dxx(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))
     allocate(s3dyy(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))
     allocate(s3dzz(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4)) 
     allocate(delp3d(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3-4:bounds%nmax3+4))     
+    delp3d=1./mod%rho2
+
   end subroutine allocate_sxx3d_syy3d_szz3d_delp3d
 
   subroutine deallocate_sxx3d_syy3d_szz3d_delp3d()
@@ -411,14 +408,22 @@ contains
     real                 :: dxi,dyi,dzi,alpha
     integer              :: i,j,k,iz,iy,ix
 
-    delp3d=1./mod%rho2
     dzi =1./genpar%delta(1)
     dxi =1./genpar%delta(2)
     dyi =1./genpar%delta(3)
 
-    s3dzz=0.
-    s3dyy=0.
-    s3dxx=0.
+    ! First compute derivatives everywhere with first order stencil
+    !$OMP PARALLEL DO PRIVATE(k,j,i)
+    do k=bounds%nmin3-4,bounds%nmax3+4
+       do j=bounds%nmin2-4,bounds%nmax2+4
+          do i=bounds%nmin1-4,bounds%nmax1+4  
+             s3dzz(i,j,k)=0.
+             s3dyy(i,j,k)=0.
+             s3dxx(i,j,k)=0.
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
 
     ! First compute derivatives everywhere with first order stencil
     !$OMP PARALLEL DO PRIVATE(k,j,i,ix,iy,iz,alpha)
@@ -433,7 +438,17 @@ contains
              s3dzz(i,j,k)=dzi*(u2(i+1,j,k)-u2(i,j,k))*alpha
              s3dxx(i,j,k)=dxi*(u2(i,j+1,k)-u2(i,j,k))*alpha
              s3dyy(i,j,k)=dyi*(u2(i,j,k+1)-u2(i,j,k))*alpha
-  
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+ 
+    ! First compute derivatives everywhere with first order stencil
+    !$OMP PARALLEL DO PRIVATE(ix,iy,iz,alpha)
+    do iy=bounds%nmin3,bounds%nmax3
+       do ix=bounds%nmin2,bounds%nmax2
+          do iz=bounds%nmin1,bounds%nmax1
+             alpha=delp3d(iz,ix,iy)
              s3dzz(iz,ix,iy)=      (coefs%c1z*(u2(iz+1,ix  ,iy  )-u2(iz  ,ix  ,iy  ))+ &
              &                      coefs%c2z*(u2(iz+2,ix  ,iy  )-u2(iz-1,ix  ,iy  ))+ &
              &                      coefs%c3z*(u2(iz+3,ix  ,iy  )-u2(iz-2,ix  ,iy  ))+ &
@@ -556,12 +571,14 @@ contains
 
   end subroutine FD_2D_derivatives_acoustic_forward
   
-  subroutine allocate_sxx2d_szz2d_delp2d(bounds)    
-    type(FDbounds)       ::                            bounds
+  subroutine allocate_sxx2d_szz2d_delp2d(bounds,mod)    
+    type(FDbounds)       ::              bounds
+    type(ModelSpace)     ::                     mod
 
     allocate(s2dxx(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3:bounds%nmax3))
     allocate(s2dzz(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3:bounds%nmax3)) 
     allocate(delp2d(bounds%nmin1-4:bounds%nmax1+4,bounds%nmin2-4:bounds%nmax2+4,bounds%nmin3:bounds%nmax3))     
+    delp2d=1./mod%rho2
   end subroutine allocate_sxx2d_szz2d_delp2d
 
   subroutine deallocate_sxx2d_szz2d_delp2d()
@@ -578,12 +595,8 @@ contains
     real                 :: dxi,dzi
     integer              :: i,j
     
-    delp2d=1./mod%rho2
     dzi =1./genpar%delta(1)
     dxi =1./genpar%delta(2)
-
-    s2dxx=0.
-    s2dzz=0. 
 
     do j=bounds%nmin2,bounds%nmax2
        do i=bounds%nmin1,bounds%nmax1   

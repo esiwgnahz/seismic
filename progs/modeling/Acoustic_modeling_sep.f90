@@ -87,7 +87,7 @@ program Acoustic_modeling_sep
         & sou=sourcevec,wfld=wfld_fwd,datavec=datavec,     &
         & ExtractData=Extraction_array_sinc,ExtractWave=Extraction_wavefield)
      else
-        call allocate_sxx2d_szz2d_delp2d(bounds)
+        call allocate_sxx2d_szz2d_delp2d(bounds,mod)
         call propagator_acoustic(                          &
         & FD_acoustic_rho_init_coefs,                      &
         & FD_2D_derivatives_acoustic_forward_grid,         &
@@ -111,7 +111,7 @@ program Acoustic_modeling_sep
         & sou=sourcevec,wfld=wfld_fwd,datavec=datavec,     &
         & ExtractData=Extraction_array_sinc,ExtractWave=Extraction_wavefield) 
      else
-        call allocate_sxx3d_syy3d_szz3d_delp3d(bounds)
+        call allocate_sxx3d_syy3d_szz3d_delp3d(bounds,mod)
         call propagator_acoustic(                          &
         & FD_acoustic_rho_init_coefs,                      &
         & FD_3D_derivatives_acoustic_forward_grid,         &

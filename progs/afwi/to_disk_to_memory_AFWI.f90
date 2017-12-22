@@ -90,7 +90,7 @@ module to_disk_to_memory_AFWI_mod
             & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield_copy_to_disk) 
          else
-            call allocate_sxx2d_szz2d_delp2d(bounds)
+            call allocate_sxx2d_szz2d_delp2d(bounds,mod)
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_2D_derivatives_acoustic_forward_grid,       &
@@ -116,7 +116,7 @@ module to_disk_to_memory_AFWI_mod
             & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield_copy_to_disk) 
          else
-            call allocate_sxx3d_syy3d_szz3d_delp3d(bounds)
+            call allocate_sxx3d_syy3d_szz3d_delp3d(bounds,mod)
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_3D_derivatives_acoustic_forward_grid,       &
@@ -183,7 +183,7 @@ module to_disk_to_memory_AFWI_mod
             & bounds,mod,elev,genpar,                        &
             & sou=dmodvec,ImagingCondition=Imaging_condition_AFWI_from_disk)
          else
-            call allocate_sxx2d_szz2d_delp2d(bounds)
+            call allocate_sxx2d_szz2d_delp2d(bounds,mod)
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_2D_derivatives_acoustic_forward_grid,       &
@@ -205,7 +205,7 @@ module to_disk_to_memory_AFWI_mod
             & bounds,mod,elev,genpar,                        &
             & sou=dmodvec,ImagingCondition=Imaging_condition_AFWI_from_disk)
          else
-            call allocate_sxx3d_syy3d_szz3d_delp3d(bounds)
+            call allocate_sxx3d_syy3d_szz3d_delp3d(bounds,mod)
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_3D_derivatives_acoustic_forward_grid,       &
@@ -276,7 +276,7 @@ module to_disk_to_memory_AFWI_mod
             & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield,wfld=wfld_fwd) 
          else
-            call allocate_sxx2d_szz2d_delp2d(bounds)
+            call allocate_sxx2d_szz2d_delp2d(bounds,mod)
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_2D_derivatives_acoustic_forward_grid,       &
@@ -302,7 +302,7 @@ module to_disk_to_memory_AFWI_mod
             & ExtractData=Extraction_array_sinc_afwi,        &
             & ExtractWave=Extraction_wavefield,wfld=wfld_fwd) 
          else
-            call allocate_sxx3d_syy3d_szz3d_delp3d(bounds)
+            call allocate_sxx3d_syy3d_szz3d_delp3d(bounds,mod)
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_3D_derivatives_acoustic_forward_grid,      &
@@ -370,7 +370,7 @@ module to_disk_to_memory_AFWI_mod
             & bounds,mod,elev,genpar,                        &
             & sou=dmodvec,ImagingCondition=Imaging_condition_AFWI_from_memory)
          else
-            call allocate_sxx2d_szz2d_delp2d(bounds)
+            call allocate_sxx2d_szz2d_delp2d(bounds,mod)
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_2D_derivatives_acoustic_forward_grid,       &
@@ -392,7 +392,7 @@ module to_disk_to_memory_AFWI_mod
             & bounds,mod,elev,genpar,                        &
             & sou=dmodvec,ImagingCondition=Imaging_condition_AFWI_from_memory)
          else
-            call allocate_sxx3d_syy3d_szz3d_delp3d(bounds)
+            call allocate_sxx3d_syy3d_szz3d_delp3d(bounds,mod)
             call propagator_acoustic(                        &
             & FD_acoustic_rho_init_coefs,                    &
             & FD_3D_derivatives_acoustic_forward_grid,       &
