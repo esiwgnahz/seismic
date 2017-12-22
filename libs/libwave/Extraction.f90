@@ -579,7 +579,11 @@ contains
        dat%counter=dat%counter+1
        if (genpar%surf_type.ne.0) then
           do k=1,model%nyw
-             buffer_sou = 0.
+             do i=1,model%nxw
+                do j=1,model%nz
+                   buffer_sou(j,i)=0.
+                end do
+             end do
              do j=1,model%nxw
                 do i=elev%ielev_z(j,k),model%nz
                    buffer_sou(i,j) = u(i,j,k)
@@ -622,7 +626,11 @@ contains
     MODULO:if (mod(it,genpar%snapi).eq.0) then
        if (genpar%surf_type.ne.0) then
           do k=1,model%nyw
-             buffer_sou = 0.
+             do i=1,model%nxw
+                do j=1,model%nz
+                   buffer_sou(j,i)=0.
+                end do
+             end do
              do j=1,model%nxw
                 do i=elev%ielev_z(j,k),model%nz
                    buffer_sou(i,j) = u(i,j,k)
