@@ -66,7 +66,6 @@ contains
        else
           call read_sepfile(nlinv_sepfile%modi)
        end if
-
        if (.not.exist_file(nlinv_sepfile%wgh%tag)) then
           ! We set the weight to one if the file doesn't exist
           allocate(nlinv_sepfile%wgh%array(product(nlinv_sepfile%gdt%n)))
@@ -77,11 +76,13 @@ contains
        
        do i=1,size(nlinv_sepfile%mod%n)
        
-          ! Do gdt and wgh have the same size?
-          if (nlinv_sepfile%gdt%n(i).ne.nlinv_sepfile%wgh%n(i)) then
-             write(0,*) 'Gradient and Gradient weight have different sizes, exit now'
-             lbfgs_setup_sepfile=.false.
-             return
+          if (exist_file(nlinv_sepfile%wgh%tag)) then
+             ! Do gdt and wgh have the same size?
+             if (nlinv_sepfile%gdt%n(i).ne.nlinv_sepfile%wgh%n(i)) then
+                write(0,*) 'Gradient and Gradient weight have different sizes, exit now'
+                lbfgs_setup_sepfile=.false.
+                return
+             end if
           end if
           
           ! Do mod and modi have the same size?
