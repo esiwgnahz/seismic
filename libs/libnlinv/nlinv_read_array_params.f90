@@ -30,6 +30,19 @@ contains
     call from_param('lbfgs_type',nlinv_sepfile%lbfgs_type,0)
     call from_param('bound_type',nlinv_sepfile%clip_type,1)
     call from_param('stp1_opt',nlinv_sepfile%stp1_opt,1)
+    
+    write(0,*) 'INFO:'
+    write(0,*) 'INFO:-------------'
+    write(0,*) 'INFO: lbfgs_type = ',nlinv_sepfile%lbfgs_type
+    write(0,*) 'INFO: bound_type = ',nlinv_sepfile%clip_type
+    if (nlinv_sepfile%clip_type.eq.1) then
+       write(0,*) 'INFO:   model clipped at each fct/gdt eval'
+    else
+       write(0,*) 'INFO:   model clipped at each new iteration'
+    end if
+    write(0,*) 'INFO: stp1_opt   = ', nlinv_sepfile%stp1_opt
+    write(0,*) 'INFO:-------------'
+    write(0,*) 'INFO:'
     !*************************************************
 
     ! We first read the sep files for model, gradient and function and 
@@ -116,7 +129,7 @@ contains
     logical :: lbfgs_setup
     logical :: iflagExists
     logical :: myInfoExists
-    real, dimension(:), allocatable :: tmp
+    real, dimension(:), allocatable :: tmp,tmpmin,tmpmax
 
     double precision :: NMEMORY
 
@@ -183,9 +196,23 @@ contains
     allocate(nlinv_sepfile%xmax(nlinv_param%nparams))
     
     allocate(tmp(size(nlinv_sepfile%xmin))); tmp=0.
-    call from_param('xmin',nlinv_sepfile%xmin,tmp)
-    call from_param('xmax',nlinv_sepfile%xmax,tmp)
-    deallocate(tmp)
+    if(nlinv_sepfile%lbfgs_type.eq.1) then
+       allocate(tmpmin(size(nlinv_sepfile%xmin))); tmpmin=0.
+       allocate(tmpmax(size(nlinv_sepfile%xmin))); tmpmax=0.
+       call from_param('xmin',tmpmin,tmp)
+       call from_param('xmax',tmpmax,tmp)
+       nlinv_sepfile%xmin=dble(tmpmin)
+       nlinv_sepfile%xmax=dble(tmpmax)
+       write(0,*) 'INFO:'
+       write(0,*) 'INFO:----------'
+       write(0,*) 'INFO: xmin    =',nlinv_sepfile%xmin
+       write(0,*) 'INFO: xmax    =',nlinv_sepfile%xmax
+       write(0,*) 'INFO: nparams =',nlinv_param%nparams 
+       write(0,*) 'INFO:----------'
+       write(0,*) 'INFO:'
+    end if
+
+    deallocate(tmp,tmpmax,tmpmin)
 
     ! We keep the history of the last 5 iterations for the inverse Hessian
     nlinv_param%MSAVE  =5 

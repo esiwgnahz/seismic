@@ -9,9 +9,9 @@
       M=N/NPARAM
 
       DO 40 J=1,NPARAM
+         IMIN=XMIN(J)
+         IMAX=XMAX(J)
          DO 30 I=1+(J-1)*M,M+(J-1)*M
-            IMIN=XMIN(J)
-            IMAX=XMAX(J)
             X(I)=max(IMIN,X(I))
             X(I)=min(IMAX,X(I))
  30      CONTINUE
@@ -497,9 +497,11 @@ C     ----------------------------------------------------
 c      write(0,*) 'stp before mcsrch',stp,'nfev',nfev
 c      write(0,*) 'stp before mcsrch',stp,'iter',iter,'iflag',iflag
 c      write(0,*) 'info before',info
+
       CALL MCSRCHOC(N,X,F,G,W(ISPT+POINT*N+1),STP,FTOL,
-     *            XTOL,MAXFEV,INFO,NFEV,DIAG,XMIN,XMAX, MCSRCH_DAT,
-     *            MCSRCHOUT_DAT, BOUNDT)
+     *            XTOL,MAXFEV,INFO,NFEV,DIAG,XMIN,XMAX,NPARAM,
+     *            MCSRCH_DAT,MCSRCHOUT_DAT, BOUNDT)
+
 c      write(0,*) 'stp  afte mcsrch',stp,'nfev',nfev,'iter',iter
 c      write(0,*) 'info',info
       IF (INFO .EQ. -1) THEN
@@ -610,12 +612,12 @@ C     LINE SEARCH ROUTINE MCSRCH
 C     **************************
 C
       SUBROUTINE MCSRCHOC(N,X,F,G,S,STP,FTOL,XTOL,
-     *                     MAXFEV,INFO,NFEV,WA,XMIN,XMAX,
+     *                     MAXFEV,INFO,NFEV,WA,XMIN,XMAX,NPARAM,
      *                     MCSRCH_DAT, MCSRCHOUT_DAT, BOUNDT)
-      INTEGER N,MAXFEV,INFO,NFEV
+      INTEGER N,MAXFEV,INFO,NFEV,NPARAM
       DOUBLE PRECISION F,STP,FTOL,GTOL,XTOL,STPMIN,STPMAX
       DOUBLE PRECISION X(N),G(N),S(N),WA(N)
-      DOUBLE PRECISION XMIN,XMAX
+      DOUBLE PRECISION XMIN(NPARAM),XMAX(NPARAM)
       CHARACTER(len=1024) MCSRCH_DAT
       CHARACTER(len=1024) MCSRCHOUT_DAT
       INTEGER BOUNDT

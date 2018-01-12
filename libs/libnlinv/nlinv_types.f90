@@ -19,7 +19,7 @@ module nlinv_types_mod
      type(sepfile_type) :: wgh ! Gradient weight
     
      ! min and max values for each parameter
-     real, dimension(:), allocatable :: xmin, xmax
+     double precision, dimension(:), allocatable :: xmin, xmax
 
      !************************************************************************
      ! These parameters are read from the command line using seplib from_param
