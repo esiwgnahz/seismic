@@ -205,8 +205,8 @@ contains
        nlinv_sepfile%xmax=dble(tmpmax)
        write(0,*) 'INFO:'
        write(0,*) 'INFO:----------'
-       write(0,*) 'INFO: xmin    =',nlinv_sepfile%xmin
-       write(0,*) 'INFO: xmax    =',nlinv_sepfile%xmax
+       write(0,*) 'INFO: xmin    =',tmpmin
+       write(0,*) 'INFO: xmax    =',tmpmax
        write(0,*) 'INFO: nparams =',nlinv_param%nparams 
        write(0,*) 'INFO:----------'
        write(0,*) 'INFO:'
